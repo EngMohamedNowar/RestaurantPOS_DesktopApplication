@@ -1,0 +1,191 @@
+﻿<!-- Views/OpenShiftDialog.xaml -->
+<Window x:Class="PizzaPOS.Views.OpenShiftDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="فتح شفت جديد" Height="360" Width="380"
+        WindowStartupLocation="CenterScreen"
+        ResizeMode="NoResize"
+        Background="#070b14"
+        FlowDirection="RightToLeft"
+        FontFamily="Tahoma"
+        BorderBrush="#06d6a0"
+        BorderThickness="1">
+
+    <Window.Resources>
+        <DropShadowEffect x:Key="GreenGlow"
+                          Color="#06d6a0"
+                          BlurRadius="20"
+                          ShadowDepth="0"
+                          Opacity="0.6"/>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- ══ HEADER ══ -->
+        <Border Grid.Row="0"
+                Background="#0c1221"
+                BorderBrush="#06d6a0"
+                BorderThickness="0,0,0,2"
+                Padding="20,16,20,16">
+            <StackPanel Orientation="Horizontal">
+                <Border Background="#06d6a0"
+                        CornerRadius="12"
+                        Width="46" Height="46"
+                        Margin="0,0,14,0"
+                        Effect="{StaticResource GreenGlow}">
+                    <TextBlock Text="💰"
+                               FontSize="22"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="فتح شفت جديد"
+                               FontSize="17"
+                               FontWeight="Black"
+                               Foreground="#eef0f2"/>
+                    <TextBlock Text="أدخل رصيد افتتاح الخزنة"
+                               FontSize="10"
+                               Foreground="#4a6080"
+                               Margin="0,3,0,0"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <!-- ══ CONTENT ══ -->
+        <StackPanel Grid.Row="1" Margin="22,20,22,12">
+
+            <TextBlock Text="رصيد الخزنة (جنيه)"
+                       FontSize="11"
+                       FontWeight="Bold"
+                       Foreground="#4a6080"
+                       Margin="0,0,0,8"/>
+
+            <Border Background="#0f1a2e"
+                    BorderBrush="#1e2d4a"
+                    BorderThickness="1"
+                    CornerRadius="12"
+                    Margin="0,0,0,16">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox x:Name="CashBox"
+                             Grid.Column="0"
+                             Text="0"
+                             FontSize="28"
+                             FontWeight="Black"
+                             Foreground="#06d6a0"
+                             Background="Transparent"
+                             BorderThickness="0"
+                             Padding="16,16,8,16"
+                             TextAlignment="Right"
+                             VerticalContentAlignment="Center"
+                             CaretBrush="#06d6a0"
+                             SelectionBrush="#06d6a0"/>
+
+                    <Border Grid.Column="1"
+                            Background="#0a1520"
+                            CornerRadius="0,12,12,0"
+                            Padding="14,0,14,0">
+                        <TextBlock Text="ج"
+                                   FontSize="18"
+                                   FontWeight="Black"
+                                   Foreground="#2a4060"
+                                   VerticalAlignment="Center"/>
+                    </Border>
+                </Grid>
+            </Border>
+
+            <Border Background="#0a1520"
+                    BorderBrush="#1a2540"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="12,8,12,8">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="ℹ️"
+                               FontSize="12"
+                               Margin="0,0,8,0"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="سيتم تسجيل هذا المبلغ كرصيد افتتاح للشفت الجديد"
+                               FontSize="10"
+                               Foreground="#3a5070"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+
+        </StackPanel>
+
+        <!-- ══ FOOTER ══ -->
+        <Border Grid.Row="2"
+                Background="#090e1a"
+                BorderBrush="#1a2540"
+                BorderThickness="0,1,0,0"
+                Padding="18,14,18,18">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="100"/>
+                    <ColumnDefinition Width="10"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <Button Grid.Column="0"
+                        Content="إلغاء"
+                        Click="Cancel_Click"
+                        Background="#12192e"
+                        Foreground="#8892a4"
+                        FontSize="13"
+                        FontWeight="Bold"
+                        Padding="0,13,0,13"
+                        BorderBrush="#1e2d4a"
+                        BorderThickness="1"
+                        Cursor="Hand">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    BorderBrush="{TemplateBinding BorderBrush}"
+                                    BorderThickness="{TemplateBinding BorderThickness}"
+                                    CornerRadius="10"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+                <Button Grid.Column="2"
+                        Content="✅  فتح الشفت"
+                        Click="Confirm_Click"
+                        Background="#06d6a0"
+                        Foreground="#070b14"
+                        FontSize="14"
+                        FontWeight="Black"
+                        Padding="0,13,0,13"
+                        BorderThickness="0"
+                        Cursor="Hand"
+                        Effect="{StaticResource GreenGlow}">
+                    <Button.Template>
+                        <ControlTemplate TargetType="Button">
+                            <Border Background="{TemplateBinding Background}"
+                                    CornerRadius="10"
+                                    Padding="{TemplateBinding Padding}">
+                                <ContentPresenter HorizontalAlignment="Center"
+                                                  VerticalAlignment="Center"/>
+                            </Border>
+                        </ControlTemplate>
+                    </Button.Template>
+                </Button>
+
+            </Grid>
+        </Border>
+
+    </Grid>
+</Window>

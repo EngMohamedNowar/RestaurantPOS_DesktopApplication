@@ -1,30 +1,30 @@
 # Restaurant POS — Desktop Application
 
-نظام كاشير (Point of Sale) لسطح المكتب مبني بـ **WPF** و **.NET 10**، موجّه لمطاعم البيتزا والوجبات السريعة. يدعم العربية، إدارة المخزون، الشيفتات، الديلفري، والطباعة على طابعات Epson (ESC/POS).
+A desktop Point of Sale (POS) system built with **WPF** and **.NET 10**, designed for pizza and fast-food restaurants. Supports Arabic UI, inventory management, shifts, delivery, and Epson ESC/POS receipt printing.
 
-## المميزات
+## Features
 
-- **نقطة البيع:** فئات، منتجات، أحجام، إضافات، خصم (نسبة/مبلغ)، ضريبة، رسوم خدمة
-- **أنواع الطلب:** صالة، تيك أواي، ديلفري
-- **الشيفتات:** فتح/إغلاق شيفت، مطابقة الكاش
-- **المخزون:** مكونات، حركات مخزون، تنبيه مخزون منخفض
-- **التقارير:** مبيعات يومية، أرباح، خسائر، تصدير Excel (ClosedXML)
-- **الطباعة:** ESC/POS عبر USB/Serial + درج نقدي
-- **المستخدمون:** أدوار (admin / cashier) وتسجيل دخول بـ PIN
+- **Point of Sale:** Categories, products, sizes, extras, discount (percent/fixed), tax, service charge
+- **Order Types:** Dine-in, takeaway, delivery
+- **Shifts:** Open/close shift, cash reconciliation
+- **Inventory:** Ingredients, stock movements, low-stock alerts
+- **Reports:** Daily sales, profit, losses, Excel export (ClosedXML)
+- **Printing:** ESC/POS via USB/Serial + cash drawer
+- **Users:** Roles (admin / cashier) and PIN-based login
 
-## المتطلبات
+## Requirements
 
 - Windows 10/11
 - [.NET 10 SDK](https://dotnet.microsoft.com/download)
 
-## التشغيل
+## Run
 
 ```powershell
 cd PizzaPOS
 dotnet run
 ```
 
-## بناء نسخة للتوزيع (Self-contained)
+## Build for Distribution (Self-contained)
 
 ```powershell
 cd PizzaPOS
@@ -34,23 +34,23 @@ dotnet publish -c Release -r win-x64 --self-contained true `
   -o ./publish
 ```
 
-الملف التنفيذي يظهر في مجلد `PizzaPOS/publish/`.
+The executable is output to `PizzaPOS/publish/`.
 
-## بيانات الدخول الافتراضية (أول تشغيل)
+## Default Login (First Run)
 
-| المستخدم | PIN |
-|----------|-----|
-| `admin` | `1234` |
+| User       | PIN    |
+|------------|--------|
+| `admin`    | `1234` |
 | `cashier1` | `1234` |
 
-> **مهم:** غيّر PIN الأدمن فوراً بعد أول تشغيل في بيئة الإنتاج.
+> **Important:** Change the admin PIN immediately after first run in production.
 
-## قاعدة البيانات
+## Database
 
-- SQLite محلية في: `%AppData%\PizzaPOS\pos.db`
-- يتم إنشاء الجداول والبيانات التجريبية تلقائياً عند أول تشغيل
+- Local SQLite at: `%AppData%\PizzaPOS\pos.db`
+- Tables and sample data are created automatically on first launch
 
-## هيكل المشروع
+## Project Structure
 
 ```
 RestaurantPOS_DesktopApplication/
@@ -63,6 +63,6 @@ RestaurantPOS_DesktopApplication/
     └── Views/          # WPF windows & dialogs
 ```
 
-## الترخيص
+## License
 
-MIT — راجع [LICENSE.txt](LICENSE.txt)
+MIT — see [LICENSE.txt](LICENSE.txt)

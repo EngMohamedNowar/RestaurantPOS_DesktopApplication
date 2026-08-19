@@ -33,6 +33,7 @@ namespace PizzaPOS.Views
         TextBlock _countTxt = null!;
         Button _addBtn = null!;
         TextBlock _editBadge = null!;
+        StackPanel _editBadgeRow = null!;
 
         // ── حالة التعديل ──────────────────────────────
         int? _editingIngredientId = null;
@@ -359,14 +360,6 @@ namespace PizzaPOS.Views
 
             _dg.ItemsSource = _items;
 
-            var dgHint = new TextBlock
-            {
-                Text = "💡 دبل كليك على أي صف لتعديل الكمية",
-                FontSize = 10,
-                Foreground = B("#4a6080"),
-                Margin = new Thickness(0, 6, 0, 0)
-            };
-
             var dgWrap = new Border
             {
                 BorderBrush = B("#a78bfa"),
@@ -534,8 +527,6 @@ namespace PizzaPOS.Views
             Content = root;
         }
 
-        StackPanel _editBadgeRow = null!;
-
         // ══════════════════════════════════════
         //  LOAD DATA
         // ══════════════════════════════════════
@@ -600,17 +591,11 @@ namespace PizzaPOS.Views
 
             _db.SaveProductIngredient(_productId, ing.Id, qty);
 
-            bool wasEditing = _editingIngredientId != null;
             _editingIngredientId = null;
             SetEditModeVisual(false);
 
             LoadData();
             _qtyBox.Text = "1.00";
-
-            if (wasEditing)
-            {
-                _headerCostTxt.Text = _headerCostTxt.Text; // نفس السلوك، بس ممكن تضيف Toast لو حابب
-            }
         }
 
         // ══════════════════════════════════════

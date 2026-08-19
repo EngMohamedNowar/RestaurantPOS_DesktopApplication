@@ -1215,5 +1215,54 @@ namespace PizzaPOS.Data
             using var r = cmd.ExecuteReader(); r.Read();
             return (r.GetDouble(0), r.GetDouble(1));
         }
+
+        // ── Offers ────────────────────────────────────
+        public List<Offer> GetOffers()
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = "SELECT Id,Title,Description,DiscountPercent,PromoCode,IsActive,CreatedAt FROM Offers ORDER BY Id DESC";
+            using var r = cmd.ExecuteReader();
+            var list = new List<Offer>();
+            while (r.Read()) list.Add(new Offer
+            {
+                Id = r.GetInt32(0),
+                Title = r.GetString(1),
+                Description = r.IsDBNull(2) ? "" : r.GetString(2),
+                DiscountPercent = r.GetDouble(3),
+                PromoCode = r.IsDBNull(4) ? "" : r.GetString(4),
+                IsActive = r.GetInt64(5) == 1,
+                CreatedAt = r.GetString(6)
+            });
+            return list;
+        }
+
+        public void SaveOffer(Offer o)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            if (o.Id == 0)
+                cmd.CommandText = @"INSERT INTO Offers(Title,Description,DiscountPercent,PromoCode,IsActive)
+                    VALUES(@t,@d,@dc,@pc,@a); SELECT last_insert_rowid();";
+            else
+                cmd.CommandText = @"UPDATE Offers SET Title=@t,Description=@d,DiscountPercent=@dc,PromoCode=@pc,IsActive=@a WHERE Id=@id";
+            cmd.Parameters.AddWithValue("@t", o.Title);
+            cmd.Parameters.AddWithValue("@d", o.Description);
+            cmd.Parameters.AddWithValue("@dc", o.DiscountPercent);
+            cmd.Parameters.AddWithValue("@pc", o.PromoCode);
+            cmd.Parameters.AddWithValue("@a", o.IsActive ? 1 : 0);
+            if (o.Id != 0) cmd.Parameters.AddWithValue("@id", o.Id);
+            if (o.Id == 0) o.Id = Convert.ToInt32(cmd.ExecuteScalar());
+            else cmd.ExecuteNonQuery();
+        }
+
+        public void DeleteOffer(int id)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = "DELETE FROM Offers WHERE Id=@id";
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.ExecuteNonQuery();
+        }
     }
 }

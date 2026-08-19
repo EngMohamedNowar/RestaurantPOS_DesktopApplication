@@ -15,6 +15,7 @@ namespace PizzaPOS.Models
         public int LoyaltyPoints { get; set; }
         public int TotalOrders { get; set; }
         public double TotalSpent { get; set; }
+        public bool IsSelected { get; set; } = true;
         public string Display => $"{Name} — {Phone}";
         public string LoyaltyTier => TotalSpent >= 5000 ? "💎 ماسي" :
                                      TotalSpent >= 2000 ? "🥇 ذهبي" :

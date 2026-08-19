@@ -237,6 +237,16 @@ namespace PizzaPOS.Data
             // ── Loyalty Points migration ──
             TryMigrate(conn, "ALTER TABLE Customers ADD COLUMN LoyaltyPoints INTEGER DEFAULT 0", "Customers.LoyaltyPoints");
 
+            // ── Offers ──
+            Exec(conn, @"CREATE TABLE IF NOT EXISTS Offers (
+                Id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                Title            TEXT    NOT NULL,
+                Description      TEXT    DEFAULT '',
+                DiscountPercent  REAL    DEFAULT 0,
+                PromoCode        TEXT    DEFAULT '',
+                IsActive         INTEGER DEFAULT 1,
+                CreatedAt        TEXT    NOT NULL DEFAULT (datetime('now','localtime')));");
+
             Seed(conn);
             EnsureDefaultUsers(conn);
         }

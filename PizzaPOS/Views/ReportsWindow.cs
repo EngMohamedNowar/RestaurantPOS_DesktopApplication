@@ -1,5 +1,6 @@
 ﻿// Views/ReportsWindow.cs
 using PizzaPOS.Data;
+using PizzaPOS.Helpers;
 using PizzaPOS.Models;
 using PizzaPOS.Services;
 using System;
@@ -27,15 +28,12 @@ namespace PizzaPOS.Views
         TextBlock _totalProfitTxt = null!;
         TextBlock _totalOrdersTxt = null!;
 
-        SolidColorBrush B(string hex) =>
-            new((Color)ColorConverter.ConvertFromString(hex));
-
         public ReportsWindow()
         {
             Title = "📊 التقارير";
             Width = 1060; Height = 700;
             MinWidth = 900;
-            Background = B("#070b14");
+            Background = UiHelper.B("#070b14");
             FlowDirection = FlowDirection.RightToLeft;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             FontFamily = new FontFamily("Tahoma");
@@ -49,9 +47,9 @@ namespace PizzaPOS.Views
         {
             // ── Calendar container ──────────────────────────────────────────
             var calStyle = new Style(typeof(Calendar));
-            calStyle.Setters.Add(new Setter(Calendar.BackgroundProperty, B("#0c1221")));
-            calStyle.Setters.Add(new Setter(Calendar.ForegroundProperty, B("#eef0f2")));
-            calStyle.Setters.Add(new Setter(Calendar.BorderBrushProperty, B("#FF6B35")));
+            calStyle.Setters.Add(new Setter(Calendar.BackgroundProperty, UiHelper.B("#0c1221")));
+            calStyle.Setters.Add(new Setter(Calendar.ForegroundProperty, UiHelper.B("#eef0f2")));
+            calStyle.Setters.Add(new Setter(Calendar.BorderBrushProperty, UiHelper.B("#FF6B35")));
             calStyle.Setters.Add(new Setter(Calendar.BorderThicknessProperty, new Thickness(1)));
             calStyle.Setters.Add(new Setter(Calendar.FontFamilyProperty, new FontFamily("Tahoma")));
             calStyle.Setters.Add(new Setter(Calendar.FontSizeProperty, 12.0));
@@ -60,8 +58,8 @@ namespace PizzaPOS.Views
 
             // ── CalendarDayButton — كل يوم في التقويم ──────────────────────
             var dayStyle = new Style(typeof(CalendarDayButton));
-            dayStyle.Setters.Add(new Setter(CalendarDayButton.ForegroundProperty, B("#c8d8f0")));
-            dayStyle.Setters.Add(new Setter(CalendarDayButton.BackgroundProperty, B("#0c1221")));
+            dayStyle.Setters.Add(new Setter(CalendarDayButton.ForegroundProperty, UiHelper.B("#c8d8f0")));
+            dayStyle.Setters.Add(new Setter(CalendarDayButton.BackgroundProperty, UiHelper.B("#0c1221")));
             dayStyle.Setters.Add(new Setter(CalendarDayButton.FontSizeProperty, 11.5));
             dayStyle.Setters.Add(new Setter(CalendarDayButton.FontWeightProperty, FontWeights.Bold));
             dayStyle.Setters.Add(new Setter(CalendarDayButton.MinWidthProperty, 32.0));
@@ -70,27 +68,27 @@ namespace PizzaPOS.Views
 
             // Hover
             var dayHover = new Trigger { Property = CalendarDayButton.IsMouseOverProperty, Value = true };
-            dayHover.Setters.Add(new Setter(CalendarDayButton.BackgroundProperty, B("#1a2d50")));
-            dayHover.Setters.Add(new Setter(CalendarDayButton.ForegroundProperty, B("#FF6B35")));
+            dayHover.Setters.Add(new Setter(CalendarDayButton.BackgroundProperty, UiHelper.B("#1a2d50")));
+            dayHover.Setters.Add(new Setter(CalendarDayButton.ForegroundProperty, UiHelper.B("#FF6B35")));
             dayStyle.Triggers.Add(dayHover);
 
             // Selected — خلفية برتقالية واضحة
             var daySelected = new Trigger { Property = CalendarDayButton.IsSelectedProperty, Value = true };
-            daySelected.Setters.Add(new Setter(CalendarDayButton.BackgroundProperty, B("#FF6B35")));
-            daySelected.Setters.Add(new Setter(CalendarDayButton.ForegroundProperty, B("#ffffff")));
+            daySelected.Setters.Add(new Setter(CalendarDayButton.BackgroundProperty, UiHelper.B("#FF6B35")));
+            daySelected.Setters.Add(new Setter(CalendarDayButton.ForegroundProperty, UiHelper.B("#ffffff")));
             dayStyle.Triggers.Add(daySelected);
 
             // أيام الشهر السابق/التالي — لون خافت
             var dayInactive = new Trigger { Property = CalendarDayButton.IsInactiveProperty, Value = true };
-            dayInactive.Setters.Add(new Setter(CalendarDayButton.ForegroundProperty, B("#2e4060")));
+            dayInactive.Setters.Add(new Setter(CalendarDayButton.ForegroundProperty, UiHelper.B("#2e4060")));
             dayStyle.Triggers.Add(dayInactive);
 
             Resources[typeof(CalendarDayButton)] = dayStyle;
 
             // ── CalendarButton — أزرار الشهر والسنة ────────────────────────
             var calBtnStyle = new Style(typeof(CalendarButton));
-            calBtnStyle.Setters.Add(new Setter(CalendarButton.ForegroundProperty, B("#c8d8f0")));
-            calBtnStyle.Setters.Add(new Setter(CalendarButton.BackgroundProperty, B("#0c1221")));
+            calBtnStyle.Setters.Add(new Setter(CalendarButton.ForegroundProperty, UiHelper.B("#c8d8f0")));
+            calBtnStyle.Setters.Add(new Setter(CalendarButton.BackgroundProperty, UiHelper.B("#0c1221")));
             calBtnStyle.Setters.Add(new Setter(CalendarButton.FontWeightProperty, FontWeights.Bold));
             calBtnStyle.Setters.Add(new Setter(CalendarButton.FontSizeProperty, 12.0));
             calBtnStyle.Setters.Add(new Setter(CalendarButton.MinWidthProperty, 60.0));
@@ -98,8 +96,8 @@ namespace PizzaPOS.Views
             calBtnStyle.Setters.Add(new Setter(CalendarButton.MarginProperty, new Thickness(1)));
 
             var cbHover = new Trigger { Property = CalendarButton.IsMouseOverProperty, Value = true };
-            cbHover.Setters.Add(new Setter(CalendarButton.BackgroundProperty, B("#1a2d50")));
-            cbHover.Setters.Add(new Setter(CalendarButton.ForegroundProperty, B("#FF6B35")));
+            cbHover.Setters.Add(new Setter(CalendarButton.BackgroundProperty, UiHelper.B("#1a2d50")));
+            cbHover.Setters.Add(new Setter(CalendarButton.ForegroundProperty, UiHelper.B("#FF6B35")));
             calBtnStyle.Triggers.Add(cbHover);
 
             Resources[typeof(CalendarButton)] = calBtnStyle;
@@ -119,10 +117,10 @@ namespace PizzaPOS.Views
             var header = new Border
             {
                 Padding = new Thickness(20, 14, 20, 14),
-                BorderBrush = B("#FF6B35"),
+                BorderBrush = UiHelper.B("#FF6B35"),
                 BorderThickness = new Thickness(0, 0, 0, 2)
             };
-            header.Background = B("#0c1221");
+            header.Background = UiHelper.B("#0c1221");
 
             var hGrid = new Grid();
             hGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -132,7 +130,7 @@ namespace PizzaPOS.Views
             var logoSp = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
             var logoIcon = new Border
             {
-                Background = B("#FF6B35"),
+                Background = UiHelper.B("#FF6B35"),
                 CornerRadius = new CornerRadius(10),
                 Width = 40,
                 Height = 40,
@@ -158,13 +156,13 @@ namespace PizzaPOS.Views
                 Text = "التقارير والإحصائيات",
                 FontSize = 17,
                 FontWeight = FontWeights.Black,
-                Foreground = B("#eef0f2")
+                Foreground = UiHelper.B("#eef0f2")
             });
             logoText.Children.Add(new TextBlock
             {
                 Text = "تحليل الأداء والأرباح والخسائر",
                 FontSize = 10,
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 Margin = new Thickness(0, 2, 0, 0)
             });
             logoSp.Children.Add(logoIcon);
@@ -178,17 +176,17 @@ namespace PizzaPOS.Views
             // ══ Summary Cards ════════════════════════════════════════════════
             var cardsBorder = new Border
             {
-                Background = B("#090e1a"),
-                BorderBrush = B("#1a2540"),
+                Background = UiHelper.B("#090e1a"),
+                BorderBrush = UiHelper.B("#1a2540"),
                 BorderThickness = new Thickness(0, 0, 0, 1),
                 Padding = new Thickness(16, 12, 16, 12)
             };
             var cardsPanel = new StackPanel { Orientation = Orientation.Horizontal };
 
-            _totalSalesTxt = new TextBlock { FontSize = 20, FontWeight = FontWeights.Black, Foreground = B("#06d6a0") };
-            _totalProfitTxt = new TextBlock { FontSize = 20, FontWeight = FontWeights.Black, Foreground = B("#a78bfa") };
-            _totalOrdersTxt = new TextBlock { FontSize = 20, FontWeight = FontWeights.Black, Foreground = B("#ffd166") };
-            _totalLossTxt = new TextBlock { FontSize = 20, FontWeight = FontWeights.Black, Foreground = B("#E63946") };
+            _totalSalesTxt = new TextBlock { FontSize = 20, FontWeight = FontWeights.Black, Foreground = UiHelper.B("#06d6a0") };
+            _totalProfitTxt = new TextBlock { FontSize = 20, FontWeight = FontWeights.Black, Foreground = UiHelper.B("#a78bfa") };
+            _totalOrdersTxt = new TextBlock { FontSize = 20, FontWeight = FontWeights.Black, Foreground = UiHelper.B("#ffd166") };
+            _totalLossTxt = new TextBlock { FontSize = 20, FontWeight = FontWeights.Black, Foreground = UiHelper.B("#E63946") };
 
             cardsPanel.Children.Add(MakeSummaryCard("💰 إجمالي المبيعات", _totalSalesTxt, "#06d6a0", "#0a1f18"));
             cardsPanel.Children.Add(MakeSummaryCard("📈 إجمالي الربح", _totalProfitTxt, "#a78bfa", "#130f20"));
@@ -202,8 +200,8 @@ namespace PizzaPOS.Views
             // ══ Filter Bar ═══════════════════════════════════════════════════
             var filterBar = new Border
             {
-                Background = B("#0c1221"),
-                BorderBrush = B("#1a2540"),
+                Background = UiHelper.B("#0c1221"),
+                BorderBrush = UiHelper.B("#1a2540"),
                 BorderThickness = new Thickness(0, 0, 0, 1),
                 Padding = new Thickness(16, 10, 16, 10)
             };
@@ -212,15 +210,15 @@ namespace PizzaPOS.Views
             _fromPicker = MakeDatePicker(DateTime.Today.AddDays(-7));
             _toPicker = MakeDatePicker(DateTime.Today);
 
-            var searchBtn = MakeActionButton("🔍  عرض التقرير", "#FF6B35", B("#fff8f5"));
+            var searchBtn = UiHelper.MakeActionButton("🔍  عرض التقرير", "#FF6B35", UiHelper.B("#fff8f5"));
             searchBtn.Click += (_, _) => LoadData();
 
-            var exportBtn = MakeActionButton("📤  تصدير Excel", "#1e3a5f", B("#7ab8f5"));
+            var exportBtn = UiHelper.MakeActionButton("📤  تصدير Excel", "#1e3a5f", UiHelper.B("#7ab8f5"));
             exportBtn.Click += (_, _) => ExportAll();
 
-            filterSp.Children.Add(FilterLabel("الفترة من:"));
+            filterSp.Children.Add(UiHelper.FieldLabel("الفترة من:"));
             filterSp.Children.Add(_fromPicker);
-            filterSp.Children.Add(FilterLabel("إلى:"));
+            filterSp.Children.Add(UiHelper.FieldLabel("إلى:"));
             filterSp.Children.Add(_toPicker);
             filterSp.Children.Add(searchBtn);
             filterSp.Children.Add(exportBtn);
@@ -229,33 +227,33 @@ namespace PizzaPOS.Views
             root.Children.Add(filterBar);
 
             // ══ Tabs ══════════════════════════════════════════════════════════
-            var tabs = new TabControl { Background = B("#070b14"), BorderThickness = new Thickness(0) };
+            var tabs = new TabControl { Background = UiHelper.B("#070b14"), BorderThickness = new Thickness(0) };
 
             var tabStyle = new Style(typeof(TabItem));
-            tabStyle.Setters.Add(new Setter(TabItem.BackgroundProperty, B("#0c1221")));
-            tabStyle.Setters.Add(new Setter(TabItem.ForegroundProperty, B("#4a6080")));
+            tabStyle.Setters.Add(new Setter(TabItem.BackgroundProperty, UiHelper.B("#0c1221")));
+            tabStyle.Setters.Add(new Setter(TabItem.ForegroundProperty, UiHelper.B("#4a6080")));
             tabStyle.Setters.Add(new Setter(TabItem.FontWeightProperty, FontWeights.Bold));
             tabStyle.Setters.Add(new Setter(TabItem.FontSizeProperty, 12.0));
             tabStyle.Setters.Add(new Setter(TabItem.PaddingProperty, new Thickness(20, 12, 20, 12)));
             tabStyle.Setters.Add(new Setter(TabItem.BorderThicknessProperty, new Thickness(0)));
             var selT = new Trigger { Property = TabItem.IsSelectedProperty, Value = true };
-            selT.Setters.Add(new Setter(TabItem.BackgroundProperty, B("#070b14")));
-            selT.Setters.Add(new Setter(TabItem.ForegroundProperty, B("#FF6B35")));
+            selT.Setters.Add(new Setter(TabItem.BackgroundProperty, UiHelper.B("#070b14")));
+            selT.Setters.Add(new Setter(TabItem.ForegroundProperty, UiHelper.B("#FF6B35")));
             tabStyle.Triggers.Add(selT);
             tabs.Resources.Add(typeof(TabItem), tabStyle);
 
             // ── Tab 1: Daily ─────────────────────────────────────────────────
             _dgDaily = BuildGrid();
-            _dgDaily.Columns.Add(Col("📅 التاريخ", "Date", 120));
-            _dgDaily.Columns.Add(ColNum("المبيعات ج", "Sales", 100, "#eef0f2"));
-            _dgDaily.Columns.Add(ColNum("💵 كاش", "Cash", 88, "#06d6a0"));
-            _dgDaily.Columns.Add(ColNum("💳 فيزا", "Card", 88, "#60a5fa"));
-            _dgDaily.Columns.Add(ColInt("أوردرات", "Orders", 70, "#ffd166"));
-            _dgDaily.Columns.Add(ColNum("خصم", "Discount", 80, "#fb923c"));
-            _dgDaily.Columns.Add(ColNum("ضريبة", "Tax", 80, "#94a3b8"));
-            _dgDaily.Columns.Add(ColNum("خدمة", "ServiceCharge", 80, "#c084fc"));
-            _dgDaily.Columns.Add(ColNum("💹 ربح", "Profit", 95, "#06d6a0"));
-            _dgDaily.Columns.Add(ColNum("📉 خسائر", "Loss", 95, "#E63946"));
+            _dgDaily.Columns.Add(UiHelper.Col("📅 التاريخ", "Date", 120));
+            _dgDaily.Columns.Add(UiHelper.ColNum("المبيعات ج", "Sales", 100, "#eef0f2"));
+            _dgDaily.Columns.Add(UiHelper.ColNum("💵 كاش", "Cash", 88, "#06d6a0"));
+            _dgDaily.Columns.Add(UiHelper.ColNum("💳 فيزا", "Card", 88, "#60a5fa"));
+            _dgDaily.Columns.Add(UiHelper.ColInt("أوردرات", "Orders", 70, "#ffd166"));
+            _dgDaily.Columns.Add(UiHelper.ColNum("خصم", "Discount", 80, "#fb923c"));
+            _dgDaily.Columns.Add(UiHelper.ColNum("ضريبة", "Tax", 80, "#94a3b8"));
+            _dgDaily.Columns.Add(UiHelper.ColNum("خدمة", "ServiceCharge", 80, "#c084fc"));
+            _dgDaily.Columns.Add(UiHelper.ColNum("💹 ربح", "Profit", 95, "#06d6a0"));
+            _dgDaily.Columns.Add(UiHelper.ColNum("📉 خسائر", "Loss", 95, "#E63946"));
 
             // ── Tab 2: Top Products ──────────────────────────────────────────
             _dgProd = BuildGrid();
@@ -268,21 +266,21 @@ namespace PizzaPOS.Views
                 {
                     Setters =
                     {
-                        new Setter(TextBlock.ForegroundProperty, B("#eef0f2")),
+                        new Setter(TextBlock.ForegroundProperty, UiHelper.B("#eef0f2")),
                         new Setter(TextBlock.FontWeightProperty, FontWeights.Bold)
                     }
                 }
             });
-            _dgProd.Columns.Add(Col("الفئة", "Category", 110));
-            _dgProd.Columns.Add(ColInt("الكمية", "Qty", 75, "#ffd166"));
-            _dgProd.Columns.Add(ColNum("المبيعات", "Sales", 105, "#eef0f2"));
-            _dgProd.Columns.Add(ColNum("💹 الربح", "Profit", 105, "#06d6a0"));
+            _dgProd.Columns.Add(UiHelper.Col("الفئة", "Category", 110));
+            _dgProd.Columns.Add(UiHelper.ColInt("الكمية", "Qty", 75, "#ffd166"));
+            _dgProd.Columns.Add(UiHelper.ColNum("المبيعات", "Sales", 105, "#eef0f2"));
+            _dgProd.Columns.Add(UiHelper.ColNum("💹 الربح", "Profit", 105, "#06d6a0"));
 
             // ── Tab 3: Losses ────────────────────────────────────────────────
             var lossPanel = BuildLossTab();
 
-            tabs.Items.Add(new TabItem { Header = "📅  التقرير اليومي", Content = Scroll(_dgDaily) });
-            tabs.Items.Add(new TabItem { Header = "🏆  أكثر المنتجات مبيعاً", Content = Scroll(_dgProd) });
+            tabs.Items.Add(new TabItem { Header = "📅  التقرير اليومي", Content = UiHelper.Scroll(_dgDaily) });
+            tabs.Items.Add(new TabItem { Header = "🏆  أكثر المنتجات مبيعاً", Content = UiHelper.Scroll(_dgProd) });
             tabs.Items.Add(new TabItem { Header = "📉  سجل الخسائر", Content = lossPanel });
 
             Grid.SetRow(tabs, 3);
@@ -296,8 +294,8 @@ namespace PizzaPOS.Views
         {
             var card = new Border
             {
-                Background = B(bgHex),
-                BorderBrush = B(accentHex),
+                Background = UiHelper.B(bgHex),
+                BorderBrush = UiHelper.B(accentHex),
                 BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(12),
                 Padding = new Thickness(16, 10, 16, 10),
@@ -317,7 +315,7 @@ namespace PizzaPOS.Views
                 Text = label,
                 FontSize = 10,
                 FontWeight = FontWeights.Bold,
-                Foreground = B(accentHex),
+                Foreground = UiHelper.B(accentHex),
                 Margin = new Thickness(0, 0, 0, 4)
             });
             valueTxt.Text = "—";
@@ -336,8 +334,8 @@ namespace PizzaPOS.Views
 
             var legendBar = new Border
             {
-                Background = B("#0c1221"),
-                BorderBrush = B("#1a2540"),
+                Background = UiHelper.B("#0c1221"),
+                BorderBrush = UiHelper.B("#1a2540"),
                 BorderThickness = new Thickness(0, 0, 0, 1),
                 Padding = new Thickness(16, 10, 16, 10)
             };
@@ -345,7 +343,7 @@ namespace PizzaPOS.Views
             legendSp.Children.Add(new TextBlock
             {
                 Text = "دليل الألوان:",
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 FontWeight = FontWeights.Bold,
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center,
@@ -355,7 +353,7 @@ namespace PizzaPOS.Views
             legendSp.Children.Add(LegendItem("■", "#ffd166", "بيع بأقل من التكلفة"));
             legendSp.Children.Add(LegendItem("■", "#a78bfa", "خصومات مُعطاة"));
 
-            var addBtn = MakeActionButton("➕  إضافة خسارة", "#E63946", System.Windows.Media.Brushes.White);
+            var addBtn = UiHelper.MakeActionButton("➕  إضافة خسارة", "#E63946", System.Windows.Media.Brushes.White);
             addBtn.HorizontalAlignment = HorizontalAlignment.Left;
             addBtn.Margin = new Thickness(20, 0, 0, 0);
             addBtn.Click += (_, _) => AddManualLoss();
@@ -372,38 +370,38 @@ namespace PizzaPOS.Views
             g.Children.Add(legendBar);
 
             _dgLoss = BuildGrid();
-            _dgLoss.Columns.Add(Col("📅 التاريخ", "Date", 110));
-            _dgLoss.Columns.Add(Col("النوع", "Type", 140));
+            _dgLoss.Columns.Add(UiHelper.Col("📅 التاريخ", "Date", 110));
+            _dgLoss.Columns.Add(UiHelper.Col("النوع", "Type", 140));
             _dgLoss.Columns.Add(new DataGridTextColumn
             {
                 Header = "الوصف",
                 Binding = new Binding("Description"),
                 Width = new DataGridLength(1, DataGridLengthUnitType.Star)
             });
-            _dgLoss.Columns.Add(ColNum("المبلغ ج", "Amount", 110, "#E63946"));
+            _dgLoss.Columns.Add(UiHelper.ColNum("المبلغ ج", "Amount", 110, "#E63946"));
 
             var rs = new Style(typeof(DataGridRow));
-            rs.Setters.Add(new Setter(DataGridRow.ForegroundProperty, B("#eef0f2")));
+            rs.Setters.Add(new Setter(DataGridRow.ForegroundProperty, UiHelper.B("#eef0f2")));
             var hover = new Trigger { Property = DataGridRow.IsMouseOverProperty, Value = true };
-            hover.Setters.Add(new Setter(DataGridRow.BackgroundProperty, B("#12192e")));
+            hover.Setters.Add(new Setter(DataGridRow.BackgroundProperty, UiHelper.B("#12192e")));
             rs.Triggers.Add(hover);
             _dgLoss.RowStyle = rs;
 
-            var scrollLoss = Scroll(_dgLoss);
+            var scrollLoss = UiHelper.Scroll(_dgLoss);
             Grid.SetRow(scrollLoss, 1);
             g.Children.Add(scrollLoss);
 
             var footer = new Border
             {
-                Background = B("#0c1221"),
-                BorderBrush = B("#1a2540"),
+                Background = UiHelper.B("#0c1221"),
+                BorderBrush = UiHelper.B("#1a2540"),
                 BorderThickness = new Thickness(0, 1, 0, 0),
                 Padding = new Thickness(16, 10, 16, 10)
             };
             footer.Child = new TextBlock
             {
                 Text = "⚠️  الخسائر تشمل: المصاريف اليدوية + البيع بأقل من التكلفة + الخصومات المُعطاة للعملاء",
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center
             };
@@ -612,10 +610,10 @@ namespace PizzaPOS.Views
             {
                 AutoGenerateColumns = false,
                 Background = Brushes.Transparent,
-                RowBackground = B("#0b1020"),
-                AlternatingRowBackground = B("#080d1a"),
+                RowBackground = UiHelper.B("#0b1020"),
+                AlternatingRowBackground = UiHelper.B("#080d1a"),
                 GridLinesVisibility = DataGridGridLinesVisibility.Horizontal,
-                HorizontalGridLinesBrush = B("#111c35"),
+                HorizontalGridLinesBrush = UiHelper.B("#111c35"),
                 BorderThickness = new Thickness(0),
                 CanUserAddRows = false,
                 RowHeight = 40,
@@ -626,84 +624,37 @@ namespace PizzaPOS.Views
             };
 
             var hs = new Style(typeof(DataGridColumnHeader));
-            hs.Setters.Add(new Setter(Control.BackgroundProperty, B("#0c1530")));
-            hs.Setters.Add(new Setter(Control.ForegroundProperty, B("#ffd166")));
+            hs.Setters.Add(new Setter(Control.BackgroundProperty, UiHelper.B("#0c1530")));
+            hs.Setters.Add(new Setter(Control.ForegroundProperty, UiHelper.B("#ffd166")));
             hs.Setters.Add(new Setter(Control.FontWeightProperty, FontWeights.Bold));
             hs.Setters.Add(new Setter(Control.FontSizeProperty, 11.0));
             hs.Setters.Add(new Setter(Control.PaddingProperty, new Thickness(14, 0, 14, 0)));
             hs.Setters.Add(new Setter(DataGridColumnHeader.BorderThicknessProperty, new Thickness(0, 0, 1, 2)));
-            hs.Setters.Add(new Setter(DataGridColumnHeader.BorderBrushProperty, B("#FF6B35")));
+            hs.Setters.Add(new Setter(DataGridColumnHeader.BorderBrushProperty, UiHelper.B("#FF6B35")));
             dg.ColumnHeaderStyle = hs;
 
             var rs = new Style(typeof(DataGridRow));
-            rs.Setters.Add(new Setter(DataGridRow.ForegroundProperty, B("#c8d8f0")));
+            rs.Setters.Add(new Setter(DataGridRow.ForegroundProperty, UiHelper.B("#c8d8f0")));
             var hov = new Trigger { Property = DataGridRow.IsMouseOverProperty, Value = true };
-            hov.Setters.Add(new Setter(DataGridRow.BackgroundProperty, B("#111d38")));
+            hov.Setters.Add(new Setter(DataGridRow.BackgroundProperty, UiHelper.B("#111d38")));
             rs.Triggers.Add(hov);
             var sel = new Trigger { Property = DataGridRow.IsSelectedProperty, Value = true };
-            sel.Setters.Add(new Setter(DataGridRow.BackgroundProperty, B("#1a2d50")));
+            sel.Setters.Add(new Setter(DataGridRow.BackgroundProperty, UiHelper.B("#1a2d50")));
             rs.Triggers.Add(sel);
             dg.RowStyle = rs;
 
             var cs = new Style(typeof(DataGridCell));
             cs.Setters.Add(new Setter(DataGridCell.BorderThicknessProperty, new Thickness(0)));
             cs.Setters.Add(new Setter(DataGridCell.PaddingProperty, new Thickness(14, 0, 14, 0)));
-            cs.Setters.Add(new Setter(DataGridCell.ForegroundProperty, B("#c8d8f0")));
+            cs.Setters.Add(new Setter(DataGridCell.ForegroundProperty, UiHelper.B("#c8d8f0")));
             cs.Setters.Add(new Setter(DataGridCell.VerticalAlignmentProperty, VerticalAlignment.Center));
             var csel = new Trigger { Property = DataGridCell.IsSelectedProperty, Value = true };
-            csel.Setters.Add(new Setter(DataGridCell.BackgroundProperty, B("#1a2d50")));
+            csel.Setters.Add(new Setter(DataGridCell.BackgroundProperty, UiHelper.B("#1a2d50")));
             csel.Setters.Add(new Setter(DataGridCell.BorderBrushProperty, Brushes.Transparent));
             cs.Triggers.Add(csel);
             dg.CellStyle = cs;
             return dg;
         }
-
-        // عمود نص عادي
-        DataGridTextColumn Col(string header, string binding, double width) =>
-            new() { Header = header, Binding = new Binding(binding), Width = width };
-
-        // عمود أرقام عشرية (double)
-        DataGridTextColumn ColNum(string header, string binding, double width, string colorHex) =>
-            new()
-            {
-                Header = header,
-                Binding = new Binding(binding) { StringFormat = "{0:F2}" },
-                Width = width,
-                ElementStyle = new Style(typeof(TextBlock))
-                {
-                    Setters =
-                    {
-                        new Setter(TextBlock.ForegroundProperty,    B(colorHex)),
-                        new Setter(TextBlock.FontWeightProperty,    FontWeights.Bold),
-                        new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Center)
-                    }
-                }
-            };
-
-        // عمود أرقام صحيحة (int) — بدون .00
-        DataGridTextColumn ColInt(string header, string binding, double width, string colorHex) =>
-            new()
-            {
-                Header = header,
-                Binding = new Binding(binding) { StringFormat = "{0:N0}" },
-                Width = width,
-                ElementStyle = new Style(typeof(TextBlock))
-                {
-                    Setters =
-                    {
-                        new Setter(TextBlock.ForegroundProperty,    B(colorHex)),
-                        new Setter(TextBlock.FontWeightProperty,    FontWeights.Bold),
-                        new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Center)
-                    }
-                }
-            };
-
-        ScrollViewer Scroll(UIElement el) => new()
-        {
-            Content = el,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-            Background = B("#070b14")
-        };
 
         // ══ DatePicker محسّن — تعديل الـ visual tree بعد Loaded ══════════════
         DatePicker MakeDatePicker(DateTime dt)
@@ -714,9 +665,9 @@ namespace PizzaPOS.Views
                 Width = 160,
                 Height = 36,
                 Margin = new Thickness(0, 0, 10, 0),
-                Background = B("#0f1a2e"),
-                Foreground = B("#eef0f2"),
-                BorderBrush = B("#FF6B35"),
+                Background = UiHelper.B("#0f1a2e"),
+                Foreground = UiHelper.B("#eef0f2"),
+                BorderBrush = UiHelper.B("#FF6B35"),
                 BorderThickness = new Thickness(1),
                 FontSize = 12,
                 FontWeight = FontWeights.Bold,
@@ -742,10 +693,10 @@ namespace PizzaPOS.Views
             var tb = FindVisualChild<DatePickerTextBox>(dp);
             if (tb != null)
             {
-                tb.Background = B("#0f1a2e");
-                tb.Foreground = B("#eef0f2");
-                tb.CaretBrush = B("#FF6B35");
-                tb.SelectionBrush = B("#FF6B35");
+                tb.Background = UiHelper.B("#0f1a2e");
+                tb.Foreground = UiHelper.B("#eef0f2");
+                tb.CaretBrush = UiHelper.B("#FF6B35");
+                tb.SelectionBrush = UiHelper.B("#FF6B35");
                 tb.BorderThickness = new Thickness(0);
                 tb.Padding = new Thickness(8, 0, 4, 0);
                 tb.FontSize = 12;
@@ -757,20 +708,20 @@ namespace PizzaPOS.Views
                 var wm = tb.Template?.FindName("PART_Watermark", tb) as ContentControl;
                 if (wm != null)
                 {
-                    wm.Foreground = B("#3a5070");
+                    wm.Foreground = UiHelper.B("#3a5070");
                     wm.FontSize = 11;
                 }
 
                 tb.GotFocus += (_, _) =>
                 {
-                    dp.BorderBrush = B("#FF6B35");
+                    dp.BorderBrush = UiHelper.B("#FF6B35");
                     dp.BorderThickness = new Thickness(2);
                     ((DropShadowEffect)dp.Effect).Opacity = 0.6;
                     ((DropShadowEffect)dp.Effect).BlurRadius = 18;
                 };
                 tb.LostFocus += (_, _) =>
                 {
-                    dp.BorderBrush = B("#FF6B35");
+                    dp.BorderBrush = UiHelper.B("#FF6B35");
                     dp.BorderThickness = new Thickness(1);
                     ((DropShadowEffect)dp.Effect).Opacity = 0.30;
                     ((DropShadowEffect)dp.Effect).BlurRadius = 10;
@@ -782,7 +733,7 @@ namespace PizzaPOS.Views
             if (btn != null)
             {
                 btn.Width = 30;
-                btn.Background = B("#FF6B35");
+                btn.Background = UiHelper.B("#FF6B35");
                 btn.BorderThickness = new Thickness(0);
                 btn.Cursor = System.Windows.Input.Cursors.Hand;
                 btn.Content = new TextBlock
@@ -793,8 +744,8 @@ namespace PizzaPOS.Views
                     VerticalAlignment = VerticalAlignment.Center
                 };
 
-                btn.MouseEnter += (_, _) => btn.Background = B("#e05a28");
-                btn.MouseLeave += (_, _) => btn.Background = B("#FF6B35");
+                btn.MouseEnter += (_, _) => btn.Background = UiHelper.B("#e05a28");
+                btn.MouseLeave += (_, _) => btn.Background = UiHelper.B("#FF6B35");
 
                 var f = new FrameworkElementFactory(typeof(Border));
                 f.SetBinding(Border.BackgroundProperty,
@@ -811,8 +762,8 @@ namespace PizzaPOS.Views
             var outerBorder = FindVisualChild<Border>(dp);
             if (outerBorder != null)
             {
-                outerBorder.Background = B("#0f1a2e");
-                outerBorder.BorderBrush = B("#FF6B35");
+                outerBorder.Background = UiHelper.B("#0f1a2e");
+                outerBorder.BorderBrush = UiHelper.B("#FF6B35");
                 outerBorder.BorderThickness = new Thickness(1);
                 outerBorder.CornerRadius = new CornerRadius(6);
             }
@@ -831,44 +782,6 @@ namespace PizzaPOS.Views
             return null;
         }
 
-        TextBlock FilterLabel(string t) => new()
-        {
-            Text = t,
-            Foreground = B("#4a6080"),
-            FontWeight = FontWeights.Bold,
-            FontSize = 12,
-            VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, 0, 8, 0)
-        };
-
-        Button MakeActionButton(string text, string bgHex, Brush fg)
-        {
-            var f = new FrameworkElementFactory(typeof(Border));
-            f.SetBinding(Border.BackgroundProperty,
-                new Binding("Background") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            f.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
-            f.SetBinding(Border.PaddingProperty,
-                new Binding("Padding") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
-            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-            f.AppendChild(cp);
-            var tpl = new ControlTemplate(typeof(Button)) { VisualTree = f };
-            return new Button
-            {
-                Content = text,
-                Background = B(bgHex),
-                Foreground = fg,
-                BorderThickness = new Thickness(0),
-                Padding = new Thickness(16, 8, 16, 8),
-                FontWeight = FontWeights.Bold,
-                FontSize = 12,
-                Cursor = System.Windows.Input.Cursors.Hand,
-                Margin = new Thickness(0, 0, 8, 0),
-                Template = tpl
-            };
-        }
-
         StackPanel LegendItem(string dot, string color, string label) =>
             new()
             {
@@ -880,7 +793,7 @@ namespace PizzaPOS.Views
                     new TextBlock
                     {
                         Text              = dot,
-                        Foreground        = B(color),
+                        Foreground        = UiHelper.B(color),
                         FontSize          = 14,
                         Margin            = new Thickness(0, 0, 5, 0),
                         VerticalAlignment = VerticalAlignment.Center
@@ -888,7 +801,7 @@ namespace PizzaPOS.Views
                     new TextBlock
                     {
                         Text              = label,
-                        Foreground        = B("#7a9ab8"),
+                        Foreground        = UiHelper.B("#7a9ab8"),
                         FontSize          = 11,
                         VerticalAlignment = VerticalAlignment.Center
                     }
@@ -906,16 +819,13 @@ namespace PizzaPOS.Views
         TextBox _tbAmount = null!;
         ComboBox _cbType = null!;
 
-        SolidColorBrush B(string hex) =>
-            new((Color)ColorConverter.ConvertFromString(hex));
-
         public LossEntryDialog(AppDbContext db)
         {
             _db = db;
             Title = "📉 إضافة خسارة";
             Width = 420;
             SizeToContent = SizeToContent.Height;
-            Background = B("#070b14");
+            Background = UiHelper.B("#070b14");
             FlowDirection = FlowDirection.RightToLeft;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             FontFamily = new FontFamily("Tahoma");
@@ -933,15 +843,15 @@ namespace PizzaPOS.Views
             // ── Header ──────────────────────────────────────────────────────
             var header = new Border
             {
-                Background = B("#0c1221"),
-                BorderBrush = B("#E63946"),
+                Background = UiHelper.B("#0c1221"),
+                BorderBrush = UiHelper.B("#E63946"),
                 BorderThickness = new Thickness(0, 0, 0, 2),
                 Padding = new Thickness(20, 16, 20, 16)
             };
             var hSp = new StackPanel { Orientation = Orientation.Horizontal };
             var hIcon = new Border
             {
-                Background = B("#E63946"),
+                Background = UiHelper.B("#E63946"),
                 CornerRadius = new CornerRadius(10),
                 Width = 40,
                 Height = 40,
@@ -968,13 +878,13 @@ namespace PizzaPOS.Views
                 Text = "تسجيل خسارة يدوية",
                 FontSize = 16,
                 FontWeight = FontWeights.Black,
-                Foreground = B("#E63946")
+                Foreground = UiHelper.B("#E63946")
             });
             hInfo.Children.Add(new TextBlock
             {
                 Text = "أدخل تفاصيل الخسارة بدقة",
                 FontSize = 10,
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 Margin = new Thickness(0, 3, 0, 0)
             });
             hSp.Children.Add(hInfo);
@@ -985,12 +895,12 @@ namespace PizzaPOS.Views
             // ── Fields ──────────────────────────────────────────────────────
             var fields = new StackPanel { Margin = new Thickness(20, 16, 20, 8) };
 
-            fields.Children.Add(FieldLabel("نوع الخسارة *"));
+            fields.Children.Add(UiHelper.FieldLabel("نوع الخسارة *"));
             _cbType = new ComboBox
             {
-                Background = B("#0f1a2e"),
-                Foreground = B("#eef0f2"),
-                BorderBrush = B("#1e2d4a"),
+                Background = UiHelper.B("#0f1a2e"),
+                Foreground = UiHelper.B("#eef0f2"),
+                BorderBrush = UiHelper.B("#1e2d4a"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(10, 9, 10, 9),
                 FontSize = 13,
@@ -998,40 +908,41 @@ namespace PizzaPOS.Views
                 Cursor = System.Windows.Input.Cursors.Hand
             };
             var iStyle = new Style(typeof(ComboBoxItem));
-            iStyle.Setters.Add(new Setter(ComboBoxItem.BackgroundProperty, B("#0f1a2e")));
-            iStyle.Setters.Add(new Setter(ComboBoxItem.ForegroundProperty, B("#eef0f2")));
+            iStyle.Setters.Add(new Setter(ComboBoxItem.BackgroundProperty, UiHelper.B("#0f1a2e")));
+            iStyle.Setters.Add(new Setter(ComboBoxItem.ForegroundProperty, UiHelper.B("#eef0f2")));
             iStyle.Setters.Add(new Setter(ComboBoxItem.PaddingProperty, new Thickness(12, 8, 12, 8)));
             var hov = new Trigger { Property = ComboBoxItem.IsMouseOverProperty, Value = true };
-            hov.Setters.Add(new Setter(ComboBoxItem.BackgroundProperty, B("#1a2640")));
+            hov.Setters.Add(new Setter(ComboBoxItem.BackgroundProperty, UiHelper.B("#1a2640")));
             iStyle.Triggers.Add(hov);
             var selT = new Trigger { Property = ComboBoxItem.IsSelectedProperty, Value = true };
-            selT.Setters.Add(new Setter(ComboBoxItem.BackgroundProperty, B("#E63946")));
-            selT.Setters.Add(new Setter(ComboBoxItem.ForegroundProperty, B("#ffffff")));
+            selT.Setters.Add(new Setter(ComboBoxItem.BackgroundProperty, UiHelper.B("#E63946")));
+            selT.Setters.Add(new Setter(ComboBoxItem.ForegroundProperty, UiHelper.B("#ffffff")));
             iStyle.Triggers.Add(selT);
             _cbType.ItemContainerStyle = iStyle;
-            _cbType.Resources.Add(SystemColors.WindowBrushKey, B("#0f1a2e"));
-            _cbType.Resources.Add(SystemColors.HighlightBrushKey, B("#E63946"));
-            _cbType.Resources.Add(SystemColors.ControlBrushKey, B("#0f1a2e"));
+            _cbType.Resources.Add(SystemColors.WindowBrushKey, UiHelper.B("#0f1a2e"));
+            _cbType.Resources.Add(SystemColors.HighlightBrushKey, UiHelper.B("#E63946"));
+            _cbType.Resources.Add(SystemColors.ControlBrushKey, UiHelper.B("#0f1a2e"));
             foreach (var t in _db.GetLossTypes())
                 _cbType.Items.Add(new ComboBoxItem
                 {
                     Content = t,
                     Tag = t,
-                    Background = B("#0f1a2e"),
-                    Foreground = B("#eef0f2")
+                    Background = UiHelper.B("#0f1a2e"),
+                    Foreground = UiHelper.B("#eef0f2")
                 });
             _cbType.SelectedIndex = 0;
             fields.Children.Add(_cbType);
 
-            fields.Children.Add(FieldLabel("الوصف *"));
-            _tbDesc = MakeTB("", 80);
+            fields.Children.Add(UiHelper.FieldLabel("الوصف *"));
+            _tbDesc = UiHelper.MakeTB("", "#E63946");
+            _tbDesc.Height = 80;
             _tbDesc.AcceptsReturn = true;
             _tbDesc.TextWrapping = TextWrapping.Wrap;
             _tbDesc.Margin = new Thickness(0, 4, 0, 14);
             fields.Children.Add(_tbDesc);
 
-            fields.Children.Add(FieldLabel("المبلغ (ج) *"));
-            _tbAmount = MakeTB("0.00");
+            fields.Children.Add(UiHelper.FieldLabel("المبلغ (ج) *"));
+            _tbAmount = UiHelper.MakeTB("0.00", "#E63946");
             _tbAmount.Margin = new Thickness(0, 4, 0, 0);
             fields.Children.Add(_tbAmount);
 
@@ -1041,8 +952,8 @@ namespace PizzaPOS.Views
             // ── Button Bar ──────────────────────────────────────────────────
             var btnBar = new Border
             {
-                Background = B("#090e1a"),
-                BorderBrush = B("#1a2540"),
+                Background = UiHelper.B("#090e1a"),
+                BorderBrush = UiHelper.B("#1a2540"),
                 BorderThickness = new Thickness(0, 1, 0, 0),
                 Padding = new Thickness(20, 14, 20, 18)
             };
@@ -1051,12 +962,12 @@ namespace PizzaPOS.Views
             btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
             btnGrid.ColumnDefinitions.Add(new ColumnDefinition());
 
-            var cancelBtn = MakeBtn("إلغاء", "#12192e", B("#8892a4"),
+            var cancelBtn = UiHelper.MakeBtn("إلغاء", "#12192e", UiHelper.B("#8892a4"),
                 () => { DialogResult = false; Close(); });
-            cancelBtn.BorderBrush = B("#1e2d4a");
+            cancelBtn.BorderBrush = UiHelper.B("#1e2d4a");
             cancelBtn.BorderThickness = new Thickness(1);
 
-            var saveBtn = MakeBtn("💾  تسجيل الخسارة", "#E63946",
+            var saveBtn = UiHelper.MakeBtn("💾  تسجيل الخسارة", "#E63946",
                 System.Windows.Media.Brushes.White, Save);
             saveBtn.Effect = new DropShadowEffect
             {
@@ -1112,65 +1023,6 @@ namespace PizzaPOS.Views
                 MessageBoxButton.OK, MessageBoxImage.Information);
             DialogResult = true;
             Close();
-        }
-
-        TextBlock FieldLabel(string t) => new()
-        {
-            Text = t,
-            FontSize = 11,
-            FontWeight = FontWeights.Bold,
-            Foreground = B("#4a6080")
-        };
-
-        TextBox MakeTB(string val, int height = 0)
-        {
-            var tb = new TextBox
-            {
-                Text = val,
-                Background = B("#0f1a2e"),
-                Foreground = B("#eef0f2"),
-                BorderBrush = B("#1e2d4a"),
-                BorderThickness = new Thickness(1),
-                Padding = new Thickness(10, 9, 10, 9),
-                FontSize = 13,
-                CaretBrush = B("#E63946"),
-                SelectionBrush = B("#E63946")
-            };
-            if (height > 0) tb.Height = height;
-            return tb;
-        }
-
-        Button MakeBtn(string text, string bg, Brush fg, Action click)
-        {
-            var f = new FrameworkElementFactory(typeof(Border));
-            f.SetBinding(Border.BackgroundProperty,
-                new Binding("Background") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            f.SetValue(Border.CornerRadiusProperty, new CornerRadius(10));
-            f.SetBinding(Border.PaddingProperty,
-                new Binding("Padding") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            f.SetBinding(Border.BorderBrushProperty,
-                new Binding("BorderBrush") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            f.SetBinding(Border.BorderThicknessProperty,
-                new Binding("BorderThickness") { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
-            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-            f.AppendChild(cp);
-            var tpl = new ControlTemplate(typeof(Button)) { VisualTree = f };
-            var btn = new Button
-            {
-                Content = text,
-                Background = B(bg),
-                Foreground = fg,
-                BorderThickness = new Thickness(0),
-                Padding = new Thickness(0, 13, 0, 13),
-                FontWeight = FontWeights.Black,
-                FontSize = 13,
-                Cursor = System.Windows.Input.Cursors.Hand,
-                Template = tpl
-            };
-            btn.Click += (_, _) => click();
-            return btn;
         }
     }
 }

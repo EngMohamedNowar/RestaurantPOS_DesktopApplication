@@ -158,6 +158,16 @@ namespace PizzaPOS.Views
             _vm.RefreshStats(); // ← تحديث بعد تغيير الإعدادات
         }
 
+        void OpenCustomers_Click(object s, RoutedEventArgs e)
+        {
+            new CustomersWindow { Owner = this }.ShowDialog();
+        }
+
+        void OpenWarehouse_Click(object s, RoutedEventArgs e)
+        {
+            new WarehouseWindow { Owner = this }.ShowDialog();
+        }
+
         void CloseShift_Click(object s, RoutedEventArgs e)
             => _vm.CloseShiftCmd.Execute(null);
     }

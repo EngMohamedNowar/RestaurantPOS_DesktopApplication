@@ -8,6 +8,7 @@ using System.Windows.Media;
 using System.Windows.Media.Effects;
 using PizzaPOS.Data;
 using PizzaPOS.Models;
+using PizzaPOS.Helpers;
 using PizzaPOS.Services;
 
 namespace PizzaPOS.Views
@@ -25,16 +26,13 @@ namespace PizzaPOS.Views
 
         double _expectedCash;
 
-        SolidColorBrush B(string hex) =>
-            new((Color)ColorConverter.ConvertFromString(hex));
-
         public CloseShiftDialog(Shift shift)
         {
             _shift = shift;
             Title = "⏹ إغلاق الشفت";
             Width = 500;
             SizeToContent = SizeToContent.Height;
-            Background = B("#0a0a14");
+            Background = UiHelper.B("#0a0a14");
             FlowDirection = FlowDirection.RightToLeft;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             FontFamily = new FontFamily("Tahoma");
@@ -59,15 +57,15 @@ namespace PizzaPOS.Views
             // ══ Header ══
             var header = new Border
             {
-                Background = B("#0f1526"),
-                BorderBrush = B("#E63946"),
+                Background = UiHelper.B("#0f1526"),
+                BorderBrush = UiHelper.B("#E63946"),
                 BorderThickness = new Thickness(0, 0, 0, 2),
                 Padding = new Thickness(20, 16, 20, 16)
             };
             var hSp = new StackPanel { Orientation = Orientation.Horizontal };
             var hIcon = new Border
             {
-                Background = B("#E63946"),
+                Background = UiHelper.B("#E63946"),
                 CornerRadius = new CornerRadius(10),
                 Width = 42,
                 Height = 42,
@@ -86,13 +84,13 @@ namespace PizzaPOS.Views
                 Text = "إغلاق الشفت",
                 FontSize = 18,
                 FontWeight = FontWeights.Black,
-                Foreground = B("#eef0f2")
+                Foreground = UiHelper.B("#eef0f2")
             });
             hInfo.Children.Add(new TextBlock
             {
                 Text = $"الكاشير: {SessionService.CurrentUser?.FullName ?? "—"}  •  فتح: {_shift.OpenedAt}",
                 FontSize = 11,
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 Margin = new Thickness(0, 3, 0, 0)
             });
             hSp.Children.Add(hIcon);
@@ -128,9 +126,9 @@ namespace PizzaPOS.Views
             // Total — Full Width
             var totalCard = new Border
             {
-                Background = B("#0d1f14"),
+                Background = UiHelper.B("#0d1f14"),
                 CornerRadius = new CornerRadius(10),
-                BorderBrush = B("#1e3a2e"),
+                BorderBrush = UiHelper.B("#1e3a2e"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(16, 10, 16, 10),
                 Margin = new Thickness(0, 8, 0, 0)
@@ -150,7 +148,7 @@ namespace PizzaPOS.Views
                 Text = "💰 إجمالي المبيعات",
                 FontSize = 14,
                 FontWeight = FontWeights.Bold,
-                Foreground = B("#5aaa80"),
+                Foreground = UiHelper.B("#5aaa80"),
                 VerticalAlignment = VerticalAlignment.Center
             };
             var totalVal = new TextBlock
@@ -158,7 +156,7 @@ namespace PizzaPOS.Views
                 Text = $"{sales:F2} ج",
                 FontSize = 22,
                 FontWeight = FontWeights.Black,
-                Foreground = B("#06d6a0")
+                Foreground = UiHelper.B("#06d6a0")
             };
             totalVal.Effect = new DropShadowEffect
             {
@@ -182,8 +180,8 @@ namespace PizzaPOS.Views
             // ══ Cash Input ══
             var cashSection = new Border
             {
-                Background = B("#0d1220"),
-                BorderBrush = B("#1e2d4a"),
+                Background = UiHelper.B("#0d1220"),
+                BorderBrush = UiHelper.B("#1e2d4a"),
                 BorderThickness = new Thickness(0, 1, 0, 1),
                 Padding = new Thickness(16, 14, 16, 14),
                 Margin = new Thickness(0, 14, 0, 0)
@@ -194,7 +192,7 @@ namespace PizzaPOS.Views
                 Text = "💵 أدخل الكاش الفعلي في الدرج",
                 FontSize = 13,
                 FontWeight = FontWeights.Bold,
-                Foreground = B("#eef0f2"),
+                Foreground = UiHelper.B("#eef0f2"),
                 Margin = new Thickness(0, 0, 0, 8)
             });
 
@@ -204,14 +202,14 @@ namespace PizzaPOS.Views
 
             _closeCashBox = new TextBox
             {
-                Background = B("#0f1526"),
-                Foreground = B("#ffffff"),
-                BorderBrush = B("#2a3f6a"),
+                Background = UiHelper.B("#0f1526"),
+                Foreground = UiHelper.B("#ffffff"),
+                BorderBrush = UiHelper.B("#2a3f6a"),
                 BorderThickness = new Thickness(1, 1, 0, 1),
                 Padding = new Thickness(12, 10, 12, 10),
                 FontSize = 18,
                 FontWeight = FontWeights.Bold,
-                CaretBrush = B("#06d6a0"),
+                CaretBrush = UiHelper.B("#06d6a0"),
                 Text = _expectedCash.ToString("F2")
             };
             _closeCashBox.TextChanged += (_, _) => UpdateDiff();
@@ -219,7 +217,7 @@ namespace PizzaPOS.Views
             // زرار إعادة التعيين
             var resetBtn = new Border
             {
-                Background = B("#1e2d4a"),
+                Background = UiHelper.B("#1e2d4a"),
                 CornerRadius = new CornerRadius(0, 8, 8, 0),
                 Padding = new Thickness(12, 0, 12, 0),
                 Cursor = System.Windows.Input.Cursors.Hand,
@@ -230,7 +228,7 @@ namespace PizzaPOS.Views
                 Text = "↺",
                 FontSize = 16,
                 FontWeight = FontWeights.Bold,
-                Foreground = B("#06d6a0"),
+                Foreground = UiHelper.B("#06d6a0"),
                 VerticalAlignment = VerticalAlignment.Center
             };
             resetBtn.MouseLeftButtonDown += (_, _) =>
@@ -248,7 +246,7 @@ namespace PizzaPOS.Views
             {
                 Text = $"⟵ الكاش المتوقع: {_expectedCash:F2} ج  (افتتاحي + كاش)",
                 FontSize = 11,
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 Margin = new Thickness(0, 6, 0, 0)
             });
             cashSection.Child = cashSp;
@@ -291,8 +289,8 @@ namespace PizzaPOS.Views
             // ══ Buttons ══
             var btnBar = new Border
             {
-                Background = B("#0d1220"),
-                BorderBrush = B("#1e2d4a"),
+                Background = UiHelper.B("#0d1220"),
+                BorderBrush = UiHelper.B("#1e2d4a"),
                 BorderThickness = new Thickness(0, 1, 0, 0),
                 Padding = new Thickness(16, 12, 16, 16),
                 Margin = new Thickness(0, 12, 0, 0)
@@ -302,12 +300,12 @@ namespace PizzaPOS.Views
             btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
             btnGrid.ColumnDefinitions.Add(new ColumnDefinition());
 
-            var cancelBtn = MakeBtn("إلغاء", "#12192e", B("#8892a4"),
+            var cancelBtn = UiHelper.MakeBtn("إلغاء", "#12192e", UiHelper.B("#8892a4"),
                 () => { DialogResult = false; Close(); });
-            cancelBtn.BorderBrush = B("#1e2d4a");
+            cancelBtn.BorderBrush = UiHelper.B("#1e2d4a");
             cancelBtn.BorderThickness = new Thickness(1);
 
-            var closeBtn = MakeBtn("⏹ إغلاق الشفت", "#E63946",
+            var closeBtn = UiHelper.MakeBtn("⏹ إغلاق الشفت", "#E63946",
                 System.Windows.Media.Brushes.White, DoClose);
             closeBtn.Effect = new DropShadowEffect
             {
@@ -341,30 +339,30 @@ namespace PizzaPOS.Views
 
             if (Math.Abs(diff) < 0.01)
             {
-                _diffBorder.Background = B("#0d1f14");
-                _diffBorder.BorderBrush = B("#1e3a2e");
+                _diffBorder.Background = UiHelper.B("#0d1f14");
+                _diffBorder.BorderBrush = UiHelper.B("#1e3a2e");
                 _diffLabel.Text = "✅ الكاش مطابق تماماً";
-                _diffLabel.Foreground = B("#06d6a0");
+                _diffLabel.Foreground = UiHelper.B("#06d6a0");
                 _diffTxt.Text = "0.00 ج";
-                _diffTxt.Foreground = B("#06d6a0");
+                _diffTxt.Foreground = UiHelper.B("#06d6a0");
             }
             else if (diff > 0)
             {
-                _diffBorder.Background = B("#0d1f0a");
-                _diffBorder.BorderBrush = B("#1e4a1e");
+                _diffBorder.Background = UiHelper.B("#0d1f0a");
+                _diffBorder.BorderBrush = UiHelper.B("#1e4a1e");
                 _diffLabel.Text = "⬆️ فائض في الكاش";
-                _diffLabel.Foreground = B("#06d6a0");
+                _diffLabel.Foreground = UiHelper.B("#06d6a0");
                 _diffTxt.Text = $"+{diff:F2} ج";
-                _diffTxt.Foreground = B("#06d6a0");
+                _diffTxt.Foreground = UiHelper.B("#06d6a0");
             }
             else
             {
-                _diffBorder.Background = B("#1a0a0a");
-                _diffBorder.BorderBrush = B("#3a1e1e");
+                _diffBorder.Background = UiHelper.B("#1a0a0a");
+                _diffBorder.BorderBrush = UiHelper.B("#3a1e1e");
                 _diffLabel.Text = "⬇️ عجز في الكاش";
-                _diffLabel.Foreground = B("#E63946");
+                _diffLabel.Foreground = UiHelper.B("#E63946");
                 _diffTxt.Text = $"{diff:F2} ج";
-                _diffTxt.Foreground = B("#E63946");
+                _diffTxt.Foreground = UiHelper.B("#E63946");
             }
         }
 
@@ -421,9 +419,9 @@ namespace PizzaPOS.Views
         {
             var b = new Border
             {
-                Background = B("#0d1525"),
+                Background = UiHelper.B("#0d1525"),
                 CornerRadius = new CornerRadius(10),
-                BorderBrush = B("#1e2d4a"),
+                BorderBrush = UiHelper.B("#1e2d4a"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(12, 8, 12, 8),
                 Margin = new Thickness(0, 0, 0, 8)
@@ -433,7 +431,7 @@ namespace PizzaPOS.Views
             {
                 Text = label,
                 FontSize = 10,
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 FontWeight = FontWeights.Bold
             });
             sp.Children.Add(new TextBlock
@@ -441,51 +439,12 @@ namespace PizzaPOS.Views
                 Text = value,
                 FontSize = 15,
                 FontWeight = FontWeights.Black,
-                Foreground = B(color),
+                Foreground = UiHelper.B(color),
                 Margin = new Thickness(0, 3, 0, 0)
             });
             b.Child = sp;
             return b;
         }
 
-        // ── Button ───────────────────────────────────
-        Button MakeBtn(string text, string bg,
-                       System.Windows.Media.Brush fg, Action click)
-        {
-            var f = new FrameworkElementFactory(typeof(Border));
-            f.SetBinding(Border.BackgroundProperty,
-                new Binding("Background")
-                { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            f.SetValue(Border.CornerRadiusProperty, new CornerRadius(10));
-            f.SetBinding(Border.PaddingProperty,
-                new Binding("Padding")
-                { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            f.SetBinding(Border.BorderBrushProperty,
-                new Binding("BorderBrush")
-                { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            f.SetBinding(Border.BorderThicknessProperty,
-                new Binding("BorderThickness")
-                { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
-            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-            f.AppendChild(cp);
-            var tpl = new ControlTemplate(typeof(Button)) { VisualTree = f };
-
-            var btn = new Button
-            {
-                Content = text,
-                Background = B(bg),
-                Foreground = fg,
-                BorderThickness = new Thickness(0),
-                Padding = new Thickness(0, 13, 0, 13),
-                FontWeight = FontWeights.Black,
-                FontSize = 14,
-                Cursor = System.Windows.Input.Cursors.Hand,
-                Template = tpl
-            };
-            btn.Click += (_, _) => click();
-            return btn;
-        }
     }
 }

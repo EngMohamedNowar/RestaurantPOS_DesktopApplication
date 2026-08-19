@@ -306,12 +306,20 @@ namespace PizzaPOS.Views
             recalcBtn.BorderThickness = new Thickness(1);
             recalcBtn.Click += (_, _) => RecalculatePrices();
 
+            var addCatBtn = UiHelper.MakeActionButton("📁  إضافة فئة", "#1a1800", UiHelper.B("#ffd166"));
+            addCatBtn.BorderBrush = UiHelper.B("#ffd166");
+            addCatBtn.BorderThickness = new Thickness(1);
+            addCatBtn.Click += (_, _) => AddCategory();
+
+            actionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
             Grid.SetColumn(addBtn, 0); actionGrid.Children.Add(addBtn);
             Grid.SetColumn(editBtn, 1); actionGrid.Children.Add(editBtn);
             Grid.SetColumn(adjustBtn, 2); actionGrid.Children.Add(adjustBtn);
             Grid.SetColumn(addStockBtn, 3); actionGrid.Children.Add(addStockBtn);
             Grid.SetColumn(movementsBtn, 4); actionGrid.Children.Add(movementsBtn);
             Grid.SetColumn(recalcBtn, 5); actionGrid.Children.Add(recalcBtn);
+            Grid.SetColumn(addCatBtn, 6); actionGrid.Children.Add(addCatBtn);
 
             actionBar.Child = actionGrid;
             Grid.SetRow(actionBar, 4);
@@ -563,6 +571,30 @@ namespace PizzaPOS.Views
 
         void Notify(string msg) =>
             MessageBox.Show(msg, "تنبيه", MessageBoxButton.OK, MessageBoxImage.Information);
+
+        void AddCategory()
+        {
+            var dlg = new AddCategoryDialog { Owner = this };
+            if (dlg.ShowDialog() == true)
+            {
+                string name = dlg.CategoryName;
+                try
+                {
+                    using var conn = DatabaseHelper.Open();
+                    var cmd = conn.CreateCommand();
+                    cmd.CommandText = "INSERT INTO IngredientCategories(Name) VALUES(@n)";
+                    cmd.Parameters.AddWithValue("@n", name);
+                    cmd.ExecuteNonQuery();
+                    MessageBox.Show($"تم إضافة الفئة \"{name}\" بنجاح!", "تم",
+                        MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"خطأ: {ex.Message}", "خطأ",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
     }
 
     // ══════════════════════════════════════════════════
@@ -687,6 +719,137 @@ namespace PizzaPOS.Views
             root.Children.Add(btnBar);
 
             Content = root;
+        }
+    }
+
+    // ══════════════════════════════════════════════════
+    //  AddCategoryDialog
+    // ══════════════════════════════════════════════════
+    public class AddCategoryDialog : Window
+    {
+        public string CategoryName { get; private set; } = "";
+        TextBox _tbName = null!;
+
+        public AddCategoryDialog()
+        {
+            Title = "📁 إضافة فئة جديدة";
+            Width = 400;
+            SizeToContent = SizeToContent.Height;
+            Background = UiHelper.B("#0f1526");
+            Foreground = Brushes.White;
+            FlowDirection = FlowDirection.RightToLeft;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            FontFamily = new FontFamily("Tahoma");
+            ResizeMode = ResizeMode.NoResize;
+
+            var root = new Grid();
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            // ── Header ──
+            var header = new Border
+            {
+                Background = UiHelper.B("#0f1526"),
+                BorderBrush = UiHelper.B("#ffd166"),
+                BorderThickness = new Thickness(0, 0, 0, 2),
+                Padding = new Thickness(20, 16, 20, 16)
+            };
+            var hSp = new StackPanel { Orientation = Orientation.Horizontal };
+            var hIcon = new Border
+            {
+                Background = UiHelper.B("#1a1800"),
+                CornerRadius = new CornerRadius(10),
+                Width = 40,
+                Height = 40,
+                Margin = new Thickness(0, 0, 12, 0)
+            };
+            hIcon.Child = new TextBlock
+            {
+                Text = "📁",
+                FontSize = 20,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            var hInfo = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            hInfo.Children.Add(new TextBlock
+            {
+                Text = "إضافة فئة جديدة",
+                FontSize = 16,
+                FontWeight = FontWeights.Black,
+                Foreground = UiHelper.B("#ffd166")
+            });
+            hInfo.Children.Add(new TextBlock
+            {
+                Text = "أدخل اسم الفئة الجديدة للمواد الخام",
+                FontSize = 11,
+                Foreground = UiHelper.B("#4a6080"),
+                Margin = new Thickness(0, 3, 0, 0)
+            });
+            hSp.Children.Add(hIcon);
+            hSp.Children.Add(hInfo);
+            header.Child = hSp;
+            Grid.SetRow(header, 0);
+            root.Children.Add(header);
+
+            // ── Field ──
+            var fields = new StackPanel { Margin = new Thickness(20, 16, 20, 8) };
+            fields.Children.Add(UiHelper.FieldLabel("اسم الفئة *"));
+            _tbName = UiHelper.MakeTB("", "#ffd166");
+            _tbName.Margin = new Thickness(0, 4, 0, 0);
+            fields.Children.Add(_tbName);
+            Grid.SetRow(fields, 1);
+            root.Children.Add(fields);
+
+            // ── Buttons ──
+            var btnBar = new Border
+            {
+                Background = UiHelper.B("#0d1220"),
+                BorderBrush = UiHelper.B("#1e2d4a"),
+                BorderThickness = new Thickness(0, 1, 0, 0),
+                Padding = new Thickness(20, 12, 20, 16)
+            };
+            var btnGrid = new Grid();
+            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
+            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+            btnGrid.ColumnDefinitions.Add(new ColumnDefinition());
+
+            var cancelBtn = UiHelper.MakeBtn("إلغاء", "#12192e", UiHelper.B("#8892a4"),
+                () => { DialogResult = false; Close(); }, borderBrush: UiHelper.B("#1e2d4a"));
+
+            var saveBtn = UiHelper.MakeBtn("📁 إضافة الفئة", "#ffd166", UiHelper.B("#0a0a14"), Save);
+            saveBtn.Effect = new DropShadowEffect
+            {
+                Color = (Color)ColorConverter.ConvertFromString("#ffd166"),
+                BlurRadius = 16,
+                ShadowDepth = 0,
+                Opacity = 0.4
+            };
+
+            Grid.SetColumn(cancelBtn, 0);
+            Grid.SetColumn(saveBtn, 2);
+            btnGrid.Children.Add(cancelBtn);
+            btnGrid.Children.Add(saveBtn);
+            btnBar.Child = btnGrid;
+            Grid.SetRow(btnBar, 2);
+            root.Children.Add(btnBar);
+
+            Content = root;
+            Loaded += (_, _) => _tbName.Focus();
+        }
+
+        void Save()
+        {
+            string name = _tbName.Text.Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                MessageBox.Show("أدخل اسم الفئة", "تنبيه",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            CategoryName = name;
+            DialogResult = true;
+            Close();
         }
     }
 

@@ -251,25 +251,77 @@ namespace PizzaPOS.Views
             });
             _dg.Columns.Add(UiHelper.ColInt("النقاط", "LoyaltyPoints", 80, "#a78bfa"));
 
+            // ══════════════════════════════════════════════
+            //  عمود المستوى (Tier) — كل مستوى بلونه المميز
+            //  💎 ماسي  → أزرق ماسي فاتح لامع
+            //  🥇 ذهبي  → دهبي
+            //  🥈 فضي   → فضي
+            //  🥉 برونزي → برونزي
+            // ══════════════════════════════════════════════
             var tierCol = new DataGridTemplateColumn
             {
                 Header = "المستوى",
                 Width = 120
             };
             var tierTpl = new DataTemplate();
+
             var tierFactory = new FrameworkElementFactory(typeof(Border));
             tierFactory.SetValue(Border.CornerRadiusProperty, new CornerRadius(6));
             tierFactory.SetValue(Border.PaddingProperty, new Thickness(8, 3, 8, 3));
             tierFactory.SetValue(Border.HorizontalAlignmentProperty, HorizontalAlignment.Center);
             tierFactory.SetValue(Border.MarginProperty, new Thickness(0, 6, 0, 6));
+
             var tierTxt = new FrameworkElementFactory(typeof(TextBlock));
             tierTxt.SetBinding(TextBlock.TextProperty, new Binding("LoyaltyTier"));
             tierTxt.SetValue(TextBlock.FontWeightProperty, FontWeights.Bold);
             tierTxt.SetValue(TextBlock.FontSizeProperty, 11.0);
             tierTxt.SetValue(TextBlock.TextAlignmentProperty, TextAlignment.Center);
-            tierTxt.SetValue(TextBlock.ForegroundProperty, UiHelper.B("#0a0a14"));
             tierFactory.AppendChild(tierTxt);
             tierTpl.VisualTree = tierFactory;
+
+            // ── Style بيحدد لون كل مستوى بناءً على قيمة LoyaltyTier ──
+            var tierBorderStyle = new Style(typeof(Border));
+            // اللون الافتراضي (برونزي) كـ fallback
+            tierBorderStyle.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#cd7f32")));
+
+            var diamondTrigger = new DataTrigger
+            {
+                Binding = new Binding("LoyaltyTier"),
+                Value = "💎 ماسي"
+            };
+            diamondTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#7dd3ea"))); // أزرق ماسي فاتح
+
+            var goldTrigger = new DataTrigger
+            {
+                Binding = new Binding("LoyaltyTier"),
+                Value = "🥇 ذهبي"
+            };
+            goldTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#ffd700"))); // دهبي
+
+            var silverTrigger = new DataTrigger
+            {
+                Binding = new Binding("LoyaltyTier"),
+                Value = "🥈 فضي"
+            };
+            silverTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#c0c0c0"))); // فضي
+
+            var bronzeTrigger = new DataTrigger
+            {
+                Binding = new Binding("LoyaltyTier"),
+                Value = "🥉 برونزي"
+            };
+            bronzeTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#cd7f32"))); // برونزي
+
+            tierBorderStyle.Triggers.Add(diamondTrigger);
+            tierBorderStyle.Triggers.Add(goldTrigger);
+            tierBorderStyle.Triggers.Add(silverTrigger);
+            tierBorderStyle.Triggers.Add(bronzeTrigger);
+
+            tierFactory.SetValue(FrameworkElement.StyleProperty, tierBorderStyle);
+
+            // نص المستوى داكن دايماً عشان يبان واضح فوق الألوان الفاتحة دي
+            tierTxt.SetValue(TextBlock.ForegroundProperty, UiHelper.B("#0a0a14"));
+
             tierCol.CellTemplate = tierTpl;
             _dg.Columns.Add(tierCol);
 

@@ -2,4 +2,5 @@
   <Folder Name="/Solution Items/" />
   <Project Path="PizzaPOS.Tests/PizzaPOS.Tests.csproj" />
   <Project Path="PizzaPOS/PizzaPOS.csproj" />
+  <Project Path="PizzaPOS.LicenseGenerator/PizzaPOS.LicenseGenerator.csproj" />
 </Solution>

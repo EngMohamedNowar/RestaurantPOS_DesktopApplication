@@ -16,6 +16,16 @@ namespace PizzaPOS
             base.OnStartup(e);
             try
             {
+                if (!LicenseManager.IsActivated())
+                {
+                    var licenseWin = new LicenseActivationWindow();
+                    if (licenseWin.ShowDialog() != true)
+                    {
+                        Shutdown();
+                        return;
+                    }
+                }
+
                 DatabaseHelper.Initialize();
 
                 var login = new LoginWindow();

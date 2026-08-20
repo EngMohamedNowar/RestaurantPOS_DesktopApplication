@@ -1,4 +1,5 @@
 ﻿using PizzaPOS.Data;
+using PizzaPOS.Helpers;
 using PizzaPOS.Services;
 using System;
 using System.Windows;
@@ -31,15 +32,12 @@ namespace PizzaPOS.Views
         TextBox _tbWidth = null!;
         TextBox _tbDrawerFor = null!;
 
-        SolidColorBrush B(string hex) =>
-            new((Color)ColorConverter.ConvertFromString(hex));
-
         public SettingsWindow()
         {
             Title = "⚙️ إعدادات النظام";
             Width = 460;
             Height = 620;
-            Background = B("#070b14");
+            Background = UiHelper.B("#070b14");
             FlowDirection = FlowDirection.RightToLeft;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             FontFamily = new FontFamily("Tahoma");
@@ -57,15 +55,15 @@ namespace PizzaPOS.Views
             // ── Header ──
             var header = new Border
             {
-                Background = B("#0c1221"),
-                BorderBrush = B("#FF6B35"),
+                Background = UiHelper.B("#0c1221"),
+                BorderBrush = UiHelper.B("#FF6B35"),
                 BorderThickness = new Thickness(0, 0, 0, 2),
                 Padding = new Thickness(20, 16, 20, 16)
             };
             var hSp = new StackPanel { Orientation = Orientation.Horizontal };
             var hIcon = new Border
             {
-                Background = B("#FF6B35"),
+                Background = UiHelper.B("#FF6B35"),
                 CornerRadius = new CornerRadius(10),
                 Width = 40,
                 Height = 40,
@@ -91,13 +89,13 @@ namespace PizzaPOS.Views
                 Text = "إعدادات النظام",
                 FontSize = 17,
                 FontWeight = FontWeights.Black,
-                Foreground = B("#eef0f2")
+                Foreground = UiHelper.B("#eef0f2")
             });
             hInfo.Children.Add(new TextBlock
             {
                 Text = "تخصيص المحل والضرائب والطابعة",
                 FontSize = 10,
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 Margin = new Thickness(0, 3, 0, 0)
             });
             hSp.Children.Add(hIcon);
@@ -114,36 +112,36 @@ namespace PizzaPOS.Views
             sp.Children.Add(SectionHeader("🏪 بيانات المحل"));
 
             sp.Children.Add(Lbl("اسم المحل"));
-            _tbShopName = MakeTB(_db.GetSetting("ShopName", "Pizza POS"));
+            _tbShopName = UiHelper.MakeTB(_db.GetSetting("ShopName", "Pizza POS"));
             sp.Children.Add(_tbShopName);
 
             sp.Children.Add(Lbl("العنوان", top: 10));
-            _tbAddress = MakeTB(_db.GetSetting("Address", ""));
+            _tbAddress = UiHelper.MakeTB(_db.GetSetting("Address", ""));
             sp.Children.Add(_tbAddress);
 
             sp.Children.Add(Lbl("📞 رقم التليفون 1", top: 10));
-            _tbPhone = MakeTB(_db.GetSetting("Phone", ""));
+            _tbPhone = UiHelper.MakeTB(_db.GetSetting("Phone", ""));
             sp.Children.Add(_tbPhone);
 
             sp.Children.Add(Lbl("📞 رقم التليفون 2", top: 6));
-            _tbPhone2 = MakeTB(_db.GetSetting("Phone2", ""));
+            _tbPhone2 = UiHelper.MakeTB(_db.GetSetting("Phone2", ""));
             sp.Children.Add(_tbPhone2);
 
             sp.Children.Add(Lbl("📞 رقم التليفون 3", top: 6));
-            _tbPhone3 = MakeTB(_db.GetSetting("Phone3", ""));
+            _tbPhone3 = UiHelper.MakeTB(_db.GetSetting("Phone3", ""));
             sp.Children.Add(_tbPhone3);
 
             // ── قسم: الضرائب والخصومات ──
             sp.Children.Add(SectionHeader("💰 الضرائب والخصومات"));
 
             sp.Children.Add(Lbl("نسبة الضريبة % (مثال: 14)"));
-            _tbTax = MakeTB(
+            _tbTax = UiHelper.MakeTB(
                 (double.TryParse(_db.GetSetting("TaxRate", "0.14"), out var t)
                     ? (t < 1 ? t * 100 : t) : 14).ToString("F0"));
             sp.Children.Add(_tbTax);
 
             sp.Children.Add(Lbl("🛎 رسوم الخدمة % (0 = تعطيل)", top: 10));
-            _tbService = MakeTB(
+            _tbService = UiHelper.MakeTB(
                 (double.TryParse(_db.GetSetting("ServiceRate", "0"), out var sr)
                     ? (sr < 1 ? sr * 100 : sr) : 0).ToString("F0"));
             sp.Children.Add(_tbService);
@@ -152,12 +150,12 @@ namespace PizzaPOS.Views
             var discGrid = new Grid { Margin = new Thickness(0, 0, 0, 4) };
             discGrid.ColumnDefinitions.Add(new ColumnDefinition());
             discGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-            _tbDiscount = MakeTB(
+            _tbDiscount = UiHelper.MakeTB(
                 (double.TryParse(_db.GetSetting("DefaultDiscount", "0"), out var dd)
                     ? dd : 0).ToString("F0"));
             var discTypeLbl = new Border
             {
-                Background = B("#1a2640"),
+                Background = UiHelper.B("#1a2640"),
                 CornerRadius = new CornerRadius(0, 6, 6, 0),
                 Padding = new Thickness(10, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Stretch
@@ -165,7 +163,7 @@ namespace PizzaPOS.Views
             discTypeLbl.Child = new TextBlock
             {
                 Text = "%",
-                Foreground = B("#ffd166"),
+                Foreground = UiHelper.B("#ffd166"),
                 FontSize = 14,
                 FontWeight = FontWeights.Black,
                 VerticalAlignment = VerticalAlignment.Center
@@ -178,26 +176,26 @@ namespace PizzaPOS.Views
             {
                 Text = "💡 سيُطبَّق تلقائياً على كل أوردر جديد",
                 FontSize = 10,
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 Margin = new Thickness(0, 3, 0, 0)
             });
 
             sp.Children.Add(Lbl("🛵 رسوم التوصيل الافتراضية (ج)", top: 10));
-            _tbDeliveryFee = MakeTB(_db.GetSetting("DefaultDeliveryFee", "0"));
+            _tbDeliveryFee = UiHelper.MakeTB(_db.GetSetting("DefaultDeliveryFee", "0"));
             sp.Children.Add(_tbDeliveryFee);
 
             // ── قسم: الفاتورة ──
             sp.Children.Add(SectionHeader("🧾 الفاتورة"));
 
             sp.Children.Add(Lbl("نص أسفل الفاتورة"));
-            _tbFooter = MakeTB(_db.GetSetting("ReceiptFooter", "شكراً لزيارتكم"));
+            _tbFooter = UiHelper.MakeTB(_db.GetSetting("ReceiptFooter", "شكراً لزيارتكم"));
             sp.Children.Add(_tbFooter);
 
             // ── قسم: الطابعة ──
             sp.Children.Add(SectionHeader("🖨️ الطابعة"));
 
             sp.Children.Add(Lbl("اسم الطابعة (اتركه فاضي للكشف التلقائي)"));
-            _tbPrinter = MakeTB(_db.GetSetting("PrinterName", ""));
+            _tbPrinter = UiHelper.MakeTB(_db.GetSetting("PrinterName", ""));
             sp.Children.Add(_tbPrinter);
 
             var printersSp = new StackPanel
@@ -208,7 +206,7 @@ namespace PizzaPOS.Views
             printersSp.Children.Add(new TextBlock
             {
                 Text = "المتاحة: ",
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 FontSize = 10,
                 VerticalAlignment = VerticalAlignment.Center
             });
@@ -216,7 +214,7 @@ namespace PizzaPOS.Views
             {
                 var tag = new Border
                 {
-                    Background = B("#1a2640"),
+                    Background = UiHelper.B("#1a2640"),
                     CornerRadius = new CornerRadius(5),
                     Padding = new Thickness(8, 3, 8, 3),
                     Margin = new Thickness(0, 0, 5, 0),
@@ -226,7 +224,7 @@ namespace PizzaPOS.Views
                 {
                     Text = p,
                     FontSize = 10,
-                    Foreground = B("#ffd166")
+                    Foreground = UiHelper.B("#ffd166")
                 };
                 var printer = p;
                 tag.MouseLeftButtonDown += (_, _) => _tbPrinter.Text = printer;
@@ -235,7 +233,7 @@ namespace PizzaPOS.Views
             sp.Children.Add(printersSp);
 
             sp.Children.Add(Lbl("🔌 المنفذ (USB أو COM1..COM9)", top: 10));
-            _tbPort = MakeTB(_db.GetSetting("EpsonPort", "USB"));
+            _tbPort = UiHelper.MakeTB(_db.GetSetting("EpsonPort", "USB"));
             sp.Children.Add(_tbPort);
 
             var ports = EpsonService.GetComPorts();
@@ -244,34 +242,34 @@ namespace PizzaPOS.Views
                 {
                     Text = $"منافذ COM المتاحة: {string.Join("  ", ports)}",
                     FontSize = 10,
-                    Foreground = B("#4a6080"),
+                    Foreground = UiHelper.B("#4a6080"),
                     Margin = new Thickness(0, 4, 0, 0)
                 });
 
             sp.Children.Add(Lbl("🗄️ رقم PIN دراج الكاش (2 أو 5)", top: 10));
-            _tbDrawerPin = MakeTB(_db.GetSetting("DrawerPin", "2"));
+            _tbDrawerPin = UiHelper.MakeTB(_db.GetSetting("DrawerPin", "2"));
             sp.Children.Add(_tbDrawerPin);
 
             sp.Children.Add(Lbl("عرض الطابعة (32 للـ 58mm أو 48 للـ 80mm)", top: 12));
             // FIX: بدل local variable → field حتى Save() تشوفه
-            _tbWidth = MakeTB(_db.GetSetting("PrinterWidth", "32"));
+            _tbWidth = UiHelper.MakeTB(_db.GetSetting("PrinterWidth", "32"));
             sp.Children.Add(_tbWidth);
 
             sp.Children.Add(Lbl("افتح الدرج مع طرق الدفع (مفصولة بفاصلة)", top: 12));
             // FIX: بدل local variable → field حتى Save() تشوفه
-            _tbDrawerFor = MakeTB(_db.GetSetting("OpenDrawerFor", "كاش"));
+            _tbDrawerFor = UiHelper.MakeTB(_db.GetSetting("OpenDrawerFor", "كاش"));
             sp.Children.Add(new TextBlock
             {
                 Text = "مثال: كاش,فيزا/ماستر",
                 FontSize = 10,
-                Foreground = B("#4a6080")
+                Foreground = UiHelper.B("#4a6080")
             });
             sp.Children.Add(_tbDrawerFor);
 
             // FIX: حذفنا SetSetting من هنا — كان بيحفظ فور ما الشاشة تفتح!
             // الحفظ بقى كله في Save() بس
 
-            var testBtn = MakeBtn("🖨️ طباعة فاتورة تجريبية", "#1e3a5f", B("#7ab8f5"), () =>
+            var testBtn = UiHelper.MakeBtn("🖨️ طباعة فاتورة تجريبية", "#1e3a5f", UiHelper.B("#7ab8f5"), () =>
             {
                 _db.SetSetting("PrinterName", _tbPrinter.Text.Trim());
                 _db.SetSetting("EpsonPort", _tbPort.Text.Trim());
@@ -285,7 +283,7 @@ namespace PizzaPOS.Views
             {
                 Text = "⚠️ التغييرات تطبق على الأوردرات الجديدة فقط",
                 FontSize = 11,
-                Foreground = B("#ffd166"),
+                Foreground = UiHelper.B("#ffd166"),
                 Margin = new Thickness(0, 14, 0, 16),
                 TextWrapping = TextWrapping.Wrap
             });
@@ -297,14 +295,14 @@ namespace PizzaPOS.Views
             // ── Bottom Buttons ──
             var bar = new Border
             {
-                Background = B("#090e1a"),
-                BorderBrush = B("#1a2540"),
+                Background = UiHelper.B("#090e1a"),
+                BorderBrush = UiHelper.B("#1a2540"),
                 BorderThickness = new Thickness(0, 1, 0, 0),
                 Padding = new Thickness(16, 12, 16, 12)
             };
             var btnSp = new StackPanel { Orientation = Orientation.Horizontal };
-            btnSp.Children.Add(MakeBtn("💾  حفظ الإعدادات", "#06d6a0", B("#0a1a12"), Save));
-            btnSp.Children.Add(MakeBtn("إلغاء", "#1e2d4a", B("#8892a4"),
+            btnSp.Children.Add(UiHelper.MakeBtn("💾  حفظ الإعدادات", "#06d6a0", UiHelper.B("#0a1a12"), Save));
+            btnSp.Children.Add(UiHelper.MakeBtn("إلغاء", "#1e2d4a", UiHelper.B("#8892a4"),
                 () => { DialogResult = false; Close(); }));
             bar.Child = btnSp;
             Grid.SetRow(bar, 2);
@@ -371,8 +369,8 @@ namespace PizzaPOS.Views
         {
             var b = new Border
             {
-                Background = B("#0c1530"),
-                BorderBrush = B("#FF6B35"),
+                Background = UiHelper.B("#0c1530"),
+                BorderBrush = UiHelper.B("#FF6B35"),
                 BorderThickness = new Thickness(3, 0, 0, 0),
                 CornerRadius = new CornerRadius(0, 6, 6, 0),
                 Padding = new Thickness(10, 7, 10, 7),
@@ -383,7 +381,7 @@ namespace PizzaPOS.Views
                 Text = title,
                 FontSize = 12,
                 FontWeight = FontWeights.Black,
-                Foreground = B("#ffd166")
+                Foreground = UiHelper.B("#ffd166")
             };
             return b;
         }
@@ -391,55 +389,11 @@ namespace PizzaPOS.Views
         TextBlock Lbl(string t, int top = 0) => new()
         {
             Text = t,
-            Foreground = B("#8892a4"),
+            Foreground = UiHelper.B("#8892a4"),
             FontWeight = FontWeights.Bold,
             FontSize = 11,
             Margin = new Thickness(0, top, 0, 4)
         };
 
-        TextBox MakeTB(string val) => new()
-        {
-            Text = val,
-            Background = B("#0f1a2e"),
-            Foreground = B("#eef0f2"),
-            BorderBrush = B("#1e2d4a"),
-            BorderThickness = new Thickness(1),
-            Padding = new Thickness(10, 8, 10, 8),
-            FontSize = 13,
-            CaretBrush = B("#FF6B35"),
-            SelectionBrush = B("#FF6B35")
-        };
-
-        Button MakeBtn(string text, string bg, Brush fg, Action click)
-        {
-            var f = new FrameworkElementFactory(typeof(Border));
-            f.SetBinding(Border.BackgroundProperty,
-                new Binding("Background")
-                { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            f.SetValue(Border.CornerRadiusProperty, new CornerRadius(8));
-            f.SetBinding(Border.PaddingProperty,
-                new Binding("Padding")
-                { RelativeSource = new RelativeSource(RelativeSourceMode.TemplatedParent) });
-            var cp = new FrameworkElementFactory(typeof(ContentPresenter));
-            cp.SetValue(ContentPresenter.HorizontalAlignmentProperty, HorizontalAlignment.Center);
-            cp.SetValue(ContentPresenter.VerticalAlignmentProperty, VerticalAlignment.Center);
-            f.AppendChild(cp);
-            var tpl = new ControlTemplate(typeof(Button)) { VisualTree = f };
-            var btn = new Button
-            {
-                Content = text,
-                Background = B(bg),
-                Foreground = fg,
-                BorderThickness = new Thickness(0),
-                Padding = new Thickness(18, 10, 18, 10),
-                FontWeight = FontWeights.Bold,
-                FontSize = 13,
-                Cursor = System.Windows.Input.Cursors.Hand,
-                Margin = new Thickness(0, 0, 8, 0),
-                Template = tpl
-            };
-            btn.Click += (_, _) => click();
-            return btn;
-        }
     }
 }

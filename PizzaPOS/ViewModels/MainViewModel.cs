@@ -10,6 +10,8 @@ using PizzaPOS.Data;
 using PizzaPOS.Models;
 using PizzaPOS.Services;
 using PizzaPOS.Views;
+using PizzaPOS.Helpers;
+using OrderTypeConst = PizzaPOS.Models.OrderType;
 
 namespace PizzaPOS.ViewModels
 {
@@ -58,7 +60,7 @@ namespace PizzaPOS.ViewModels
         }
 
         // ── Order Type ───────────────────────────────
-        string _orderType = "ديلفري";
+        string _orderType = OrderTypeConst.Delivery;
         public string OrderType
         {
             get => _orderType;
@@ -266,7 +268,7 @@ namespace PizzaPOS.ViewModels
         // ── Pay Cash ─────────────────────────────────
         void PayCash()
         {
-            if (_orderType == "ديلفري")
+            if (_orderType == OrderTypeConst.Delivery)
             {
                 var delDlg = new DeliveryDialog(_db, Total)
                 { Owner = Application.Current.MainWindow };
@@ -286,21 +288,21 @@ namespace PizzaPOS.ViewModels
                 var cashDlg = new CashDialog(Total + delDlg.DeliveryFee);
                 if (cashDlg.ShowDialog() != true) return;
 
-                Complete("كاش", cashDlg.PaidAmount,
+                Complete(PayMethod.Cash, cashDlg.PaidAmount,
                     cashDlg.PaidAmount - (Total + delDlg.DeliveryFee), delDlg);
             }
             else
             {
                 var dlg = new CashDialog(Total);
                 if (dlg.ShowDialog() != true) return;
-                Complete("كاش", dlg.PaidAmount, dlg.PaidAmount - Total, null);
+                Complete(PayMethod.Cash, dlg.PaidAmount, dlg.PaidAmount - Total, null);
             }
         }
 
         // ── Pay Card ─────────────────────────────────
         void PayCard()
         {
-            if (_orderType == "ديلفري")
+            if (_orderType == OrderTypeConst.Delivery)
             {
                 var delDlg = new DeliveryDialog(_db, Total)
                 { Owner = Application.Current.MainWindow };
@@ -322,7 +324,7 @@ namespace PizzaPOS.ViewModels
                         $"تأكيد دفع فيزا\nالإجمالي: {finalTotal:F2} ج", "تأكيد",
                         MessageBoxButton.OKCancel, MessageBoxImage.Question)
                     != MessageBoxResult.OK) return;
-                Complete("فيزا/ماستر", finalTotal, 0, delDlg);
+                Complete(PayMethod.Card, finalTotal, 0, delDlg);
             }
             else
             {
@@ -330,7 +332,7 @@ namespace PizzaPOS.ViewModels
                         $"تأكيد دفع فيزا\nالإجمالي: {Total:F2} ج", "تأكيد",
                         MessageBoxButton.OKCancel, MessageBoxImage.Question)
                     != MessageBoxResult.OK) return;
-                Complete("فيزا/ماستر", Total, 0, null);
+                Complete(PayMethod.Card, Total, 0, null);
             }
         }
 
@@ -340,7 +342,7 @@ namespace PizzaPOS.ViewModels
             HeldOrders.Add(new Order
             {
                 OrderNumber = _orderNum,
-                OrderType = "توصيل",
+                OrderType = OrderTypeConst.Delivery,
                 Total = Total,
                 Notes = _notes,
                 CreatedAt = DateTime.Now.ToString("HH:mm"),
@@ -351,7 +353,7 @@ namespace PizzaPOS.ViewModels
                 DriverId = delivery.DriverId,
                 DriverName = delivery.DriverName,
                 DeliveryFee = delivery.DeliveryFee,
-                DeliveryStatus = "معلق"
+                DeliveryStatus = DeliveryStatuses.Pending
             });
             ClearOrder();
         }
@@ -379,7 +381,7 @@ namespace PizzaPOS.ViewModels
                 Change = change,
                 Notes = _notes,
                 Items = snapshot,
-                Status = "new",
+                Status = OrderStatus.New,
                 CustomerId = delivery?.CustomerId ?? 0,
                 CustomerName = delivery?.CustomerName ?? "",
                 CustomerPhone = delivery?.CustomerPhone ?? "",
@@ -387,11 +389,19 @@ namespace PizzaPOS.ViewModels
                 DriverId = delivery?.DriverId ?? 0,
                 DriverName = delivery?.DriverName ?? "",
                 DeliveryFee = delivery?.DeliveryFee ?? 0,
-                DeliveryStatus = delivery != null ? "قيد التوصيل" : ""
+                DeliveryStatus = delivery != null ? DeliveryStatuses.InTransit : ""
             };
 
             _db.SaveOrder(order);
             _inv.DeductForOrder(snapshot, SessionService.CurrentUser?.Id ?? 0);
+
+            // Loyalty: 1 point per 10 EGP spent
+            if (order.CustomerId > 0)
+            {
+                int earnedPoints = (int)(order.Total / 10);
+                _db.AddLoyaltyPoints(order.CustomerId, earnedPoints);
+            }
+
             _printer.PrintReceipt(order, _db);
             RefreshStats();
             ClearOrder();
@@ -429,7 +439,7 @@ namespace PizzaPOS.ViewModels
         {
             OrderItems.Clear();
             _discInput = ""; _notes = "";
-            _orderType = "ديلفري";
+            _orderType = OrderTypeConst.Delivery;
             Notify(nameof(OrderType));
             Notify(nameof(DiscountInput));
             Notify(nameof(Notes));

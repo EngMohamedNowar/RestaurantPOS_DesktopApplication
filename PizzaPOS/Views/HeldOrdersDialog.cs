@@ -9,6 +9,7 @@ using System.Windows.Documents;
 using System.Windows.Media;
 using PizzaPOS.Data;
 using PizzaPOS.Models;
+using PizzaPOS.Helpers;
 using PizzaPOS.Services;
 using PizzaPOS.ViewModels;
 
@@ -19,15 +20,12 @@ namespace PizzaPOS.Views
         readonly MainViewModel _vm;
         readonly AppDbContext _db = new();
 
-        SolidColorBrush B(string hex) =>
-            new((Color)ColorConverter.ConvertFromString(hex));
-
         public HeldOrdersDialog(MainViewModel vm)
         {
             _vm = vm;
             Title = "⏸ الأوردرات المعلقة";
             Width = 480; Height = 540;
-            Background = B("#0a0a14");
+            Background = UiHelper.B("#0a0a14");
             FlowDirection = FlowDirection.RightToLeft;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             FontFamily = new FontFamily("Tahoma");
@@ -45,8 +43,8 @@ namespace PizzaPOS.Views
             // ══ Header ══
             var header = new Border
             {
-                Background = B("#0f1526"),
-                BorderBrush = B("#1e2d4a"),
+                Background = UiHelper.B("#0f1526"),
+                BorderBrush = UiHelper.B("#1e2d4a"),
                 BorderThickness = new Thickness(0, 0, 0, 1),
                 Padding = new Thickness(16, 14, 16, 14)
             };
@@ -55,7 +53,7 @@ namespace PizzaPOS.Views
 
             var iconB = new Border
             {
-                Background = B("#1a2640"),
+                Background = UiHelper.B("#1a2640"),
                 CornerRadius = new CornerRadius(8),
                 Width = 34,
                 Height = 34,
@@ -74,13 +72,13 @@ namespace PizzaPOS.Views
                 Text = "الأوردرات المعلقة",
                 FontSize = 18,
                 FontWeight = FontWeights.Black,
-                Foreground = B("#eef0f2"),
+                Foreground = UiHelper.B("#eef0f2"),
                 VerticalAlignment = VerticalAlignment.Center
             });
 
             var countBorder = new Border
             {
-                Background = B("#E63946"),
+                Background = UiHelper.B("#E63946"),
                 CornerRadius = new CornerRadius(12),
                 Padding = new Thickness(10, 3, 10, 3),
                 HorizontalAlignment = HorizontalAlignment.Left,
@@ -131,7 +129,7 @@ namespace PizzaPOS.Views
                 Text = "لا يوجد أوردرات معلقة",
                 FontSize = 14,
                 FontWeight = FontWeights.Bold,
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 HorizontalAlignment = HorizontalAlignment.Center
             });
 
@@ -156,8 +154,8 @@ namespace PizzaPOS.Views
             // ══ Footer ══
             var footer = new Border
             {
-                Background = B("#0f1526"),
-                BorderBrush = B("#1e2d4a"),
+                Background = UiHelper.B("#0f1526"),
+                BorderBrush = UiHelper.B("#1e2d4a"),
                 BorderThickness = new Thickness(0, 1, 0, 0),
                 Padding = new Thickness(12, 10, 12, 10)
             };
@@ -169,13 +167,13 @@ namespace PizzaPOS.Views
             var hint = new TextBlock
             {
                 Text = "اضغط «استئناف» أو اضغط مرتين",
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center,
                 HorizontalAlignment = HorizontalAlignment.Center
             };
             var closeBtn = MakeBtn("✖ إغلاق", "#12192e", "#1e2d4a",
-                B("#8892a4"), () => Close());
+                UiHelper.B("#8892a4"), () => Close());
 
             Grid.SetColumn(hint, 0);
             Grid.SetColumn(closeBtn, 2);
@@ -193,9 +191,9 @@ namespace PizzaPOS.Views
         {
             var card = new Border
             {
-                Background = B("#0d1525"),
+                Background = UiHelper.B("#0d1525"),
                 CornerRadius = new CornerRadius(10),
-                BorderBrush = B("#1e2d4a"),
+                BorderBrush = UiHelper.B("#1e2d4a"),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(12, 10, 12, 10),
                 Margin = new Thickness(0, 0, 0, 8),
@@ -205,7 +203,7 @@ namespace PizzaPOS.Views
             bool isDelivery = order.OrderType == "توصيل" &&
                               !string.IsNullOrWhiteSpace(order.CustomerPhone);
             if (isDelivery)
-                card.BorderBrush = B("#1e3a5f");
+                card.BorderBrush = UiHelper.B("#1e3a5f");
 
             var mainGrid = new Grid();
             mainGrid.ColumnDefinitions.Add(new ColumnDefinition());
@@ -224,7 +222,7 @@ namespace PizzaPOS.Views
             };
             var numBadge = new Border
             {
-                Background = B("#E63946"),
+                Background = UiHelper.B("#E63946"),
                 CornerRadius = new CornerRadius(6),
                 Padding = new Thickness(8, 2, 8, 2),
                 Margin = new Thickness(0, 0, 8, 0)
@@ -240,7 +238,7 @@ namespace PizzaPOS.Views
 
             var typeBadge = new Border
             {
-                Background = isDelivery ? B("#0f1f35") : Brushes.Transparent,
+                Background = isDelivery ? UiHelper.B("#0f1f35") : Brushes.Transparent,
                 CornerRadius = new CornerRadius(5),
                 Padding = isDelivery ? new Thickness(6, 2, 6, 2) : new Thickness(0),
                 VerticalAlignment = VerticalAlignment.Center
@@ -248,7 +246,7 @@ namespace PizzaPOS.Views
             typeBadge.Child = new TextBlock
             {
                 Text = isDelivery ? $"🛵 {order.OrderType}" : order.OrderType,
-                Foreground = isDelivery ? B("#4da8da") : B("#8892a4"),
+                Foreground = isDelivery ? UiHelper.B("#4da8da") : UiHelper.B("#8892a4"),
                 FontSize = 12,
                 FontWeight = isDelivery ? FontWeights.Bold : FontWeights.Normal,
                 VerticalAlignment = VerticalAlignment.Center
@@ -260,7 +258,7 @@ namespace PizzaPOS.Views
             infoSp.Children.Add(new TextBlock
             {
                 Text = $"🕐 {order.CreatedAt}",
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 FontSize = 11,
                 Margin = new Thickness(0, 0, 0, 2)
             });
@@ -270,7 +268,7 @@ namespace PizzaPOS.Views
                 infoSp.Children.Add(new TextBlock
                 {
                     Text = order.Notes,
-                    Foreground = B("#ffd166"),
+                    Foreground = UiHelper.B("#ffd166"),
                     FontSize = 11,
                     TextWrapping = TextWrapping.Wrap
                 });
@@ -279,7 +277,7 @@ namespace PizzaPOS.Views
             infoSp.Children.Add(new TextBlock
             {
                 Text = $"📦 {order.Items.Count} صنف",
-                Foreground = B("#4a6080"),
+                Foreground = UiHelper.B("#4a6080"),
                 FontSize = 11,
                 Margin = new Thickness(0, 2, 0, 0)
             });
@@ -290,7 +288,7 @@ namespace PizzaPOS.Views
                 infoSp.Children.Add(new Border
                 {
                     Height = 1,
-                    Background = B("#1e2d4a"),
+                    Background = UiHelper.B("#1e2d4a"),
                     Margin = new Thickness(0, 6, 0, 6),
                     Opacity = 0.6
                 });
@@ -303,7 +301,7 @@ namespace PizzaPOS.Views
                 phoneRow.Children.Add(new TextBlock
                 {
                     Text = $"📞 {order.CustomerPhone}",
-                    Foreground = B("#4da8da"),
+                    Foreground = UiHelper.B("#4da8da"),
                     FontSize = 11,
                     FontWeight = FontWeights.Bold,
                     Margin = new Thickness(0, 0, 12, 0)
@@ -312,7 +310,7 @@ namespace PizzaPOS.Views
                     phoneRow.Children.Add(new TextBlock
                     {
                         Text = order.CustomerName,
-                        Foreground = B("#8892a4"),
+                        Foreground = UiHelper.B("#8892a4"),
                         FontSize = 11,
                         VerticalAlignment = VerticalAlignment.Center
                     });
@@ -322,7 +320,7 @@ namespace PizzaPOS.Views
                     infoSp.Children.Add(new TextBlock
                     {
                         Text = $"📍 {order.DeliveryAddress}",
-                        Foreground = B("#ffd166"),
+                        Foreground = UiHelper.B("#ffd166"),
                         FontSize = 11,
                         TextWrapping = TextWrapping.Wrap,
                         Margin = new Thickness(0, 0, 0, 3)
@@ -332,7 +330,7 @@ namespace PizzaPOS.Views
                     infoSp.Children.Add(new TextBlock
                     {
                         Text = $"🛵 السائق: {order.DriverName}",
-                        Foreground = B("#06d6a0"),
+                        Foreground = UiHelper.B("#06d6a0"),
                         FontSize = 11,
                         FontWeight = FontWeights.Bold,
                         Margin = new Thickness(0, 0, 0, 2)
@@ -341,7 +339,7 @@ namespace PizzaPOS.Views
                     infoSp.Children.Add(new TextBlock
                     {
                         Text = "🛵 بدون سائق",
-                        Foreground = B("#4a6080"),
+                        Foreground = UiHelper.B("#4a6080"),
                         FontSize = 11,
                         FontStyle = FontStyles.Italic,
                         Margin = new Thickness(0, 0, 0, 2)
@@ -351,7 +349,7 @@ namespace PizzaPOS.Views
                     infoSp.Children.Add(new TextBlock
                     {
                         Text = $"💰 رسوم توصيل: {order.DeliveryFee:F2} ج",
-                        Foreground = B("#06d6a0"),
+                        Foreground = UiHelper.B("#06d6a0"),
                         FontSize = 11,
                         Margin = new Thickness(0, 0, 0, 0)
                     });
@@ -368,7 +366,7 @@ namespace PizzaPOS.Views
 
             var totalBorder = new Border
             {
-                Background = B("#0f1f14"),
+                Background = UiHelper.B("#0f1f14"),
                 CornerRadius = new CornerRadius(8),
                 Padding = new Thickness(10, 4, 10, 4),
                 Margin = new Thickness(0, 0, 0, 6)
@@ -376,7 +374,7 @@ namespace PizzaPOS.Views
             totalBorder.Child = new TextBlock
             {
                 Text = $"{order.Total:F2} ج",
-                Foreground = B("#06d6a0"),
+                Foreground = UiHelper.B("#06d6a0"),
                 FontWeight = FontWeights.Black,
                 FontSize = 14,
                 TextAlignment = TextAlignment.Center
@@ -384,7 +382,7 @@ namespace PizzaPOS.Views
             actionSp.Children.Add(totalBorder);
 
             var resumeBtn = MakeBtn("▶ استئناف", "#06d6a0", "#06d6a0",
-                B("#0a0a14"), () =>
+                UiHelper.B("#0a0a14"), () =>
                 {
                     _vm.ResumeCmd.Execute(order);
                     Close();
@@ -392,12 +390,12 @@ namespace PizzaPOS.Views
             actionSp.Children.Add(resumeBtn);
 
             var printBtn = MakeBtn("🖨 طباعة", "#0f1a2e", "#1e3a5a",
-                B("#4da8da"), () => PrintOrder(order));
+                UiHelper.B("#4da8da"), () => PrintOrder(order));
             printBtn.Margin = new Thickness(0, 6, 0, 0);
             actionSp.Children.Add(printBtn);
 
             var cancelOrderBtn = MakeBtn("✖ إلغاء", "#1a0a0a", "#E63946",
-                B("#E63946"), () => CancelOrder(order));
+                UiHelper.B("#E63946"), () => CancelOrder(order));
             cancelOrderBtn.Margin = new Thickness(0, 6, 0, 0);
             actionSp.Children.Add(cancelOrderBtn);
 
@@ -405,8 +403,8 @@ namespace PizzaPOS.Views
             mainGrid.Children.Add(actionSp);
             card.Child = mainGrid;
 
-            card.MouseEnter += (_, _) => card.Background = B("#12192e");
-            card.MouseLeave += (_, _) => card.Background = B("#0d1525");
+            card.MouseEnter += (_, _) => card.Background = UiHelper.B("#12192e");
+            card.MouseLeave += (_, _) => card.Background = UiHelper.B("#0d1525");
             card.MouseLeftButtonDown += (_, e) =>
             {
                 if (e.ClickCount == 2)
@@ -646,9 +644,9 @@ namespace PizzaPOS.Views
             var btn = new Button
             {
                 Content = text,
-                Background = B(bg),
+                Background = UiHelper.B(bg),
                 Foreground = fg,
-                BorderBrush = B(borderColor),
+                BorderBrush = UiHelper.B(borderColor),
                 BorderThickness = new Thickness(1),
                 Padding = new Thickness(12, 7, 12, 7),
                 FontWeight = FontWeights.Bold,

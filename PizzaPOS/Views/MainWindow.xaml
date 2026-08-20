@@ -411,6 +411,9 @@
                         <Button                        Content="⏸ معلق (F5)"       Click="HeldOrders_Click"          Style="{StaticResource HeaderBtn}" Foreground="#6effd4" BorderBrush="#06d6a0" Margin="0,0,4,0"/>
                         <Button                        Content="⏹ إغلاق شفت"       Command="{Binding CloseShiftCmd}" Style="{StaticResource HeaderBtn}" Background="#2a1020" Foreground="#ff8090" BorderBrush="#E63946" Margin="0,0,4,0"/>
                         <Button x:Name="BtnDrivers"    Content="🛵 سائقين"         Click="OpenDrivers_Click"         Style="{StaticResource HeaderBtn}" Foreground="#6effd4" BorderBrush="#06d6a0" Margin="0,0,4,0"/>
+                        <Button x:Name="BtnCustomers"  Content="👤 زبائن"           Click="OpenCustomers_Click"       Style="{StaticResource HeaderBtn}" Foreground="#c4b5fd" BorderBrush="#a78bfa" Margin="0,0,4,0"/>
+                        <Button x:Name="BtnWarehouse"  Content="📦 مخزن"            Click="OpenWarehouse_Click"       Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#ffd166" Margin="0,0,4,0"/>
+                        <Button x:Name="BtnOffers"     Content="🏷️ عروض"           Click="OpenOffers_Click"          Style="{StaticResource HeaderBtn}" Foreground="#ff8090" BorderBrush="#E63946" Margin="0,0,4,0"/>
                         <Button                        Content="📋 تتبع الأوردرات" Click="OpenTracking_Click"        Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#FF6B35"/>
 
                     </StackPanel>
@@ -927,6 +930,10 @@
                 <TextBlock Text="│" Foreground="#2a3f6a" Margin="0,0,12,0"/>
                 <TextBlock Foreground="#b0c4de" FontSize="10"
                            Text="F1=كاش  │  F2=فيزا  │  F3=تعليق  │  F4=مسح  │  F5=معلق  │  /=بحث"/>
+                <TextBlock Text="│" Foreground="#2a3f6a" Margin="12,0,12,0"/>
+                <TextBlock FontSize="9" Foreground="#3a4a6a" VerticalAlignment="Center">
+                    Developed by <Run FontWeight="Bold" Foreground="#4a6080">Eng. Mohamed Nowar</Run>
+                </TextBlock>
             </StackPanel>
         </Border>
 

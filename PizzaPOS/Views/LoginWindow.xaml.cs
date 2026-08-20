@@ -1,4 +1,6 @@
 ﻿// Views/LoginWindow.xaml.cs
+using System;
+using System.Diagnostics;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -158,6 +160,15 @@ namespace PizzaPOS.Views
             }
 
             DialogResult = true;
+        }
+
+        void OpenPortfolio(object s, MouseButtonEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://engmohamednowar.github.io/portfolio/",
+                UseShellExecute = true
+            });
         }
     }
 }

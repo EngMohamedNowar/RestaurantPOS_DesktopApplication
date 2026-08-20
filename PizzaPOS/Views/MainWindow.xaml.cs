@@ -67,6 +67,7 @@ namespace PizzaPOS.Views
             BtnLoss.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
             BtnUsers.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
             BtnDrivers.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
+            BtnOffers.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
         }
 
         void OpenUsers_Click(object s, RoutedEventArgs e)
@@ -156,6 +157,21 @@ namespace PizzaPOS.Views
             new SettingsWindow { Owner = this }.ShowDialog();
             _vm.ClearOrder();
             _vm.RefreshStats(); // ← تحديث بعد تغيير الإعدادات
+        }
+
+        void OpenCustomers_Click(object s, RoutedEventArgs e)
+        {
+            new CustomersWindow { Owner = this }.ShowDialog();
+        }
+
+        void OpenWarehouse_Click(object s, RoutedEventArgs e)
+        {
+            new WarehouseWindow { Owner = this }.ShowDialog();
+        }
+
+        void OpenOffers_Click(object s, RoutedEventArgs e)
+        {
+            new OffersWindow { Owner = this }.ShowDialog();
         }
 
         void CloseShift_Click(object s, RoutedEventArgs e)

@@ -1,7 +1,9 @@
 ﻿// Data/DatabaseHelper.cs
 using System;
 using System.IO;
+using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
+using PizzaPOS.Services;
 
 namespace PizzaPOS.Data
 {
@@ -18,6 +20,37 @@ namespace PizzaPOS.Data
             var c = new SqliteConnection(CS);
             c.Open();
             return c;
+        }
+
+        public static async Task<SqliteConnection> OpenAsync()
+        {
+            var c = new SqliteConnection(CS);
+            await c.OpenAsync();
+            return c;
+        }
+
+        public static async Task ExecAsync(SqliteConnection conn, string sql)
+        {
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            await cmd.ExecuteNonQueryAsync();
+        }
+
+        static void TryMigrate(SqliteConnection conn, string sql, string description)
+        {
+            try { Exec(conn, sql); }
+            catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.ErrorCode == 447)
+            {
+                // duplicate column - مفيش مشكلة
+            }
+            catch (Microsoft.Data.Sqlite.SqliteException ex)
+            {
+                AppLogger.Warn($"Migration '{description}' failed: {ex.Message}");
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Warn($"Migration '{description}' unexpected error: {ex.Message}");
+            }
         }
 
         public static void Initialize()
@@ -157,17 +190,17 @@ namespace PizzaPOS.Data
                 Status          TEXT    DEFAULT 'completed');");
 
             // ── Migrations للـ DB القديمة ──
-            try { Exec(conn, "ALTER TABLE Orders ADD COLUMN ServiceCharge   REAL    DEFAULT 0"); } catch { }
-            try { Exec(conn, "ALTER TABLE Orders ADD COLUMN CustomerId      INTEGER DEFAULT 0"); } catch { }
-            try { Exec(conn, "ALTER TABLE Orders ADD COLUMN CustomerName    TEXT    DEFAULT ''"); } catch { }
-            try { Exec(conn, "ALTER TABLE Orders ADD COLUMN CustomerPhone   TEXT    DEFAULT ''"); } catch { }
-            try { Exec(conn, "ALTER TABLE Orders ADD COLUMN DeliveryAddress TEXT    DEFAULT ''"); } catch { }
-            try { Exec(conn, "ALTER TABLE Orders ADD COLUMN DriverId        INTEGER DEFAULT 0"); } catch { }
-            try { Exec(conn, "ALTER TABLE Orders ADD COLUMN DriverName      TEXT    DEFAULT ''"); } catch { }
-            try { Exec(conn, "ALTER TABLE Orders ADD COLUMN DeliveryFee     REAL    DEFAULT 0"); } catch { }
-            try { Exec(conn, "ALTER TABLE Orders ADD COLUMN DeliveryStatus  TEXT    DEFAULT ''"); } catch { }
-            try { Exec(conn, "ALTER TABLE Orders ADD COLUMN Status TEXT DEFAULT 'new'"); } catch { }
-            try { Exec(conn, "UPDATE Orders SET Status='completed' WHERE Status IS NULL OR Status=''"); } catch { }
+            TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN ServiceCharge   REAL    DEFAULT 0", "Orders.ServiceCharge");
+            TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN CustomerId      INTEGER DEFAULT 0", "Orders.CustomerId");
+            TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN CustomerName    TEXT    DEFAULT ''", "Orders.CustomerName");
+            TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN CustomerPhone   TEXT    DEFAULT ''", "Orders.CustomerPhone");
+            TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN DeliveryAddress TEXT    DEFAULT ''", "Orders.DeliveryAddress");
+            TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN DriverId        INTEGER DEFAULT 0", "Orders.DriverId");
+            TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN DriverName      TEXT    DEFAULT ''", "Orders.DriverName");
+            TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN DeliveryFee     REAL    DEFAULT 0", "Orders.DeliveryFee");
+            TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN DeliveryStatus  TEXT    DEFAULT ''", "Orders.DeliveryStatus");
+            TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN Status TEXT DEFAULT 'new'", "Orders.Status");
+            TryMigrate(conn, "UPDATE Orders SET Status='completed' WHERE Status IS NULL OR Status=''", "Orders.Status cleanup");
 
             // ── OrderItems ──
             Exec(conn, @"CREATE TABLE IF NOT EXISTS OrderItems (
@@ -183,8 +216,8 @@ namespace PizzaPOS.Data
                 ExtrasNote TEXT);");
 
             // ── Migrations OrderItems ──
-            try { Exec(conn, "ALTER TABLE OrderItems ADD COLUMN SizeName   TEXT"); } catch { }
-            try { Exec(conn, "ALTER TABLE OrderItems ADD COLUMN ExtrasNote TEXT"); } catch { }
+            TryMigrate(conn, "ALTER TABLE OrderItems ADD COLUMN SizeName   TEXT", "OrderItems.SizeName");
+            TryMigrate(conn, "ALTER TABLE OrderItems ADD COLUMN ExtrasNote TEXT", "OrderItems.ExtrasNote");
 
             // ── Settings ──
             Exec(conn, @"CREATE TABLE IF NOT EXISTS Settings (
@@ -201,7 +234,32 @@ namespace PizzaPOS.Data
                 CreatedBy   TEXT    NOT NULL DEFAULT '',
                 CreatedAt   TEXT    NOT NULL DEFAULT (datetime('now','localtime')));");
 
+            // ── Loyalty Points migration ──
+            TryMigrate(conn, "ALTER TABLE Customers ADD COLUMN LoyaltyPoints INTEGER DEFAULT 0", "Customers.LoyaltyPoints");
+
+            // ── Offers ──
+            Exec(conn, @"CREATE TABLE IF NOT EXISTS Offers (
+                Id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                Title            TEXT    NOT NULL,
+                Description      TEXT    DEFAULT '',
+                DiscountPercent  REAL    DEFAULT 0,
+                PromoCode        TEXT    DEFAULT '',
+                IsActive         INTEGER DEFAULT 1,
+                CreatedAt        TEXT    NOT NULL DEFAULT (datetime('now','localtime')));");
+
             Seed(conn);
+            EnsureDefaultUsers(conn);
+        }
+
+        static void EnsureDefaultUsers(SqliteConnection conn)
+        {
+            var chk = conn.CreateCommand();
+            chk.CommandText = "SELECT COUNT(*) FROM Users";
+            if ((long)chk.ExecuteScalar()! > 0) return;
+
+            Exec(conn, @"INSERT INTO Users(Username,FullName,PinHash,Role) VALUES
+        ('admin',    'Admin',    '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', 'admin'),
+        ('cashier1', 'Cashier 1','9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0', 'cashier');");
         }
 
         static void Seed(SqliteConnection conn)
@@ -227,38 +285,38 @@ namespace PizzaPOS.Data
 
             // --- بيتزا (Cat 1) → IDs 1-5 ---
             Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon) VALUES
-        (1, 'Margherita',       89,  30, '🍕'),
-        (1, 'Pepperoni',        105, 38, '🍕'),
-        (1, 'Quattro Formaggi', 115, 42, '🍕'),
-        (1, 'Pollo Special',    99,  35, '🍕'),
-        (1, 'Napoli Döner',     109, 40, '🍕');");
+        (1, 'Margherita',       99,  0, '🍕'),
+        (1, 'Pepperoni',        120, 0, '🍕'),
+        (1, 'Quattro Formaggi', 135, 0, '🍕'),
+        (1, 'Pollo Special',    115, 0, '🍕'),
+        (1, 'Napoli Doner',     125, 0, '🍕');");
 
             // --- بيتزا Napoletana (Cat 2) → IDs 6-10 ---
             Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon) VALUES
-        (2, 'Margherita Napoletana',       95,  32, '🍕'),
-        (2, 'Pepperoni Napoletana',        115, 40, '🍕'),
-        (2, 'Quattro Formaggi Napoletana', 125, 45, '🍕'),
-        (2, 'Pollo Special Napoletana',    109, 37, '🍕'),
-        (2, 'Napoli Döner Napoletana',     119, 43, '🍕');");
+        (2, 'Margherita Napoletana',       115,  0, '🍕'),
+        (2, 'Pepperoni Napoletana',        140, 0, '🍕'),
+        (2, 'Quattro Formaggi Napoletana', 155, 0, '🍕'),
+        (2, 'Pollo Special Napoletana',    135, 0, '🍕'),
+        (2, 'Napoli Doner Napoletana',     145, 0, '🍕');");
 
             // --- باستا (Cat 3) → IDs 11-13 ---
             Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon) VALUES
-        (3, 'Napoli Pasta',  79, 25, '🍝'),
-        (3, 'Tuscan Pasta',  89, 30, '🍝'),
-        (3, 'Pesto Pasta',   80, 26, '🍝');");
+        (3, 'Napoli Pasta',  89,  0, '🍝'),
+        (3, 'Tuscan Pasta',  99,  0, '🍝'),
+        (3, 'Pesto Pasta',   92,  0, '🍝');");
 
             // --- ساندويتش (Cat 4) → IDs 14-17 ---
             Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon) VALUES
-        (4, 'Beef Burger',          65, 22, '🍔'),
-        (4, 'Chicken Fanta Sand.',  60, 20, '🥪'),
-        (4, 'Shawarma Sand.',       65, 20, '🥙'),
-        (4, 'Crep Sand.',           55, 18, '🥪');");
+        (4, 'Beef Burger',          75,  0, '🍔'),
+        (4, 'Chicken Fajita Sand.', 65,  0, '🥪'),
+        (4, 'Shawarma Sand.',       60,  0, '🥙'),
+        (4, 'Crepe Sand.',          55,  0, '🥪');");
 
             // --- فطاير (Cat 5) → IDs 18-20 ---
             Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon) VALUES
-        (5, 'Fatayer Sujuk',       45, 14, '🥙'),
-        (5, 'Fatayer Minced Beef', 45, 14, '🥙'),
-        (5, 'Cherry Napoli',       50, 16, '🥙');");
+        (5, 'Fatayer Sujuk',       50,  0, '🥙'),
+        (5, 'Fatayer Minced Beef', 50,  0, '🥙'),
+        (5, 'Cherry Napoli',       55,  0, '🥙');");
 
             // ══════════════════════════════════════════
             // ── ProductSizes ──
@@ -266,19 +324,19 @@ namespace PizzaPOS.Data
 
             // بيتزا (IDs 1-5) → Small / Medium / Large
             Exec(conn, @"INSERT INTO ProductSizes(ProductId,Name,ExtraPrice,SortOrder) VALUES
-        (1,'Small',0,1),(1,'Medium',20,2),(1,'Large',40,3),
-        (2,'Small',0,1),(2,'Medium',20,2),(2,'Large',40,3),
-        (3,'Small',0,1),(3,'Medium',20,2),(3,'Large',40,3),
-        (4,'Small',0,1),(4,'Medium',20,2),(4,'Large',40,3),
-        (5,'Small',0,1),(5,'Medium',20,2),(5,'Large',40,3);");
+        (1,'Small',0,1),(1,'Medium',25,2),(1,'Large',50,3),
+        (2,'Small',0,1),(2,'Medium',25,2),(2,'Large',50,3),
+        (3,'Small',0,1),(3,'Medium',25,2),(3,'Large',50,3),
+        (4,'Small',0,1),(4,'Medium',25,2),(4,'Large',50,3),
+        (5,'Small',0,1),(5,'Medium',25,2),(5,'Large',50,3);");
 
             // بيتزا Napoletana (IDs 6-10) → Small / Medium / Large
             Exec(conn, @"INSERT INTO ProductSizes(ProductId,Name,ExtraPrice,SortOrder) VALUES
-        (6, 'Small',0,1),(6, 'Medium',20,2),(6, 'Large',40,3),
-        (7, 'Small',0,1),(7, 'Medium',20,2),(7, 'Large',40,3),
-        (8, 'Small',0,1),(8, 'Medium',20,2),(8, 'Large',40,3),
-        (9, 'Small',0,1),(9, 'Medium',20,2),(9, 'Large',40,3),
-        (10,'Small',0,1),(10,'Medium',20,2),(10,'Large',40,3);");
+        (6, 'Small',0,1),(6, 'Medium',25,2),(6, 'Large',50,3),
+        (7, 'Small',0,1),(7, 'Medium',25,2),(7, 'Large',50,3),
+        (8, 'Small',0,1),(8, 'Medium',25,2),(8, 'Large',50,3),
+        (9, 'Small',0,1),(9, 'Medium',25,2),(9, 'Large',50,3),
+        (10,'Small',0,1),(10,'Medium',25,2),(10,'Large',50,3);");
 
             // باستا (IDs 11-13) → Regular / Large
             Exec(conn, @"INSERT INTO ProductSizes(ProductId,Name,ExtraPrice,SortOrder) VALUES
@@ -301,19 +359,19 @@ namespace PizzaPOS.Data
 
             // بيتزا Extras (IDs 1-5)
             Exec(conn, @"INSERT INTO ProductExtras(ProductId,Name,Price) VALUES
-        (1,'Extra Cheese',15),(1,'Extra Pepperoni',15),(1,'Mushrooms',10),(1,'Black Olives',10),(1,'Jalapeños',10),(1,'Fresh Basil',5),
-        (2,'Extra Cheese',15),(2,'Extra Pepperoni',15),(2,'Mushrooms',10),(2,'Black Olives',10),(2,'Jalapeños',10),(2,'Hot Sauce',5),
-        (3,'Extra Cheese',15),(3,'Blue Cheese',20),(3,'Mushrooms',10),(3,'Truffle Oil',25),(3,'Jalapeños',10),
+        (1,'Extra Cheese',15),(1,'Extra Pepperoni',15),(1,'Mushrooms',10),(1,'Black Olives',10),(1,'Jalapenos',10),(1,'Fresh Basil',5),
+        (2,'Extra Cheese',15),(2,'Extra Pepperoni',15),(2,'Mushrooms',10),(2,'Black Olives',10),(2,'Jalapenos',10),(2,'Hot Sauce',5),
+        (3,'Extra Cheese',15),(3,'Blue Cheese',20),(3,'Mushrooms',10),(3,'Truffle Oil',25),(3,'Jalapenos',10),
         (4,'Extra Cheese',15),(4,'Extra Chicken',20),(4,'Mushrooms',10),(4,'Sweet Corn',10),(4,'BBQ Sauce',5),
-        (5,'Extra Cheese',15),(5,'Döner Meat Extra',25),(5,'Jalapeños',10),(5,'Hot Sauce',5),(5,'Black Olives',10);");
+        (5,'Extra Cheese',15),(5,'Extra Doner',25),(5,'Jalapenos',10),(5,'Hot Sauce',5),(5,'Black Olives',10);");
 
-            // بيتزا Napoletana Extras (IDs 6-10) — نفس إضافات البيتزا العادية
+            // بيتزا Napoletana Extras (IDs 6-10)
             Exec(conn, @"INSERT INTO ProductExtras(ProductId,Name,Price) VALUES
-        (6, 'Extra Cheese',15),(6, 'Extra Pepperoni',15),(6, 'Mushrooms',10),(6, 'Black Olives',10),(6, 'Jalapeños',10),(6, 'Fresh Basil',5),
-        (7, 'Extra Cheese',15),(7, 'Extra Pepperoni',15),(7, 'Mushrooms',10),(7, 'Black Olives',10),(7, 'Jalapeños',10),(7, 'Hot Sauce',5),
-        (8, 'Extra Cheese',15),(8, 'Blue Cheese',20),(8, 'Mushrooms',10),(8, 'Truffle Oil',25),(8, 'Jalapeños',10),
+        (6, 'Extra Cheese',15),(6, 'Extra Pepperoni',15),(6, 'Mushrooms',10),(6, 'Black Olives',10),(6, 'Jalapenos',10),(6, 'Fresh Basil',5),
+        (7, 'Extra Cheese',15),(7, 'Extra Pepperoni',15),(7, 'Mushrooms',10),(7, 'Black Olives',10),(7, 'Jalapenos',10),(7, 'Hot Sauce',5),
+        (8, 'Extra Cheese',15),(8, 'Blue Cheese',20),(8, 'Mushrooms',10),(8, 'Truffle Oil',25),(8, 'Jalapenos',10),
         (9, 'Extra Cheese',15),(9, 'Extra Chicken',20),(9, 'Mushrooms',10),(9, 'Sweet Corn',10),(9, 'BBQ Sauce',5),
-        (10,'Extra Cheese',15),(10,'Döner Meat Extra',25),(10,'Jalapeños',10),(10,'Hot Sauce',5),(10,'Black Olives',10);");
+        (10,'Extra Cheese',15),(10,'Extra Doner',25),(10,'Jalapenos',10),(10,'Hot Sauce',5),(10,'Black Olives',10);");
 
             // باستا Extras (IDs 11-13)
             Exec(conn, @"INSERT INTO ProductExtras(ProductId,Name,Price) VALUES
@@ -323,16 +381,16 @@ namespace PizzaPOS.Data
 
             // ساندويتش Extras (IDs 14-17)
             Exec(conn, @"INSERT INTO ProductExtras(ProductId,Name,Price) VALUES
-        (14,'Extra Meat',20),(14,'Cheese Slice',10),(14,'Caramelized Onion',10),(14,'Jalapeños',5),(14,'Mushrooms',10),
-        (15,'Extra Chicken',15),(15,'Cheese Slice',10),(15,'Coleslaw',5),(15,'Jalapeños',5),(15,'BBQ Sauce',5),
-        (16,'Extra Meat',15),(16,'Cheese Slice',10),(16,'Jalapeños',5),(16,'Garlic Sauce',5),(16,'Coleslaw',5),
+        (14,'Extra Meat',15),(14,'Cheese Slice',10),(14,'Caramelized Onion',10),(14,'Jalapenos',5),(14,'Mushrooms',10),
+        (15,'Extra Chicken',15),(15,'Cheese Slice',10),(15,'Coleslaw',5),(15,'Jalapenos',5),(15,'BBQ Sauce',5),
+        (16,'Extra Meat',15),(16,'Cheese Slice',10),(16,'Jalapenos',5),(16,'Garlic Sauce',5),(16,'Coleslaw',5),
         (17,'Extra Cheese',10),(17,'Nutella',10),(17,'Banana',5),(17,'Strawberry Sauce',10);");
 
             // فطاير Extras (IDs 18-20)
             Exec(conn, @"INSERT INTO ProductExtras(ProductId,Name,Price) VALUES
-        (18,'Extra Sujuk',15),(18,'Extra Cheese',10),(18,'Jalapeños',5),
-        (19,'Extra Meat',15),(19,'Extra Cheese',10),(19,'Jalapeños',5),(19,'Hot Sauce',5),
-        (20,'Extra Cheese',10),(20,'Cherry Sauce',10),(20,'Cream',10);");
+        (18,'Extra Sujuk',15),(18,'Extra Cheese',10),(18,'Jalapenos',5),
+        (19,'Extra Meat',15),(19,'Extra Cheese',10),(19,'Jalapenos',5),(19,'Hot Sauce',5),
+        (20,'Extra Cherry',10),(20,'Extra Cheese',10),(20,'Cream',10);");
 
             // ══════════════════════════════════════════
             // ── Ingredient Categories ──
@@ -347,43 +405,111 @@ namespace PizzaPOS.Data
         ('Other');");
 
             // ══════════════════════════════════════════
-            // ── Ingredients ──
+            // ── Ingredients — Egypt 2025/2026 wholesale prices (EGP/unit) ──
             // ══════════════════════════════════════════
             Exec(conn, @"INSERT INTO Ingredients(CategoryId,Name,Unit,Stock,MinStock,CostPerUnit) VALUES
-        (1,'Pizza Dough',         'kg',  30, 10, 10),
-        (1,'Pasta',               'kg',  20,  5, 12),
-        (1,'Bread Loaf',          'pcs', 40, 10,  5),
-        (1,'Crepe Batter',        'kg',  10,  3, 12),
-        (2,'Ground Beef',         'kg',  10,  3,120),
-        (2,'Chicken Breast',      'kg',  12,  3, 85),
-        (2,'Pepperoni',           'kg',   5,  2,150),
-        (2,'Sujuk',               'kg',   4,  2,140),
-        (2,'Döner Meat',          'kg',   5,  2,130),
-        (3,'Mozzarella Cheese',   'kg',  15,  5, 65),
-        (3,'Cheddar Cheese',      'kg',   8,  3, 75),
-        (3,'Parmesan Cheese',     'kg',   5,  2, 90),
-        (3,'Ricotta Cheese',      'kg',   4,  1, 70),
-        (3,'Heavy Cream',         'ltr',  6,  2, 30),
-        (3,'Eggs',                'pcs', 60, 20,  3),
-        (4,'Tomatoes',            'kg',   8,  3,  8),
-        (4,'Mushrooms',           'kg',   5,  2, 20),
-        (4,'Bell Peppers',        'kg',   4,  2, 15),
-        (4,'Spinach',             'kg',   3,  1, 12),
-        (4,'Onions',              'kg',   6,  2,  6),
-        (4,'Garlic',              'kg',   3,  1, 15),
-        (4,'Potatoes',            'kg',  15,  5,  8),
-        (5,'Tomato Sauce',        'kg',  10,  3, 12),
-        (5,'Pesto Sauce',         'kg',   3,  1, 45),
-        (5,'Olive Oil',           'ltr',  5,  2, 40),
-        (5,'BBQ Sauce',           'kg',   3,  1, 25),
-        (5,'Garlic Sauce',        'kg',   3,  1, 20),
-        (6,'Water Bottle',        'pcs', 60, 20,  4),
-        (6,'Soft Drinks',         'pcs', 40, 15,  7),
-        (7,'Black Olives',        'kg',   3,  1, 25),
-        (7,'Jalapeños',           'kg',   2,  1, 30),
-        (7,'Cherry',              'kg',   3,  1, 35),
-        (7,'Nutella',             'kg',   2,  1, 80),
-        (7,'Pine Nuts',           'kg',   2,  1,180);");
+        (1,'Pizza Dough',          'kg',   40, 15, 28),
+        (1,'Pasta',                'kg',   25,  8, 35),
+        (1,'Bread Loaf',           'pcs',  50, 15, 12),
+        (1,'Crepe Batter',         'kg',   15,  5, 25),
+        (2,'Ground Beef',          'kg',   12,  4,220),
+        (2,'Chicken Breast',       'kg',   15,  5,135),
+        (2,'Pepperoni',            'kg',    5,  2,380),
+        (2,'Sujuk',                'kg',    6,  2,260),
+        (2,'Doner Meat',           'kg',    8,  3,200),
+        (2,'Shrimp',               'kg',    4,  2,350),
+        (3,'Mozzarella Cheese',    'kg',   20,  8,160),
+        (3,'Cheddar Cheese',       'kg',   10,  4,130),
+        (3,'Parmesan Cheese',      'kg',    4,  2,280),
+        (3,'Ricotta Cheese',       'kg',    5,  2,110),
+        (3,'Heavy Cream',          'ltr',   8,  3, 70),
+        (3,'Eggs',                 'pcs', 120, 40,  6),
+        (3,'Feta Cheese',          'kg',    6,  2, 95),
+        (4,'Tomatoes',             'kg',   15,  6, 18),
+        (4,'Mushrooms',            'kg',    6,  3, 70),
+        (4,'Bell Peppers',         'kg',    8,  3, 40),
+        (4,'Spinach',              'kg',    5,  2, 25),
+        (4,'Onions',               'kg',   10,  4, 12),
+        (4,'Garlic',               'kg',    4,  2, 70),
+        (4,'Potatoes',             'kg',   20,  8, 18),
+        (4,'Cucumbers',            'kg',   10,  4, 15),
+        (4,'Carrots',              'kg',    8,  3, 14),
+        (4,'Hot Peppers',          'kg',    3,  1, 25),
+        (4,'Black Olives',         'kg',    5,  2, 90),
+        (4,'Green Olives',         'kg',    5,  2, 80),
+        (5,'Tomato Sauce',         'kg',   12,  5, 45),
+        (5,'Pesto Sauce',          'kg',    3,  1,220),
+        (5,'Olive Oil',            'ltr',   6,  3,180),
+        (5,'BBQ Sauce',            'kg',    4,  2, 90),
+        (5,'Garlic Sauce',         'kg',    5,  2, 65),
+        (5,'Hot Sauce',            'kg',    4,  2, 55),
+        (5,'Ranch Dressing',       'kg',    3,  1, 75),
+        (5,'Mustard',              'kg',    3,  1, 50),
+        (5,'Mayonnaise',           'kg',    5,  2, 55),
+        (6,'Water Bottle',         'pcs',  80, 30,  5),
+        (6,'Soft Drinks',          'pcs',  60, 25, 12),
+        (6,'Orange Juice',         'pcs',  40, 15, 15),
+        (6,'Green Tea',            'pcs',  30, 10, 10),
+        (7,'Sliced Olives',        'kg',    4,  2,100),
+        (7,'Jalapenos',            'kg',    3,  1,120),
+        (7,'Cherry',               'kg',    4,  2, 55),
+        (7,'Nutella',              'kg',    3,  1,380),
+        (7,'Pine Nuts',            'kg',    2,  1,650),
+        (7,'Pistachios',           'kg',    2,  1,500),
+        (7,'Crushed Almonds',      'kg',    3,  1,400),
+        (7,'Cashews',              'kg',    2,  1,550);");
+
+            // ══════════════════════════════════════════
+            // ── ProductIngredients (recipes) ──
+            // Ingredient IDs: 1=PizzaDough 2=Pasta 3=BreadLoaf 4=CrepeBatter
+            //   5=GroundBeef 6=ChickenBreast 7=Pepperoni 8=Sujuk 9=DonerMeat 10=Shrimp
+            //   11=Mozzarella 12=Cheddar 13=Parmesan 14=Ricotta 15=HeavyCream 16=Eggs 17=Feta
+            //   18=Tomatoes 19=Mushrooms 20=BellPeppers 21=Spinach 22=Onions 23=Garlic
+            //   24=Potatoes 25=Cucumbers 26=Carrots 27=HotPeppers 28=BlackOlives 29=GreenOlives
+            //   30=TomatoSauce 31=PestoSauce 32=OliveOil 33=BBQSauce 34=GarlicSauce
+            //   35=HotSauce 36=Ranch 37=Mustard 38=Mayo
+            // ══════════════════════════════════════════
+            Exec(conn, @"INSERT INTO ProductIngredients(ProductId,IngredientId,QtyUsed) VALUES
+        -- 1 Margherita
+        (1,1,0.30),(1,11,0.15),(1,30,0.08),(1,32,0.02),
+        -- 2 Pepperoni
+        (2,1,0.30),(2,11,0.15),(2,30,0.08),(2,7,0.06),(2,32,0.02),
+        -- 3 Quattro Formaggi
+        (3,1,0.30),(3,11,0.12),(3,12,0.08),(3,13,0.04),(3,14,0.06),(3,32,0.01),
+        -- 4 Pollo Special
+        (4,1,0.30),(4,11,0.15),(4,30,0.08),(4,6,0.12),(4,19,0.06),(4,20,0.04),(4,32,0.02),
+        -- 5 Napoli Doner
+        (5,1,0.30),(5,11,0.12),(5,9,0.10),(5,34,0.04),(5,27,0.02),(5,32,0.02),
+        -- 6 Margherita Napoletana
+        (6,1,0.35),(6,11,0.18),(6,30,0.10),(6,32,0.02),
+        -- 7 Pepperoni Napoletana
+        (7,1,0.35),(7,11,0.18),(7,30,0.10),(7,7,0.08),(7,32,0.02),
+        -- 8 Quattro Formaggi Napoletana
+        (8,1,0.35),(8,11,0.15),(8,12,0.10),(8,13,0.05),(8,14,0.08),(8,32,0.02),
+        -- 9 Pollo Special Napoletana
+        (9,1,0.35),(9,11,0.18),(9,30,0.10),(9,6,0.15),(9,19,0.08),(9,20,0.05),(9,32,0.02),
+        -- 10 Napoli Doner Napoletana
+        (10,1,0.35),(10,11,0.15),(10,9,0.12),(10,34,0.05),(10,27,0.02),(10,32,0.02),
+        -- 11 Napoli Pasta
+        (11,2,0.25),(11,5,0.12),(11,30,0.08),(11,23,0.01),(11,32,0.02),
+        -- 12 Tuscan Pasta
+        (12,2,0.25),(12,6,0.12),(12,15,0.08),(12,19,0.06),(12,13,0.03),(12,32,0.02),
+        -- 13 Pesto Pasta
+        (13,2,0.25),(13,31,0.06),(13,13,0.04),(13,47,0.01),(13,32,0.02),
+        -- 14 Beef Burger
+        (14,3,1),(14,5,0.15),(14,12,0.04),(14,18,0.04),(14,22,0.03),(14,37,0.01),
+        -- 15 Chicken Fajita Sand.
+        (15,3,1),(15,6,0.12),(15,20,0.06),(15,22,0.04),(15,12,0.03),(15,35,0.01),
+        -- 16 Shawarma Sand.
+        (16,3,1),(16,9,0.10),(16,34,0.04),(16,18,0.03),(16,25,0.03),
+        -- 17 Crepe Sand. (Nutella)
+        (17,4,0.15),(17,46,0.05),(17,16,1),
+        -- 18 Fatayer Sujuk
+        (18,1,0.15),(18,8,0.08),(18,11,0.06),
+        -- 19 Fatayer Minced Beef
+        (19,1,0.15),(19,5,0.10),(19,22,0.03),
+        -- 20 Cherry Napoli
+        (20,4,0.15),(20,45,0.08),(20,15,0.05),(20,16,1);");
 
             // ══════════════════════════════════════════
             // ── Users ──
@@ -401,6 +527,7 @@ namespace PizzaPOS.Data
         ('ShopPhone',     '01234567890'),
         ('TaxRate',       '0.14'),
         ('ServiceRate',   '0'),
+        ('ProfitMargin',  '50'),
         ('ReceiptFooter', 'Buon appetito e a presto!'),
         ('PrinterName',   ''),
         ('EpsonPort',     'USB');");

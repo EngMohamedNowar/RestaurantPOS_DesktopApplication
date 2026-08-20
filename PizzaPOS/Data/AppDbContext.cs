@@ -493,16 +493,126 @@ namespace PizzaPOS.Data
             cmd.ExecuteNonQuery();
         }
 
+        // ── ProductIngredients (ربط المكونات بالمنتجات) ──
+        public List<ProductIngredient> GetProductIngredients(int productId)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = @"SELECT pi.ProductId,pi.IngredientId,i.Name,i.Unit,pi.QtyUsed,i.CostPerUnit
+                FROM ProductIngredients pi
+                JOIN Ingredients i ON i.Id=pi.IngredientId
+                WHERE pi.ProductId=@pid ORDER BY i.Name";
+            cmd.Parameters.AddWithValue("@pid", productId);
+            var list = new List<ProductIngredient>();
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) list.Add(new ProductIngredient
+            {
+                ProductId = r.GetInt32(0),
+                IngredientId = r.GetInt32(1),
+                IngredientName = r.GetString(2),
+                IngredientUnit = r.GetString(3),
+                QtyUsed = r.GetDouble(4),
+                CostPerUnit = r.GetDouble(5)
+            });
+            return list;
+        }
+
+        public void SaveProductIngredient(int productId, int ingredientId, double qtyUsed)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = @"INSERT INTO ProductIngredients(ProductId,IngredientId,QtyUsed)
+                VALUES(@pid,@iid,@q)
+                ON CONFLICT(ProductId,IngredientId) DO UPDATE SET QtyUsed=@q";
+            cmd.Parameters.AddWithValue("@pid", productId);
+            cmd.Parameters.AddWithValue("@iid", ingredientId);
+            cmd.Parameters.AddWithValue("@q", qtyUsed);
+            cmd.ExecuteNonQuery();
+        }
+
+        public void DeleteProductIngredient(int productId, int ingredientId)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = "DELETE FROM ProductIngredients WHERE ProductId=@pid AND IngredientId=@iid";
+            cmd.Parameters.AddWithValue("@pid", productId);
+            cmd.Parameters.AddWithValue("@iid", ingredientId);
+            cmd.ExecuteNonQuery();
+        }
+
+        public double CalculateProductCost(int productId)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = @"SELECT COALESCE(SUM(pi.QtyUsed * i.CostPerUnit), 0)
+                FROM ProductIngredients pi
+                JOIN Ingredients i ON i.Id=pi.IngredientId
+                WHERE pi.ProductId=@pid";
+            cmd.Parameters.AddWithValue("@pid", productId);
+            return Convert.ToDouble(cmd.ExecuteScalar() ?? 0.0);
+        }
+
+        public void RecalculateAllProductCosts(double profitMarginPercent)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = "SELECT Id FROM Products WHERE IsActive=1";
+            var ids = new List<int>();
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) ids.Add(r.GetInt32(0));
+
+            foreach (var pid in ids)
+            {
+                double cost = CalculateProductCost(pid);
+                if (cost > 0)
+                {
+                    double newPrice = Math.Round(cost * (1 + profitMarginPercent / 100), 0);
+                    var upd = c.CreateCommand();
+                    upd.CommandText = "UPDATE Products SET Cost=@co,Price=@pr WHERE Id=@id";
+                    upd.Parameters.AddWithValue("@co", cost);
+                    upd.Parameters.AddWithValue("@pr", newPrice);
+                    upd.Parameters.AddWithValue("@id", pid);
+                    upd.ExecuteNonQuery();
+                }
+            }
+        }
+
+        public List<Product> GetAllActiveProducts()
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = @"SELECT p.Id,p.CategoryId,c.Name,p.Name,p.Price,p.Cost,p.Icon,p.IsActive
+                FROM Products p JOIN Categories c ON c.Id=p.CategoryId
+                WHERE p.IsActive=1 ORDER BY p.Name";
+            var list = new List<Product>();
+            using var r = cmd.ExecuteReader();
+            while (r.Read()) list.Add(new Product
+            {
+                Id = r.GetInt32(0),
+                CategoryId = r.GetInt32(1),
+                CategoryName = r.GetString(2),
+                Name = r.GetString(3),
+                Price = r.GetDouble(4),
+                Cost = r.GetDouble(5),
+                Icon = r.GetString(6),
+                IsActive = r.GetInt32(7) == 1
+            });
+            return list;
+        }
+
         // ── Customers ────────────────────────────────
         public List<Customer> GetCustomers(string? search = null)
         {
             using var c = Open();
             var cmd = c.CreateCommand();
-            cmd.CommandText = @"SELECT Id,Name,Phone,Address,Notes,CreatedAt
-                FROM Customers
-                WHERE (@s IS NULL OR Name  LIKE '%'||@s||'%'
-                                  OR Phone LIKE '%'||@s||'%')
-                ORDER BY Name";
+            cmd.CommandText = @"SELECT c.Id,c.Name,c.Phone,c.Address,c.Notes,c.CreatedAt,
+                COALESCE(c.LoyaltyPoints,0),
+                (SELECT COUNT(*) FROM Orders o WHERE o.CustomerId=c.Id AND o.Status NOT IN ('cancelled','held')),
+                (SELECT COALESCE(SUM(o.Total),0) FROM Orders o WHERE o.CustomerId=c.Id AND o.Status NOT IN ('cancelled','held'))
+                FROM Customers c
+                WHERE (@s IS NULL OR c.Name  LIKE '%'||@s||'%'
+                                  OR c.Phone LIKE '%'||@s||'%')
+                ORDER BY c.Name";
             cmd.Parameters.AddWithValue("@s", (object?)search ?? DBNull.Value);
             var list = new List<Customer>();
             using var r = cmd.ExecuteReader();
@@ -513,9 +623,54 @@ namespace PizzaPOS.Data
                 Phone = r.GetString(2),
                 Address = r.IsDBNull(3) ? "" : r.GetString(3),
                 Notes = r.IsDBNull(4) ? "" : r.GetString(4),
-                CreatedAt = r.IsDBNull(5) ? "" : r.GetString(5)
+                CreatedAt = r.IsDBNull(5) ? "" : r.GetString(5),
+                LoyaltyPoints = r.GetInt32(6),
+                TotalOrders = r.GetInt32(7),
+                TotalSpent = r.GetDouble(8)
             });
             return list;
+        }
+
+        public Customer? GetCustomerById(int id)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = @"SELECT c.Id,c.Name,c.Phone,c.Address,c.Notes,c.CreatedAt,
+                COALESCE(c.LoyaltyPoints,0)
+                FROM Customers c WHERE c.Id=@id";
+            cmd.Parameters.AddWithValue("@id", id);
+            using var r = cmd.ExecuteReader();
+            if (!r.Read()) return null;
+            return new Customer
+            {
+                Id = r.GetInt32(0),
+                Name = r.GetString(1),
+                Phone = r.GetString(2),
+                Address = r.IsDBNull(3) ? "" : r.GetString(3),
+                Notes = r.IsDBNull(4) ? "" : r.GetString(4),
+                CreatedAt = r.IsDBNull(5) ? "" : r.GetString(5),
+                LoyaltyPoints = r.GetInt32(6)
+            };
+        }
+
+        public void AddLoyaltyPoints(int customerId, int points)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = "UPDATE Customers SET LoyaltyPoints=COALESCE(LoyaltyPoints,0)+@p WHERE Id=@id";
+            cmd.Parameters.AddWithValue("@p", points);
+            cmd.Parameters.AddWithValue("@id", customerId);
+            cmd.ExecuteNonQuery();
+        }
+
+        public void RedeemPoints(int customerId, int points)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = "UPDATE Customers SET LoyaltyPoints=MAX(0,COALESCE(LoyaltyPoints,0)-@p) WHERE Id=@id";
+            cmd.Parameters.AddWithValue("@p", points);
+            cmd.Parameters.AddWithValue("@id", customerId);
+            cmd.ExecuteNonQuery();
         }
 
         public void SaveCustomer(Customer cust)
@@ -543,6 +698,15 @@ namespace PizzaPOS.Data
                 idCmd.CommandText = "SELECT last_insert_rowid()";
                 cust.Id = (int)(long)(idCmd.ExecuteScalar() ?? 0L);
             }
+        }
+
+        public void DeleteCustomer(int id)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = "DELETE FROM Customers WHERE Id=@id";
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.ExecuteNonQuery();
         }
 
         public Customer? GetCustomerByPhone(string phone)
@@ -1050,6 +1214,55 @@ namespace PizzaPOS.Data
             cmd.Parameters.AddWithValue("@sid", shiftId);
             using var r = cmd.ExecuteReader(); r.Read();
             return (r.GetDouble(0), r.GetDouble(1));
+        }
+
+        // ── Offers ────────────────────────────────────
+        public List<Offer> GetOffers()
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = "SELECT Id,Title,Description,DiscountPercent,PromoCode,IsActive,CreatedAt FROM Offers ORDER BY Id DESC";
+            using var r = cmd.ExecuteReader();
+            var list = new List<Offer>();
+            while (r.Read()) list.Add(new Offer
+            {
+                Id = r.GetInt32(0),
+                Title = r.GetString(1),
+                Description = r.IsDBNull(2) ? "" : r.GetString(2),
+                DiscountPercent = r.GetDouble(3),
+                PromoCode = r.IsDBNull(4) ? "" : r.GetString(4),
+                IsActive = r.GetInt64(5) == 1,
+                CreatedAt = r.GetString(6)
+            });
+            return list;
+        }
+
+        public void SaveOffer(Offer o)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            if (o.Id == 0)
+                cmd.CommandText = @"INSERT INTO Offers(Title,Description,DiscountPercent,PromoCode,IsActive)
+                    VALUES(@t,@d,@dc,@pc,@a); SELECT last_insert_rowid();";
+            else
+                cmd.CommandText = @"UPDATE Offers SET Title=@t,Description=@d,DiscountPercent=@dc,PromoCode=@pc,IsActive=@a WHERE Id=@id";
+            cmd.Parameters.AddWithValue("@t", o.Title);
+            cmd.Parameters.AddWithValue("@d", o.Description);
+            cmd.Parameters.AddWithValue("@dc", o.DiscountPercent);
+            cmd.Parameters.AddWithValue("@pc", o.PromoCode);
+            cmd.Parameters.AddWithValue("@a", o.IsActive ? 1 : 0);
+            if (o.Id != 0) cmd.Parameters.AddWithValue("@id", o.Id);
+            if (o.Id == 0) o.Id = Convert.ToInt32(cmd.ExecuteScalar());
+            else cmd.ExecuteNonQuery();
+        }
+
+        public void DeleteOffer(int id)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = "DELETE FROM Offers WHERE Id=@id";
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.ExecuteNonQuery();
         }
     }
 }

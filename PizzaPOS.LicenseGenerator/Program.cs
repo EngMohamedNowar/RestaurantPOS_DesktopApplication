@@ -27,8 +27,23 @@ namespace PizzaPOS
                 string key = LicenseManager.GenerateKey(hwid);
 
                 Console.WriteLine();
+                Console.WriteLine("License Type:");
+                Console.WriteLine("  1) Permanent (forever)");
+                Console.WriteLine("  2) Trial (30 days)");
+                Console.Write("Choose (1 or 2): ");
+                string choice = Console.ReadLine()?.Trim();
+
+                string typeLabel;
+                if (choice == "2")
+                    typeLabel = "TRIAL (30 days)";
+                else
+                    typeLabel = "PERMANENT";
+
+                Console.WriteLine();
                 Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-                Console.WriteLine($"  License Key: {key}");
+                Console.WriteLine($"  License Key : {key}");
+                Console.WriteLine($"  Type        : {typeLabel}");
+                Console.WriteLine($"  Hardware ID : {hwid}");
                 Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
                 Console.WriteLine();
 

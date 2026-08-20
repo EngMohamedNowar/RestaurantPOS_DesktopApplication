@@ -41,20 +41,31 @@ namespace PizzaPOS.Services
                 if (!File.Exists(LicenseFile)) return false;
 
                 string[] lines = File.ReadAllLines(LicenseFile);
-                if (lines.Length < 3) return false;
+                if (lines.Length < 4) return false;
 
                 string storedHwid = lines[0].Trim();
                 string storedKey = lines[1].Trim();
+                string expiryStr = lines[3].Trim();
 
                 string currentHwid = HardwareId.GetShortId();
                 if (storedHwid != currentHwid) return false;
 
-                return Validate(currentHwid, storedKey);
+                if (!Validate(currentHwid, storedKey)) return false;
+
+                if (expiryStr != "PERMANENT")
+                {
+                    if (DateTime.TryParse(expiryStr, out DateTime expiry))
+                    {
+                        if (DateTime.Now > expiry) return false;
+                    }
+                }
+
+                return true;
             }
             catch { return false; }
         }
 
-        public static bool Activate(string key)
+        public static bool Activate(string key, int? days = null)
         {
             try
             {
@@ -62,16 +73,50 @@ namespace PizzaPOS.Services
 
                 if (!Validate(hwid, key)) return false;
 
+                string expiryLine = "PERMANENT";
+                if (days.HasValue && days.Value > 0)
+                {
+                    expiryLine = DateTime.Now.AddDays(days.Value).ToString("yyyy-MM-dd");
+                }
+
                 Directory.CreateDirectory(LicenseDir);
                 File.WriteAllLines(LicenseFile, new[]
                 {
                     hwid,
                     key,
-                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    expiryLine
                 });
                 return true;
             }
             catch { return false; }
+        }
+
+        public static string GetExpiryInfo()
+        {
+            try
+            {
+                if (!File.Exists(LicenseFile)) return "NO_LICENSE";
+
+                string[] lines = File.ReadAllLines(LicenseFile);
+                if (lines.Length < 4) return "NO_LICENSE";
+
+                string expiryStr = lines[3].Trim();
+
+                if (expiryStr == "PERMANENT") return "PERMANENT";
+
+                if (DateTime.TryParse(expiryStr, out DateTime expiry))
+                {
+                    TimeSpan remaining = expiry - DateTime.Now;
+                    if (remaining.TotalDays <= 0) return "EXPIRED";
+                    if (remaining.TotalDays <= 7)
+                        return $" expiresIn {remaining.Days}d {remaining.Hours}h";
+                    return $" expiresIn {remaining.Days} days";
+                }
+
+                return "UNKNOWN";
+            }
+            catch { return "ERROR"; }
         }
 
         public static void Deactivate()

@@ -193,17 +193,17 @@ namespace PizzaPOS.Views
 
             if (key.Length != 16)
             {
-                _txtStatus.Text = "المفتاح غير صحيح!";
+                _txtStatus.Text = "Invalid key!";
                 _txtStatus.Foreground = UiHelper.B("#E63946");
                 return;
             }
 
             string formatted = $"{key.Substring(0, 4)}-{key.Substring(4, 4)}-{key.Substring(8, 4)}-{key.Substring(12, 4)}";
 
-            if (LicenseManager.Activate(formatted))
+            if (LicenseManager.Activate(formatted, 30))
             {
                 _shutdownTimer.Stop();
-                _txtStatus.Text = "تم التفعيل بنجاح!";
+                _txtStatus.Text = "Activated successfully!";
                 _txtStatus.Foreground = UiHelper.B("#4CAF50");
 
                 var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -217,7 +217,7 @@ namespace PizzaPOS.Views
             }
             else
             {
-                _txtStatus.Text = "المفتاح غير صحيح أو لا يتطابق مع هذا الجهاز!";
+                _txtStatus.Text = "Invalid key or doesn't match this device!";
                 _txtStatus.Foreground = UiHelper.B("#E63946");
                 _txtKey.SelectAll();
                 _txtKey.Focus();

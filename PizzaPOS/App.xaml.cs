@@ -26,6 +26,8 @@ namespace PizzaPOS
                     }
                 }
 
+                BackupService.CreateBackup();
+
                 DatabaseHelper.Initialize();
 
                 var login = new LoginWindow();

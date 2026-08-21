@@ -848,7 +848,7 @@ namespace PizzaPOS.Data
         {
             using var c = Open();
             var cmd = c.CreateCommand();
-            cmd.CommandText = @"SELECT COALESCE(SUM(Total),0),COUNT(*),COALESCE(AVG(Total),0)
+            cmd.CommandText = @"SELECT COALESCE(SUM(Total - COALESCE(DeliveryFee,0)),0),COUNT(*),COALESCE(AVG(Total - COALESCE(DeliveryFee,0)),0)
                 FROM Orders
                 WHERE date(CreatedAt)=date('now','localtime')
                   AND Status NOT IN ('cancelled','held')";
@@ -860,7 +860,7 @@ namespace PizzaPOS.Data
         {
             using var c = Open();
             var cmd = c.CreateCommand();
-            cmd.CommandText = @"SELECT Id,OrderNumber,OrderType,PayMethod,Total,CreatedAt
+            cmd.CommandText = @"SELECT Id,OrderNumber,OrderType,PayMethod,Total - COALESCE(DeliveryFee,0),CreatedAt
                 FROM Orders WHERE Status NOT IN ('cancelled','held')
                 ORDER BY Id DESC LIMIT @lim";
             cmd.Parameters.AddWithValue("@lim", limit);
@@ -1063,9 +1063,9 @@ namespace PizzaPOS.Data
             cmd.CommandText = @"
                 SELECT
                     date(o.CreatedAt),
-                    SUM(o.Total),
-                    SUM(CASE WHEN o.PayMethod IN ('كاش','نقدي') THEN o.Total ELSE 0 END),
-                    SUM(CASE WHEN o.PayMethod NOT IN ('كاش','نقدي') THEN o.Total ELSE 0 END),
+                    SUM(o.Total - COALESCE(o.DeliveryFee, 0)),
+                    SUM(CASE WHEN o.PayMethod IN ('كاش','نقدي') THEN o.Total - COALESCE(o.DeliveryFee, 0) ELSE 0 END),
+                    SUM(CASE WHEN o.PayMethod NOT IN ('كاش','نقدي') THEN o.Total - COALESCE(o.DeliveryFee, 0) ELSE 0 END),
                     COUNT(*),
                     SUM(o.Tax),
                     SUM(o.Discount),

@@ -263,11 +263,8 @@ namespace PizzaPOS.Views
             col0.SetValue(ColumnDefinition.WidthProperty, new GridLength(36));
             var col1 = new FrameworkElementFactory(typeof(ColumnDefinition));
             col1.SetValue(ColumnDefinition.WidthProperty, new GridLength(1, GridUnitType.Star));
-            var col2 = new FrameworkElementFactory(typeof(ColumnDefinition));
-            col2.SetValue(ColumnDefinition.WidthProperty, new GridLength(110));
             grid.AppendChild(col0);
             grid.AppendChild(col1);
-            grid.AppendChild(col2);
 
             // Checkbox
             var cb = new FrameworkElementFactory(typeof(CheckBox));
@@ -298,21 +295,6 @@ namespace PizzaPOS.Views
             infoStack.AppendChild(phoneTb);
             infoStack.SetValue(Grid.ColumnProperty, 1);
             grid.AppendChild(infoStack);
-
-            // WhatsApp button
-            var sendBtnFactory = new FrameworkElementFactory(typeof(Button));
-            sendBtnFactory.SetValue(Button.ContentProperty, "واتساب");
-            sendBtnFactory.SetValue(Button.FontSizeProperty, 11.0);
-            sendBtnFactory.SetValue(Button.FontWeightProperty, FontWeights.Bold);
-            sendBtnFactory.SetValue(Button.ForegroundProperty, Brushes.White);
-            sendBtnFactory.SetValue(Button.BackgroundProperty, UiHelper.B("#075e54"));
-            sendBtnFactory.SetValue(Button.BorderThicknessProperty, new Thickness(0));
-            sendBtnFactory.SetValue(Button.CursorProperty, System.Windows.Input.Cursors.Hand);
-            sendBtnFactory.SetValue(Button.VerticalAlignmentProperty, VerticalAlignment.Center);
-            sendBtnFactory.SetValue(Button.PaddingProperty, new Thickness(14, 5, 14, 5));
-            sendBtnFactory.SetValue(Button.HorizontalAlignmentProperty, HorizontalAlignment.Stretch);
-            sendBtnFactory.SetValue(Grid.ColumnProperty, 2);
-            grid.AppendChild(sendBtnFactory);
 
             rootBorder.AppendChild(grid);
             return rootBorder;

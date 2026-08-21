@@ -885,7 +885,13 @@ namespace PizzaPOS.Data
             var cmd = c.CreateCommand();
             cmd.CommandText = @"
                 SELECT
-                    COALESCE(SUM(oi.Subtotal - (oi.Cost * oi.Qty)), 0)
+                    COALESCE(SUM(
+                        oi.Subtotal
+                        - CASE WHEN o.Subtotal > 0
+                               THEN o.Discount * (oi.Subtotal * 1.0 / o.Subtotal)
+                               ELSE 0 END
+                        - (oi.Cost * oi.Qty)
+                    ), 0)
                     - COALESCE((SELECT SUM(Tax) FROM Orders
                                 WHERE date(CreatedAt)=date('now','localtime')
                                   AND Status NOT IN ('cancelled','held')), 0)
@@ -925,7 +931,13 @@ namespace PizzaPOS.Data
             using var c = Open();
             var cmd = c.CreateCommand();
             cmd.CommandText = @"SELECT oi.Name, COALESCE(cat.Name,'—'),
-                SUM(oi.Qty), SUM(oi.Subtotal), SUM((oi.Price-oi.Cost)*oi.Qty)
+                SUM(oi.Qty),
+                SUM(oi.Subtotal - CASE WHEN o.Subtotal > 0
+                    THEN o.Discount * (oi.Subtotal * 1.0 / o.Subtotal)
+                    ELSE 0 END),
+                SUM(oi.Subtotal - CASE WHEN o.Subtotal > 0
+                    THEN o.Discount * (oi.Subtotal * 1.0 / o.Subtotal)
+                    ELSE 0 END - (oi.Cost * oi.Qty))
                 FROM OrderItems oi
                 JOIN Orders o ON o.Id=oi.OrderId
                 LEFT JOIN Products     p   ON p.Id=oi.ProductId
@@ -1060,7 +1072,13 @@ namespace PizzaPOS.Data
                     SUM(COALESCE(o.ServiceCharge, 0)),
 
                     COALESCE((
-                        SELECT SUM(oi.Subtotal - (oi.Cost * oi.Qty))
+                        SELECT SUM(
+                            oi.Subtotal
+                            - CASE WHEN o2.Subtotal > 0
+                                   THEN o2.Discount * (oi.Subtotal * 1.0 / o2.Subtotal)
+                                   ELSE 0 END
+                            - (oi.Cost * oi.Qty)
+                        )
                         FROM OrderItems oi
                         JOIN Orders o2 ON o2.Id = oi.OrderId
                         WHERE o2.Status NOT IN ('cancelled','held')

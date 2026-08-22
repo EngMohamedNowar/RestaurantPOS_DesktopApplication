@@ -306,12 +306,7 @@ namespace PizzaPOS.Views
             recalcBtn.BorderThickness = new Thickness(1);
             recalcBtn.Click += (_, _) => RecalculatePrices();
 
-            var addCatBtn = UiHelper.MakeActionButton("📁  إضافة فئة", "#1a1800", UiHelper.B("#ffd166"));
-            addCatBtn.BorderBrush = UiHelper.B("#ffd166");
-            addCatBtn.BorderThickness = new Thickness(1);
-            addCatBtn.Click += (_, _) => AddCategory();
-
-            var manageCatBtn = UiHelper.MakeActionButton("✏️  تعديل/حذف الفئات", "#1a1800", UiHelper.B("#ffd166"));
+            var manageCatBtn = UiHelper.MakeActionButton("📁  إدارة الفئات", "#1a1800", UiHelper.B("#ffd166"));
             manageCatBtn.BorderBrush = UiHelper.B("#ffd166");
             manageCatBtn.BorderThickness = new Thickness(1);
             manageCatBtn.Click += (_, _) => ManageCategories();
@@ -324,8 +319,7 @@ namespace PizzaPOS.Views
             Grid.SetColumn(addStockBtn, 3); actionGrid.Children.Add(addStockBtn);
             Grid.SetColumn(movementsBtn, 4); actionGrid.Children.Add(movementsBtn);
             Grid.SetColumn(recalcBtn, 5); actionGrid.Children.Add(recalcBtn);
-            Grid.SetColumn(addCatBtn, 6); actionGrid.Children.Add(addCatBtn);
-            Grid.SetColumn(manageCatBtn, 7); actionGrid.Children.Add(manageCatBtn);
+            Grid.SetColumn(manageCatBtn, 6); actionGrid.Children.Add(manageCatBtn);
 
             actionBar.Child = actionGrid;
             Grid.SetRow(actionBar, 4);
@@ -966,6 +960,8 @@ namespace PizzaPOS.Views
                 Padding = new Thickness(20, 12, 20, 16)
             };
             var btnSp = new StackPanel { Orientation = Orientation.Horizontal };
+            btnSp.Children.Add(UiHelper.MakeBtn("إضافة فئة جديدة", "#1a1800", UiHelper.B("#ffd166"), AddNew, 10, 12));
+            btnSp.Children.Add(new Border { Width = 10 });
             btnSp.Children.Add(UiHelper.MakeBtn("إغلاق", "#12192e", UiHelper.B("#8892a4"),
                 () => { DialogResult = false; Close(); }, borderBrush: UiHelper.B("#1e2d4a")));
             btnBar.Child = btnSp;
@@ -1022,6 +1018,28 @@ namespace PizzaPOS.Views
             {
                 MessageBox.Show($"خطأ: {ex.Message}", "خطأ",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        void AddNew()
+        {
+            var dlg = new AddCategoryDialog { Owner = this };
+            if (dlg.ShowDialog() == true)
+            {
+                try
+                {
+                    using var conn = DatabaseHelper.Open();
+                    var cmd = conn.CreateCommand();
+                    cmd.CommandText = "INSERT INTO IngredientCategories(Name) VALUES(@n)";
+                    cmd.Parameters.AddWithValue("@n", dlg.CategoryName);
+                    cmd.ExecuteNonQuery();
+                    LoadCategories();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"خطأ: {ex.Message}", "خطأ",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
             }
         }
 

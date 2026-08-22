@@ -17,6 +17,7 @@ namespace PizzaPOS.Views
         public LoginWindow()
         {
             InitializeComponent();
+            ShopNameText.Text = SessionService.ShopName;
             UsernameBox.Focus();
         }
 

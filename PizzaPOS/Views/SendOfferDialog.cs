@@ -339,7 +339,13 @@ namespace PizzaPOS.Views
 
         string BuildMessagePreview()
         {
-            string shopPhone = _db.GetSetting("Phone", "");
+            var phones = new List<string>();
+            var p1 = _db.GetSetting("Phone", "");
+            var p2 = _db.GetSetting("Phone2", "");
+            var p3 = _db.GetSetting("Phone3", "");
+            if (!string.IsNullOrWhiteSpace(p1)) phones.Add(p1);
+            if (!string.IsNullOrWhiteSpace(p2)) phones.Add(p2);
+            if (!string.IsNullOrWhiteSpace(p3)) phones.Add(p3);
 
             var msg = "";
             msg += $"        *{ShopName}*\n";
@@ -358,8 +364,8 @@ namespace PizzaPOS.Views
             msg += "\n━━━━━━━━━━━━━━━━━━━━━━━\n";
             msg += "اطلب الآن قبل ما ينتهي العرض\n";
 
-            if (!string.IsNullOrWhiteSpace(shopPhone))
-                msg += $"{shopPhone}";
+            if (phones.Count > 0)
+                msg += string.Join(" | ", phones);
 
             return msg;
         }

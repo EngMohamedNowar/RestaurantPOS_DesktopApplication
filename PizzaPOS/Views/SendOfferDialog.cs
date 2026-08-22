@@ -2,6 +2,7 @@
 using PizzaPOS.Data;
 using PizzaPOS.Helpers;
 using PizzaPOS.Models;
+using PizzaPOS.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -26,7 +27,7 @@ namespace PizzaPOS.Views
         TextBox _searchBox = null!;
         readonly AppDbContext _db = new();
 
-        const string ShopName = "NAPOLI Pizza";
+        string ShopName => SessionService.ShopName;
 
         public SendOfferDialog(Offer offer, List<Customer> customers)
         {
@@ -341,7 +342,7 @@ namespace PizzaPOS.Views
             string shopPhone = _db.GetSetting("Phone", "");
 
             var msg = "";
-            msg += "        *NAPOLI Pizza*\n";
+            msg += $"        *{ShopName}*\n";
             msg += "━━━━━━━━━━━━━━━━━━━━━━━\n\n";
             msg += $"*{_offer.Title}*\n";
 

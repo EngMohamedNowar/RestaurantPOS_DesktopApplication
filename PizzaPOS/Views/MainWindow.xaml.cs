@@ -58,6 +58,8 @@ namespace PizzaPOS.Views
             CashierStatusTxt.Text =
                 $"الكاشير: {SessionService.CurrentUser?.FullName ?? "—"}";
 
+            RefreshShopName();
+
             bool isAdmin = SessionService.CurrentUser?.IsAdmin == true;
             BtnCategories.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
             BtnProducts.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
@@ -155,8 +157,9 @@ namespace PizzaPOS.Views
         {
             if (SessionService.CurrentUser?.IsAdmin != true) return;
             new SettingsWindow { Owner = this }.ShowDialog();
+            RefreshShopName();
             _vm.ClearOrder();
-            _vm.RefreshStats(); // ← تحديث بعد تغيير الإعدادات
+            _vm.RefreshStats();
         }
 
         void OpenCustomers_Click(object s, RoutedEventArgs e)
@@ -176,5 +179,12 @@ namespace PizzaPOS.Views
 
         void CloseShift_Click(object s, RoutedEventArgs e)
             => _vm.CloseShiftCmd.Execute(null);
+
+        void RefreshShopName()
+        {
+            SessionService.RefreshShopName();
+            Title = $"🍕 {SessionService.ShopName}";
+            ShopNameHeader.Text = SessionService.ShopName;
+        }
     }
 }

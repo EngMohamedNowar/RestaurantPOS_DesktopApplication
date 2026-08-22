@@ -31,7 +31,7 @@ namespace PizzaPOS.Data
 
         public static async Task ExecAsync(SqliteConnection conn, string sql)
         {
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             await cmd.ExecuteNonQueryAsync();
         }
@@ -569,7 +569,7 @@ namespace PizzaPOS.Data
 
         public static void Exec(SqliteConnection conn, string sql)
         {
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             cmd.ExecuteNonQuery();
         }

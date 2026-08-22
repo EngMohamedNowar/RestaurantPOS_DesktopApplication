@@ -391,8 +391,8 @@ namespace PizzaPOS.Views
             _countTxt.Text = $"{_items.Count} عرض";
             _activeCountTxt.Text = offers.Count(o => o.IsActive).ToString();
 
-            var totalDiscount = offers.Where(o => o.IsActive).Sum(o => o.DiscountPercent);
-            _totalDiscountTxt.Text = $"{totalDiscount:F0}%";
+            var maxDiscount = offers.Where(o => o.IsActive).Select(o => o.DiscountPercent).DefaultIfEmpty(0).Max();
+            _totalDiscountTxt.Text = $"حتى {maxDiscount:F0}%";
         }
 
         Offer? Selected() => _dg.SelectedItem as Offer;

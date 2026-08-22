@@ -917,12 +917,6 @@ namespace PizzaPOS.Data
                 WHERE date(Date)=date('now','localtime')";
             double manualLoss = Convert.ToDouble(cmd2.ExecuteScalar() ?? 0);
 
-            var cmd3 = c.CreateCommand();
-            cmd3.CommandText = @"SELECT COALESCE(SUM(Discount),0) FROM Orders
-                WHERE date(CreatedAt)=date('now','localtime')
-                  AND Status NOT IN ('cancelled','held')";
-            double discountLoss = Convert.ToDouble(cmd3.ExecuteScalar() ?? 0);
-
             var cmd4 = c.CreateCommand();
             cmd4.CommandText = @"SELECT COALESCE(SUM((oi.Cost - oi.Price)*oi.Qty),0)
                 FROM OrderItems oi JOIN Orders o ON o.Id=oi.OrderId
@@ -931,7 +925,7 @@ namespace PizzaPOS.Data
                   AND oi.Price < oi.Cost";
             double belowCostLoss = Convert.ToDouble(cmd4.ExecuteScalar() ?? 0);
 
-            return (profit, manualLoss + discountLoss + belowCostLoss);
+            return (profit, manualLoss + belowCostLoss);
         }
 
         public List<ProductStat> GetTopProducts(DateTime from, DateTime to)

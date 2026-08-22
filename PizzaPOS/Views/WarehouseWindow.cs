@@ -995,8 +995,9 @@ namespace PizzaPOS.Views
                 Width = 300,
                 VerticalContentAlignment = VerticalAlignment.Center
             };
-            _searchTb.Style = new Style(typeof(TextBox));
-            _searchTb.Style.Setters.Add(new Setter(TextBox.CaretBrushProperty, UiHelper.B("#ffd166")));
+            var searchStyle = new Style(typeof(TextBox));
+            searchStyle.Setters.Add(new Setter(TextBox.CaretBrushProperty, UiHelper.B("#ffd166")));
+            _searchTb.Style = searchStyle;
             _searchTb.TextChanged += (_, _) => FilterCategories();
             searchSp.Children.Add(searchIcon);
             searchSp.Children.Add(_searchTb);

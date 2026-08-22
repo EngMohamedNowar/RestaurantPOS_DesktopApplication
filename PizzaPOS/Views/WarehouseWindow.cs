@@ -311,6 +311,11 @@ namespace PizzaPOS.Views
             addCatBtn.BorderThickness = new Thickness(1);
             addCatBtn.Click += (_, _) => AddCategory();
 
+            var manageCatBtn = UiHelper.MakeActionButton("✏️  تعديل/حذف الفئات", "#1a1800", UiHelper.B("#ffd166"));
+            manageCatBtn.BorderBrush = UiHelper.B("#ffd166");
+            manageCatBtn.BorderThickness = new Thickness(1);
+            manageCatBtn.Click += (_, _) => ManageCategories();
+
             actionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
             Grid.SetColumn(addBtn, 0); actionGrid.Children.Add(addBtn);
@@ -320,6 +325,7 @@ namespace PizzaPOS.Views
             Grid.SetColumn(movementsBtn, 4); actionGrid.Children.Add(movementsBtn);
             Grid.SetColumn(recalcBtn, 5); actionGrid.Children.Add(recalcBtn);
             Grid.SetColumn(addCatBtn, 6); actionGrid.Children.Add(addCatBtn);
+            Grid.SetColumn(manageCatBtn, 7); actionGrid.Children.Add(manageCatBtn);
 
             actionBar.Child = actionGrid;
             Grid.SetRow(actionBar, 4);
@@ -595,6 +601,12 @@ namespace PizzaPOS.Views
                 }
             }
         }
+
+        void ManageCategories()
+        {
+            var dlg = new ManageIngredientCategoriesDialog { Owner = this };
+            dlg.ShowDialog();
+        }
     }
 
     // ══════════════════════════════════════════════════
@@ -824,6 +836,363 @@ namespace PizzaPOS.Views
                 BlurRadius = 16,
                 ShadowDepth = 0,
                 Opacity = 0.4
+            };
+
+            Grid.SetColumn(cancelBtn, 0);
+            Grid.SetColumn(saveBtn, 2);
+            btnGrid.Children.Add(cancelBtn);
+            btnGrid.Children.Add(saveBtn);
+            btnBar.Child = btnGrid;
+            Grid.SetRow(btnBar, 2);
+            root.Children.Add(btnBar);
+
+            Content = root;
+            Loaded += (_, _) => _tbName.Focus();
+        }
+
+        void Save()
+        {
+            string name = _tbName.Text.Trim();
+            if (string.IsNullOrEmpty(name))
+            {
+                MessageBox.Show("أدخل اسم الفئة", "تنبيه",
+                    MessageBoxButton.OK, MessageBoxImage.Warning);
+                return;
+            }
+            CategoryName = name;
+            DialogResult = true;
+            Close();
+        }
+    }
+
+    // ══════════════════════════════════════════════════
+    //  ManageIngredientCategoriesDialog
+    // ══════════════════════════════════════════════════
+    public class ManageIngredientCategoriesDialog : Window
+    {
+        ListBox _list = null!;
+
+        public ManageIngredientCategoriesDialog()
+        {
+            Title = "تعديل/حذف فئات المواد الخام";
+            Width = 420;
+            Height = 500;
+            Background = UiHelper.B("#0f1526");
+            Foreground = Brushes.White;
+            FlowDirection = FlowDirection.RightToLeft;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            FontFamily = new FontFamily("Tahoma");
+            ResizeMode = ResizeMode.NoResize;
+            BuildUI();
+        }
+
+        void BuildUI()
+        {
+            var root = new Grid();
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition());
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var header = new Border
+            {
+                Background = UiHelper.B("#0f1526"),
+                BorderBrush = UiHelper.B("#ffd166"),
+                BorderThickness = new Thickness(0, 0, 0, 2),
+                Padding = new Thickness(20, 16, 20, 16)
+            };
+            var hSp = new StackPanel { Orientation = Orientation.Horizontal };
+            var hIcon = new Border
+            {
+                Background = UiHelper.B("#1a1800"),
+                CornerRadius = new CornerRadius(10),
+                Width = 40, Height = 40,
+                Margin = new Thickness(0, 0, 12, 0)
+            };
+            hIcon.Child = new TextBlock
+            {
+                Text = "edit", FontSize = 20,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = UiHelper.B("#ffd166")
+            };
+            var hInfo = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            hInfo.Children.Add(new TextBlock
+            {
+                Text = "إدارة فئات المواد الخام",
+                FontSize = 16, FontWeight = FontWeights.Black,
+                Foreground = UiHelper.B("#ffd166")
+            });
+            hInfo.Children.Add(new TextBlock
+            {
+                Text = "تعديل الاسم أو حذف أي فئة",
+                FontSize = 11, Foreground = UiHelper.B("#4a6080"),
+                Margin = new Thickness(0, 3, 0, 0)
+            });
+            hSp.Children.Add(hIcon);
+            hSp.Children.Add(hInfo);
+            header.Child = hSp;
+            Grid.SetRow(header, 0);
+            root.Children.Add(header);
+
+            _list = new ListBox
+            {
+                Background = Brushes.Transparent,
+                BorderThickness = new Thickness(0),
+                Margin = new Thickness(16, 12, 16, 12)
+            };
+            var lstStyle = new Style(typeof(ListBoxItem));
+            lstStyle.Setters.Add(new Setter(ListBoxItem.BackgroundProperty, UiHelper.B("#0d1525")));
+            lstStyle.Setters.Add(new Setter(ListBoxItem.ForegroundProperty, UiHelper.B("#eef0f2")));
+            lstStyle.Setters.Add(new Setter(ListBoxItem.PaddingProperty, new Thickness(14, 10, 14, 10)));
+            lstStyle.Setters.Add(new Setter(ListBoxItem.MarginProperty, new Thickness(0, 0, 0, 4)));
+            lstStyle.Setters.Add(new Setter(ListBoxItem.BorderThicknessProperty, new Thickness(1)));
+            lstStyle.Setters.Add(new Setter(ListBoxItem.BorderBrushProperty, UiHelper.B("#1e2d4a")));
+            var lHov = new Trigger { Property = ListBoxItem.IsMouseOverProperty, Value = true };
+            lHov.Setters.Add(new Setter(ListBoxItem.BackgroundProperty, UiHelper.B("#12192e")));
+            lHov.Setters.Add(new Setter(ListBoxItem.BorderBrushProperty, UiHelper.B("#ffd166")));
+            lstStyle.Triggers.Add(lHov);
+            _list.ItemContainerStyle = lstStyle;
+
+            var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
+            scroll.Content = _list;
+            Grid.SetRow(scroll, 1);
+            root.Children.Add(scroll);
+
+            var btnBar = new Border
+            {
+                Background = UiHelper.B("#0d1220"),
+                BorderBrush = UiHelper.B("#1e2d4a"),
+                BorderThickness = new Thickness(0, 1, 0, 0),
+                Padding = new Thickness(20, 12, 20, 16)
+            };
+            var btnSp = new StackPanel { Orientation = Orientation.Horizontal };
+            btnSp.Children.Add(UiHelper.MakeBtn("إغلاق", "#12192e", UiHelper.B("#8892a4"),
+                () => { DialogResult = false; Close(); }, borderBrush: UiHelper.B("#1e2d4a")));
+            btnBar.Child = btnSp;
+            Grid.SetRow(btnBar, 2);
+            root.Children.Add(btnBar);
+
+            Content = root;
+            Loaded += (_, _) => LoadCategories();
+        }
+
+        void LoadCategories()
+        {
+            _list.Items.Clear();
+            try
+            {
+                using var conn = DatabaseHelper.Open();
+                var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT Id, Name FROM IngredientCategories ORDER BY Name";
+                using var r = cmd.ExecuteReader();
+                while (r.Read())
+                {
+                    int id = r.GetInt32(0);
+                    string name = r.GetString(1);
+
+                    var itemSp = new StackPanel
+                    {
+                        Orientation = Orientation.Horizontal,
+                        Tag = id
+                    };
+
+                    var nameTxt = new TextBlock
+                    {
+                        Text = name, FontSize = 13, FontWeight = FontWeights.Bold,
+                        Foreground = UiHelper.B("#eef0f2"),
+                        VerticalAlignment = VerticalAlignment.Center,
+                        Margin = new Thickness(0, 0, 12, 0)
+                    };
+                    itemSp.Children.Add(nameTxt);
+
+                    var editBtn = UiHelper.MakeBtn("edit", "#1a2640", UiHelper.B("#ffd166"),
+                        () => EditCategory(id, name), 6, 6);
+                    editBtn.MinWidth = 32; editBtn.MinHeight = 32;
+                    itemSp.Children.Add(editBtn);
+
+                    var delBtn = UiHelper.MakeBtn("X", "#2a1a1a", UiHelper.B("#E63946"),
+                        () => DeleteCategory(id, name), 6, 6);
+                    delBtn.MinWidth = 32; delBtn.MinHeight = 32;
+                    itemSp.Children.Add(delBtn);
+
+                    _list.Items.Add(new ListBoxItem { Content = itemSp, Tag = id });
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"خطأ: {ex.Message}", "خطأ",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        void EditCategory(int id, string oldName)
+        {
+            var dlg = new EditCategoryDialog(oldName) { Owner = this };
+            if (dlg.ShowDialog() == true)
+            {
+                try
+                {
+                    using var conn = DatabaseHelper.Open();
+                    var cmd = conn.CreateCommand();
+                    cmd.CommandText = "UPDATE IngredientCategories SET Name=@n WHERE Id=@id";
+                    cmd.Parameters.AddWithValue("@n", dlg.CategoryName);
+                    cmd.Parameters.AddWithValue("@id", id);
+                    cmd.ExecuteNonQuery();
+                    LoadCategories();
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"خطأ: {ex.Message}", "خطأ",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
+        void DeleteCategory(int id, string name)
+        {
+            int count = 0;
+            try
+            {
+                using var conn = DatabaseHelper.Open();
+                var cmd = conn.CreateCommand();
+                cmd.CommandText = "SELECT COUNT(*) FROM Ingredients WHERE CategoryId=@id";
+                cmd.Parameters.AddWithValue("@id", id);
+                count = Convert.ToInt32(cmd.ExecuteScalar());
+            }
+            catch { }
+
+            string msg = count > 0
+                ? $"الفئة \"{name}\" فيها {count} مادة خام.\nهل تحذف الفئة والمواد المرتبطة بيها؟"
+                : $"هل أنت متأكد من حذف الفئة \"{name}\"؟";
+
+            if (MessageBox.Show(msg, "تأكيد الحذف",
+                MessageBoxButton.YesNo, MessageBoxImage.Warning) == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    using var conn = DatabaseHelper.Open();
+                    using var tx = conn.BeginTransaction();
+                    try
+                    {
+                        var del1 = conn.CreateCommand(); del1.Transaction = tx;
+                        del1.CommandText = "DELETE FROM Ingredients WHERE CategoryId=@id";
+                        del1.Parameters.AddWithValue("@id", id);
+                        del1.ExecuteNonQuery();
+
+                        var del2 = conn.CreateCommand(); del2.Transaction = tx;
+                        del2.CommandText = "DELETE FROM IngredientCategories WHERE Id=@id";
+                        del2.Parameters.AddWithValue("@id", id);
+                        del2.ExecuteNonQuery();
+
+                        tx.Commit();
+                        LoadCategories();
+                    }
+                    catch { tx.Rollback(); throw; }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"خطأ: {ex.Message}", "خطأ",
+                        MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+    }
+
+    // ══════════════════════════════════════════════════
+    //  EditCategoryDialog
+    // ══════════════════════════════════════════════════
+    public class EditCategoryDialog : Window
+    {
+        public string CategoryName { get; private set; } = "";
+        TextBox _tbName = null!;
+
+        public EditCategoryDialog(string currentName)
+        {
+            Title = "تعديل اسم الفئة";
+            Width = 380;
+            SizeToContent = SizeToContent.Height;
+            Background = UiHelper.B("#0f1526");
+            Foreground = Brushes.White;
+            FlowDirection = FlowDirection.RightToLeft;
+            WindowStartupLocation = WindowStartupLocation.CenterOwner;
+            FontFamily = new FontFamily("Tahoma");
+            ResizeMode = ResizeMode.NoResize;
+
+            var root = new Grid();
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            var header = new Border
+            {
+                Background = UiHelper.B("#0f1526"),
+                BorderBrush = UiHelper.B("#ffd166"),
+                BorderThickness = new Thickness(0, 0, 0, 2),
+                Padding = new Thickness(20, 16, 20, 16)
+            };
+            var hSp = new StackPanel { Orientation = Orientation.Horizontal };
+            var hIcon = new Border
+            {
+                Background = UiHelper.B("#1a1800"),
+                CornerRadius = new CornerRadius(10),
+                Width = 40, Height = 40,
+                Margin = new Thickness(0, 0, 12, 0)
+            };
+            hIcon.Child = new TextBlock
+            {
+                Text = "edit", FontSize = 20,
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center,
+                Foreground = UiHelper.B("#ffd166")
+            };
+            var hInfo = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            hInfo.Children.Add(new TextBlock
+            {
+                Text = "تعديل الفئة",
+                FontSize = 16, FontWeight = FontWeights.Black,
+                Foreground = UiHelper.B("#ffd166")
+            });
+            hInfo.Children.Add(new TextBlock
+            {
+                Text = $"العنوان الحالي: {currentName}",
+                FontSize = 11, Foreground = UiHelper.B("#4a6080"),
+                Margin = new Thickness(0, 3, 0, 0)
+            });
+            hSp.Children.Add(hIcon);
+            hSp.Children.Add(hInfo);
+            header.Child = hSp;
+            Grid.SetRow(header, 0);
+            root.Children.Add(header);
+
+            var fields = new StackPanel { Margin = new Thickness(20, 16, 20, 8) };
+            fields.Children.Add(UiHelper.FieldLabel("اسم الفئة *"));
+            _tbName = UiHelper.MakeTB("", "#ffd166");
+            _tbName.Text = currentName;
+            _tbName.Margin = new Thickness(0, 4, 0, 0);
+            fields.Children.Add(_tbName);
+            Grid.SetRow(fields, 1);
+            root.Children.Add(fields);
+
+            var btnBar = new Border
+            {
+                Background = UiHelper.B("#0d1220"),
+                BorderBrush = UiHelper.B("#1e2d4a"),
+                BorderThickness = new Thickness(0, 1, 0, 0),
+                Padding = new Thickness(20, 12, 20, 16)
+            };
+            var btnGrid = new Grid();
+            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
+            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
+            btnGrid.ColumnDefinitions.Add(new ColumnDefinition());
+
+            var cancelBtn = UiHelper.MakeBtn("إلغاء", "#12192e", UiHelper.B("#8892a4"),
+                () => { DialogResult = false; Close(); }, borderBrush: UiHelper.B("#1e2d4a"));
+
+            var saveBtn = UiHelper.MakeBtn("حفظ التعديل", "#ffd166", UiHelper.B("#0a0a14"), Save);
+            saveBtn.Effect = new DropShadowEffect
+            {
+                Color = (Color)ColorConverter.ConvertFromString("#ffd166"),
+                BlurRadius = 16, ShadowDepth = 0, Opacity = 0.4
             };
 
             Grid.SetColumn(cancelBtn, 0);

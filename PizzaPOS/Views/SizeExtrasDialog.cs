@@ -552,7 +552,7 @@ namespace PizzaPOS.Views
                 Name = _product.Name,
                 Icon = _product.Icon,
                 BasePrice = _product.Price,
-                Cost = _product.Cost,
+                Cost = _product.Cost > 0 ? _product.Cost : _product.Price * 0.4,
                 SizeName = _selectedSize?.Name,
                 SizeExtraPrice = sizeExtra,
                 ExtrasNote = string.IsNullOrEmpty(extrasNote) ? null : extrasNote,

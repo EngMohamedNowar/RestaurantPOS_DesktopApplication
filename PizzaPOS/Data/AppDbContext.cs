@@ -307,7 +307,15 @@ namespace PizzaPOS.Data
             using var tx = conn.BeginTransaction();
             try
             {
-                // 1) احذف ProductExtras للمنتجات دي
+                // 1) احذف ProductIngredients للمنتجات دي
+                var delIngredients = conn.CreateCommand(); delIngredients.Transaction = tx;
+                delIngredients.CommandText = @"
+            DELETE FROM ProductIngredients
+            WHERE ProductId IN (SELECT Id FROM Products WHERE CategoryId=@cid)";
+                delIngredients.Parameters.AddWithValue("@cid", id);
+                delIngredients.ExecuteNonQuery();
+
+                // 2) احذف ProductExtras للمنتجات دي
                 var delExtras = conn.CreateCommand(); delExtras.Transaction = tx;
                 delExtras.CommandText = @"
             DELETE FROM ProductExtras
@@ -315,7 +323,7 @@ namespace PizzaPOS.Data
                 delExtras.Parameters.AddWithValue("@cid", id);
                 delExtras.ExecuteNonQuery();
 
-                // 2) احذف ProductSizes للمنتجات دي
+                // 3) احذف ProductSizes للمنتجات دي
                 var delSizes = conn.CreateCommand(); delSizes.Transaction = tx;
                 delSizes.CommandText = @"
             DELETE FROM ProductSizes
@@ -323,13 +331,13 @@ namespace PizzaPOS.Data
                 delSizes.Parameters.AddWithValue("@cid", id);
                 delSizes.ExecuteNonQuery();
 
-                // 3) hard-delete المنتجات نفسها
+                // 4) hard-delete المنتجات نفسها
                 var delProducts = conn.CreateCommand(); delProducts.Transaction = tx;
                 delProducts.CommandText = "DELETE FROM Products WHERE CategoryId=@cid";
                 delProducts.Parameters.AddWithValue("@cid", id);
                 delProducts.ExecuteNonQuery();
 
-                // 4) احذف الفئة
+                // 5) احذف الفئة
                 var delCat = conn.CreateCommand(); delCat.Transaction = tx;
                 delCat.CommandText = "DELETE FROM Categories WHERE Id=@id";
                 delCat.Parameters.AddWithValue("@id", id);

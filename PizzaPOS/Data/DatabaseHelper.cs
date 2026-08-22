@@ -531,6 +531,40 @@ namespace PizzaPOS.Data
         ('ReceiptFooter', 'Buon appetito e a presto!'),
         ('PrinterName',   ''),
         ('EpsonPort',     'USB');");
+
+            // ══════════════════════════════════════════
+            // ── حساب التكاليف تلقائياً ──
+            // ══════════════════════════════════════════
+            CalcProductCosts(conn);
+        }
+
+        static void CalcProductCosts(SqliteConnection conn)
+        {
+            var cmd = conn.CreateCommand();
+            cmd.CommandText = "SELECT Id FROM Products WHERE IsActive=1";
+            var ids = new List<int>();
+            using (var r = cmd.ExecuteReader())
+                while (r.Read()) ids.Add(r.GetInt32(0));
+
+            foreach (var pid in ids)
+            {
+                var costCmd = conn.CreateCommand();
+                costCmd.CommandText = @"SELECT COALESCE(SUM(pi.QtyUsed * i.CostPerUnit), 0)
+                    FROM ProductIngredients pi
+                    JOIN Ingredients i ON i.Id=pi.IngredientId
+                    WHERE pi.ProductId=@pid";
+                costCmd.Parameters.AddWithValue("@pid", pid);
+                double cost = Convert.ToDouble(costCmd.ExecuteScalar() ?? 0.0);
+
+                if (cost > 0)
+                {
+                    var upd = conn.CreateCommand();
+                    upd.CommandText = "UPDATE Products SET Cost=@co WHERE Id=@id";
+                    upd.Parameters.AddWithValue("@co", cost);
+                    upd.Parameters.AddWithValue("@id", pid);
+                    upd.ExecuteNonQuery();
+                }
+            }
         }
 
         public static void Exec(SqliteConnection conn, string sql)

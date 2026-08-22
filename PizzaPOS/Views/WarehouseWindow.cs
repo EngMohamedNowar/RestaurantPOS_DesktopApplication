@@ -865,12 +865,15 @@ namespace PizzaPOS.Views
     public class ManageIngredientCategoriesDialog : Window
     {
         ListBox _list = null!;
+        TextBlock _countTxt = null!;
+        TextBox _searchTb = null!;
+        List<(int Id, string Name)> _allCategories = new();
 
         public ManageIngredientCategoriesDialog()
         {
-            Title = "تعديل/حذف فئات المواد الخام";
-            Width = 420;
-            Height = 500;
+            Title = "إدارة فئات المواد الخام";
+            Width = 480;
+            Height = 560;
             Background = UiHelper.B("#0f1526");
             Foreground = Brushes.White;
             FlowDirection = FlowDirection.RightToLeft;
@@ -884,97 +887,176 @@ namespace PizzaPOS.Views
         {
             var root = new Grid();
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             root.RowDefinitions.Add(new RowDefinition());
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
+            // ── Header ──
             var header = new Border
             {
                 Background = UiHelper.B("#0f1526"),
                 BorderBrush = UiHelper.B("#ffd166"),
                 BorderThickness = new Thickness(0, 0, 0, 2),
-                Padding = new Thickness(20, 16, 20, 16)
+                Padding = new Thickness(24, 16, 24, 16)
             };
-            var hSp = new StackPanel { Orientation = Orientation.Horizontal };
-            var hIcon = new Border
+            var hGrid = new Grid();
+            hGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            hGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            hGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var iconBorder = new Border
             {
                 Background = UiHelper.B("#1a1800"),
-                CornerRadius = new CornerRadius(10),
-                Width = 40, Height = 40,
-                Margin = new Thickness(0, 0, 12, 0)
+                CornerRadius = new CornerRadius(12),
+                Width = 44, Height = 44,
+                Margin = new Thickness(0, 0, 14, 0),
+                VerticalAlignment = VerticalAlignment.Center
             };
-            hIcon.Child = new TextBlock
+            iconBorder.Child = new TextBlock
             {
-                Text = "edit", FontSize = 20,
+                Text = "folder", FontSize = 22,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = UiHelper.B("#ffd166")
             };
-            var hInfo = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
-            hInfo.Children.Add(new TextBlock
+
+            var titleStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
+            titleStack.Children.Add(new TextBlock
             {
                 Text = "إدارة فئات المواد الخام",
-                FontSize = 16, FontWeight = FontWeights.Black,
+                FontSize = 17, FontWeight = FontWeights.Black,
                 Foreground = UiHelper.B("#ffd166")
             });
-            hInfo.Children.Add(new TextBlock
+            titleStack.Children.Add(new TextBlock
             {
-                Text = "تعديل الاسم أو حذف أي فئة",
+                Text = "إضافة / تعديل / حذف الفئات",
                 FontSize = 11, Foreground = UiHelper.B("#4a6080"),
-                Margin = new Thickness(0, 3, 0, 0)
+                Margin = new Thickness(0, 2, 0, 0)
             });
-            hSp.Children.Add(hIcon);
-            hSp.Children.Add(hInfo);
-            header.Child = hSp;
+
+            var statsPanel = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+            var countCard = new Border
+            {
+                Background = UiHelper.B("#1a1800"),
+                BorderBrush = UiHelper.B("#ffd166"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(10),
+                Padding = new Thickness(14, 6, 14, 6)
+            };
+            var countSp = new StackPanel { Orientation = Orientation.Horizontal };
+            countSp.Children.Add(new TextBlock
+            {
+                Text = "الفئات: ",
+                FontSize = 12, Foreground = UiHelper.B("#8892a4"),
+                VerticalAlignment = VerticalAlignment.Center
+            });
+            _countTxt = new TextBlock
+            {
+                Text = "0",
+                FontSize = 15, FontWeight = FontWeights.Bold,
+                Foreground = UiHelper.B("#ffd166"),
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            countSp.Children.Add(_countTxt);
+            countCard.Child = countSp;
+            statsPanel.Children.Add(countCard);
+
+            Grid.SetColumn(iconBorder, 0); hGrid.Children.Add(iconBorder);
+            Grid.SetColumn(titleStack, 1); hGrid.Children.Add(titleStack);
+            Grid.SetColumn(statsPanel, 2); hGrid.Children.Add(statsPanel);
+            header.Child = hGrid;
             Grid.SetRow(header, 0);
             root.Children.Add(header);
 
+            // ── Search bar ──
+            var searchBorder = new Border
+            {
+                Background = UiHelper.B("#0a0f1c"),
+                BorderBrush = UiHelper.B("#1a2d50"),
+                BorderThickness = new Thickness(0, 0, 0, 1),
+                Padding = new Thickness(24, 12, 24, 12)
+            };
+            var searchSp = new StackPanel { Orientation = Orientation.Horizontal };
+            var searchIcon = new TextBlock
+            {
+                Text = "search",
+                FontSize = 14,
+                Foreground = UiHelper.B("#4a6080"),
+                VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(0, 0, 8, 0)
+            };
+            _searchTb = new TextBox
+            {
+                Background = Brushes.Transparent,
+                Foreground = UiHelper.B("#eef0f2"),
+                BorderThickness = new Thickness(0),
+                FontSize = 13,
+                FontFamily = new FontFamily("Tahoma"),
+                Width = 300,
+                VerticalContentAlignment = VerticalAlignment.Center
+            };
+            _searchTb.Style = new Style(typeof(TextBox));
+            _searchTb.Style.Setters.Add(new Setter(TextBox.CaretBrushProperty, UiHelper.B("#ffd166")));
+            _searchTb.TextChanged += (_, _) => FilterCategories();
+            searchSp.Children.Add(searchIcon);
+            searchSp.Children.Add(_searchTb);
+            searchBorder.Child = searchSp;
+            Grid.SetRow(searchBorder, 1);
+            root.Children.Add(searchBorder);
+
+            // ── List ──
             _list = new ListBox
             {
                 Background = Brushes.Transparent,
                 BorderThickness = new Thickness(0),
-                Margin = new Thickness(16, 12, 16, 12)
+                Margin = new Thickness(0)
             };
             var lstStyle = new Style(typeof(ListBoxItem));
-            lstStyle.Setters.Add(new Setter(ListBoxItem.BackgroundProperty, UiHelper.B("#0d1525")));
-            lstStyle.Setters.Add(new Setter(ListBoxItem.ForegroundProperty, UiHelper.B("#eef0f2")));
-            lstStyle.Setters.Add(new Setter(ListBoxItem.PaddingProperty, new Thickness(14, 10, 14, 10)));
-            lstStyle.Setters.Add(new Setter(ListBoxItem.MarginProperty, new Thickness(0, 0, 0, 4)));
-            lstStyle.Setters.Add(new Setter(ListBoxItem.BorderThicknessProperty, new Thickness(1)));
-            lstStyle.Setters.Add(new Setter(ListBoxItem.BorderBrushProperty, UiHelper.B("#1e2d4a")));
+            lstStyle.Setters.Add(new Setter(ListBoxItem.PaddingProperty, new Thickness(0)));
+            lstStyle.Setters.Add(new Setter(ListBoxItem.MarginProperty, new Thickness(0)));
+            lstStyle.Setters.Add(new Setter(ListBoxItem.BorderThicknessProperty, new Thickness(0)));
             var lHov = new Trigger { Property = ListBoxItem.IsMouseOverProperty, Value = true };
             lHov.Setters.Add(new Setter(ListBoxItem.BackgroundProperty, UiHelper.B("#12192e")));
-            lHov.Setters.Add(new Setter(ListBoxItem.BorderBrushProperty, UiHelper.B("#ffd166")));
             lstStyle.Triggers.Add(lHov);
             _list.ItemContainerStyle = lstStyle;
 
             var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             scroll.Content = _list;
-            Grid.SetRow(scroll, 1);
+            Grid.SetRow(scroll, 2);
             root.Children.Add(scroll);
 
+            // ── Button bar ──
             var btnBar = new Border
             {
                 Background = UiHelper.B("#0d1220"),
                 BorderBrush = UiHelper.B("#1e2d4a"),
                 BorderThickness = new Thickness(0, 1, 0, 0),
-                Padding = new Thickness(20, 12, 20, 16)
+                Padding = new Thickness(24, 14, 24, 16)
             };
             var btnSp = new StackPanel { Orientation = Orientation.Horizontal };
-            btnSp.Children.Add(UiHelper.MakeBtn("إضافة فئة جديدة", "#1a1800", UiHelper.B("#ffd166"), AddNew, 10, 12));
+
+            var addBtn = UiHelper.MakeBtn("إضافة فئة جديدة", "#06d6a0", UiHelper.B("#0a0a14"), AddNew, 10, 13);
+            addBtn.MinWidth = 150;
+            addBtn.Effect = new DropShadowEffect
+            {
+                Color = (Color)ColorConverter.ConvertFromString("#06d6a0"),
+                BlurRadius = 16, ShadowDepth = 0, Opacity = 0.3
+            };
+            btnSp.Children.Add(addBtn);
             btnSp.Children.Add(new Border { Width = 10 });
             btnSp.Children.Add(UiHelper.MakeBtn("إغلاق", "#12192e", UiHelper.B("#8892a4"),
                 () => { DialogResult = false; Close(); }, borderBrush: UiHelper.B("#1e2d4a")));
             btnBar.Child = btnSp;
-            Grid.SetRow(btnBar, 2);
+            Grid.SetRow(btnBar, 3);
             root.Children.Add(btnBar);
 
             Content = root;
-            Loaded += (_, _) => LoadCategories();
+            Loaded += (_, _) => { LoadCategories(); _searchTb.Focus(); };
         }
 
         void LoadCategories()
         {
-            _list.Items.Clear();
+            _allCategories.Clear();
             try
             {
                 using var conn = DatabaseHelper.Open();
@@ -982,42 +1064,118 @@ namespace PizzaPOS.Views
                 cmd.CommandText = "SELECT Id, Name FROM IngredientCategories ORDER BY Name";
                 using var r = cmd.ExecuteReader();
                 while (r.Read())
-                {
-                    int id = r.GetInt32(0);
-                    string name = r.GetString(1);
-
-                    var itemSp = new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        Tag = id
-                    };
-
-                    var nameTxt = new TextBlock
-                    {
-                        Text = name, FontSize = 13, FontWeight = FontWeights.Bold,
-                        Foreground = UiHelper.B("#eef0f2"),
-                        VerticalAlignment = VerticalAlignment.Center,
-                        Margin = new Thickness(0, 0, 12, 0)
-                    };
-                    itemSp.Children.Add(nameTxt);
-
-                    var editBtn = UiHelper.MakeBtn("edit", "#1a2640", UiHelper.B("#ffd166"),
-                        () => EditCategory(id, name), 6, 6);
-                    editBtn.MinWidth = 32; editBtn.MinHeight = 32;
-                    itemSp.Children.Add(editBtn);
-
-                    var delBtn = UiHelper.MakeBtn("X", "#2a1a1a", UiHelper.B("#E63946"),
-                        () => DeleteCategory(id, name), 6, 6);
-                    delBtn.MinWidth = 32; delBtn.MinHeight = 32;
-                    itemSp.Children.Add(delBtn);
-
-                    _list.Items.Add(new ListBoxItem { Content = itemSp, Tag = id });
-                }
+                    _allCategories.Add((r.GetInt32(0), r.GetString(1)));
             }
             catch (Exception ex)
             {
                 MessageBox.Show($"خطأ: {ex.Message}", "خطأ",
                     MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+            FilterCategories();
+        }
+
+        void FilterCategories()
+        {
+            var q = (_searchTb?.Text ?? "").Trim();
+            var filtered = string.IsNullOrEmpty(q)
+                ? _allCategories
+                : _allCategories.Where(c => c.Name.Contains(q, StringComparison.OrdinalIgnoreCase)).ToList();
+
+            _list.Items.Clear();
+            _countTxt.Text = filtered.Count.ToString();
+
+            if (filtered.Count == 0)
+            {
+                var emptySp = new StackPanel
+                {
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 60, 0, 0)
+                };
+                emptySp.Children.Add(new TextBlock
+                {
+                    Text = "folder_open",
+                    FontSize = 48,
+                    Foreground = UiHelper.B("#1e2d4a"),
+                    HorizontalAlignment = HorizontalAlignment.Center
+                });
+                emptySp.Children.Add(new TextBlock
+                {
+                    Text = string.IsNullOrEmpty(q) ? "لا توجد فئات بعد" : "لا توجد نتائج",
+                    FontSize = 14,
+                    Foreground = UiHelper.B("#4a6080"),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    Margin = new Thickness(0, 12, 0, 0)
+                });
+                _list.Items.Add(new ListBoxItem { Content = emptySp, IsHitTestVisible = false });
+                return;
+            }
+
+            for (int i = 0; i < filtered.Count; i++)
+            {
+                var (id, name) = filtered[i];
+                var itemBorder = new Border
+                {
+                    Background = i % 2 == 0 ? UiHelper.B("#0d1525") : UiHelper.B("#0a0f1c"),
+                    Padding = new Thickness(20, 12, 20, 12),
+                    BorderBrush = UiHelper.B("#1a2540"),
+                    BorderThickness = new Thickness(0, 0, 0, 1)
+                };
+                var itemGrid = new Grid();
+                itemGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+                itemGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+                itemGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                // Number badge
+                var numBadge = new Border
+                {
+                    Background = UiHelper.B("#1a1800"),
+                    CornerRadius = new CornerRadius(8),
+                    Width = 32, Height = 32,
+                    Margin = new Thickness(0, 0, 14, 0),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                numBadge.Child = new TextBlock
+                {
+                    Text = (i + 1).ToString(),
+                    FontSize = 12, FontWeight = FontWeights.Bold,
+                    Foreground = UiHelper.B("#ffd166"),
+                    HorizontalAlignment = HorizontalAlignment.Center,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                // Name
+                var nameTxt = new TextBlock
+                {
+                    Text = name,
+                    FontSize = 14, FontWeight = FontWeights.Bold,
+                    Foreground = UiHelper.B("#eef0f2"),
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+
+                // Buttons
+                var btnsSp = new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    VerticalAlignment = VerticalAlignment.Center
+                };
+                var editBtn = UiHelper.MakeBtn("edit", "#1a2640", UiHelper.B("#ffd166"),
+                    () => EditCategory(id, name), 8, 8);
+                editBtn.MinWidth = 36; editBtn.MinHeight = 36;
+                editBtn.ToolTip = "تعديل";
+                btnsSp.Children.Add(editBtn);
+                btnsSp.Children.Add(new Border { Width = 6 });
+                var delBtn = UiHelper.MakeBtn("X", "#2a1a1a", UiHelper.B("#E63946"),
+                    () => DeleteCategory(id, name), 8, 8);
+                delBtn.MinWidth = 36; delBtn.MinHeight = 36;
+                delBtn.ToolTip = "حذف";
+                btnsSp.Children.Add(delBtn);
+
+                Grid.SetColumn(numBadge, 0); itemGrid.Children.Add(numBadge);
+                Grid.SetColumn(nameTxt, 1); itemGrid.Children.Add(nameTxt);
+                Grid.SetColumn(btnsSp, 2); itemGrid.Children.Add(btnsSp);
+                itemBorder.Child = itemGrid;
+
+                _list.Items.Add(new ListBoxItem { Content = itemBorder, Tag = id });
             }
         }
 
@@ -1126,8 +1284,8 @@ namespace PizzaPOS.Views
 
         public EditCategoryDialog(string currentName)
         {
-            Title = "تعديل اسم الفئة";
-            Width = 380;
+            Title = "تعديل الفئة";
+            Width = 420;
             SizeToContent = SizeToContent.Height;
             Background = UiHelper.B("#0f1526");
             Foreground = Brushes.White;
@@ -1146,19 +1304,19 @@ namespace PizzaPOS.Views
                 Background = UiHelper.B("#0f1526"),
                 BorderBrush = UiHelper.B("#ffd166"),
                 BorderThickness = new Thickness(0, 0, 0, 2),
-                Padding = new Thickness(20, 16, 20, 16)
+                Padding = new Thickness(24, 18, 24, 18)
             };
             var hSp = new StackPanel { Orientation = Orientation.Horizontal };
             var hIcon = new Border
             {
                 Background = UiHelper.B("#1a1800"),
-                CornerRadius = new CornerRadius(10),
-                Width = 40, Height = 40,
-                Margin = new Thickness(0, 0, 12, 0)
+                CornerRadius = new CornerRadius(12),
+                Width = 44, Height = 44,
+                Margin = new Thickness(0, 0, 14, 0)
             };
             hIcon.Child = new TextBlock
             {
-                Text = "edit", FontSize = 20,
+                Text = "edit", FontSize = 22,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center,
                 Foreground = UiHelper.B("#ffd166")
@@ -1167,12 +1325,12 @@ namespace PizzaPOS.Views
             hInfo.Children.Add(new TextBlock
             {
                 Text = "تعديل الفئة",
-                FontSize = 16, FontWeight = FontWeights.Black,
+                FontSize = 17, FontWeight = FontWeights.Black,
                 Foreground = UiHelper.B("#ffd166")
             });
             hInfo.Children.Add(new TextBlock
             {
-                Text = $"العنوان الحالي: {currentName}",
+                Text = $"الاسم الحالي: {currentName}",
                 FontSize = 11, Foreground = UiHelper.B("#4a6080"),
                 Margin = new Thickness(0, 3, 0, 0)
             });
@@ -1182,11 +1340,12 @@ namespace PizzaPOS.Views
             Grid.SetRow(header, 0);
             root.Children.Add(header);
 
-            var fields = new StackPanel { Margin = new Thickness(20, 16, 20, 8) };
-            fields.Children.Add(UiHelper.FieldLabel("اسم الفئة *"));
+            var fields = new StackPanel { Margin = new Thickness(24, 20, 24, 8) };
+            fields.Children.Add(UiHelper.FieldLabel("اسم الفئة الجديد *"));
             _tbName = UiHelper.MakeTB("", "#ffd166");
             _tbName.Text = currentName;
-            _tbName.Margin = new Thickness(0, 4, 0, 0);
+            _tbName.Margin = new Thickness(0, 6, 0, 0);
+            _tbName.FontSize = 14;
             fields.Children.Add(_tbName);
             Grid.SetRow(fields, 1);
             root.Children.Add(fields);
@@ -1196,17 +1355,18 @@ namespace PizzaPOS.Views
                 Background = UiHelper.B("#0d1220"),
                 BorderBrush = UiHelper.B("#1e2d4a"),
                 BorderThickness = new Thickness(0, 1, 0, 0),
-                Padding = new Thickness(20, 12, 20, 16)
+                Padding = new Thickness(24, 14, 24, 18)
             };
             var btnGrid = new Grid();
-            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(110) });
-            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
-            btnGrid.ColumnDefinitions.Add(new ColumnDefinition());
+            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
             var cancelBtn = UiHelper.MakeBtn("إلغاء", "#12192e", UiHelper.B("#8892a4"),
                 () => { DialogResult = false; Close(); }, borderBrush: UiHelper.B("#1e2d4a"));
 
-            var saveBtn = UiHelper.MakeBtn("حفظ التعديل", "#ffd166", UiHelper.B("#0a0a14"), Save);
+            var saveBtn = UiHelper.MakeBtn("حفظ التعديل", "#ffd166", UiHelper.B("#0a0a14"), Save, 12, 10);
+            saveBtn.MinWidth = 140;
             saveBtn.Effect = new DropShadowEffect
             {
                 Color = (Color)ColorConverter.ConvertFromString("#ffd166"),

@@ -341,11 +341,12 @@ namespace PizzaPOS.Views
         {
             var phones = new List<string>();
             var p1 = _db.GetSetting("Phone", "");
-            var p2 = _db.GetSetting("Phone2", "");
-            var p3 = _db.GetSetting("Phone3", "");
             if (!string.IsNullOrWhiteSpace(p1)) phones.Add(p1);
-            if (!string.IsNullOrWhiteSpace(p2)) phones.Add(p2);
-            if (!string.IsNullOrWhiteSpace(p3)) phones.Add(p3);
+            for (int i = 2; i <= 10; i++)
+            {
+                var p = _db.GetSetting($"Phone{i}", "");
+                if (!string.IsNullOrWhiteSpace(p)) phones.Add(p);
+            }
 
             var msg = "";
             msg += $"        *{ShopName}*\n";

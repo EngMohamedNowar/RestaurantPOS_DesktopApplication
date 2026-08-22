@@ -16,8 +16,8 @@ namespace PizzaPOS.Views
         TextBox _tbShopName = null!;
         TextBox _tbAddress = null!;
         TextBox _tbPhone = null!;
-        TextBox _tbPhone2 = null!;
-        TextBox _tbPhone3 = null!;
+        StackPanel _phonesPanel = null!;
+        readonly List<TextBox> _extraPhones = new();
         TextBox _tbTax = null!;
         TextBox _tbService = null!;
         TextBox _tbDiscount = null!;
@@ -118,20 +118,27 @@ namespace PizzaPOS.Views
             _tbAddress.Margin = new Thickness(0, 4, 0, 14);
             sp.Children.Add(_tbAddress);
 
-            sp.Children.Add(Lbl("رقم التليفون 1"));
+            sp.Children.Add(Lbl("رقم التليفون (رئيسي) *"));
             _tbPhone = UiHelper.MakeTB(_db.GetSetting("Phone", ""), "#FF6B35");
-            _tbPhone.Margin = new Thickness(0, 4, 0, 14);
+            _tbPhone.Margin = new Thickness(0, 4, 0, 10);
             sp.Children.Add(_tbPhone);
 
-            sp.Children.Add(Lbl("رقم التليفون 2 (اختياري)"));
-            _tbPhone2 = UiHelper.MakeTB(_db.GetSetting("Phone2", ""), "#FF6B35");
-            _tbPhone2.Margin = new Thickness(0, 4, 0, 14);
-            sp.Children.Add(_tbPhone2);
+            _phonesPanel = new StackPanel { Margin = new Thickness(0, 0, 0, 14) };
+            sp.Children.Add(_phonesPanel);
 
-            sp.Children.Add(Lbl("رقم التليفون 3 (اختياري)"));
-            _tbPhone3 = UiHelper.MakeTB(_db.GetSetting("Phone3", ""), "#FF6B35");
-            _tbPhone3.Margin = new Thickness(0, 4, 0, 14);
-            sp.Children.Add(_tbPhone3);
+            // تحميل الأرقام المحفوظة
+            for (int i = 2; i <= 10; i++)
+            {
+                var saved = _db.GetSetting($"Phone{i}", "");
+                if (!string.IsNullOrWhiteSpace(saved))
+                    AddPhoneField(saved);
+            }
+
+            var addPhoneBtn = UiHelper.MakeBtn("+ إضافة رقم تليفون", "#1a2640", UiHelper.B("#ffd166"), () => AddPhoneField(""), 10, 8);
+            addPhoneBtn.MinWidth = 180;
+            addPhoneBtn.HorizontalAlignment = HorizontalAlignment.Left;
+            addPhoneBtn.Margin = new Thickness(0, 0, 0, 10);
+            sp.Children.Add(addPhoneBtn);
 
             // ── Section: الضرائب والخصومات ──
             sp.Children.Add(SectionHeader("الضرائب والخصومات", "💰"));
@@ -349,8 +356,19 @@ namespace PizzaPOS.Views
             _db.SetSetting("ShopName", _tbShopName.Text.Trim());
             _db.SetSetting("Address", _tbAddress.Text.Trim());
             _db.SetSetting("Phone", _tbPhone.Text.Trim());
-            _db.SetSetting("Phone2", _tbPhone2.Text.Trim());
-            _db.SetSetting("Phone3", _tbPhone3.Text.Trim());
+
+            // حفظ الأرقام الإضافية
+            for (int i = 0; i < _extraPhones.Count; i++)
+            {
+                var val = _extraPhones[i].Text.Trim();
+                if (!string.IsNullOrWhiteSpace(val))
+                    _db.SetSetting($"Phone{i + 2}", val);
+                else
+                    _db.SetSetting($"Phone{i + 2}", "");
+            }
+            // مسح أي أرقام قديمة أكتر من العدد الحالي
+            for (int i = _extraPhones.Count + 2; i <= 10; i++)
+                _db.SetSetting($"Phone{i}", "");
             _db.SetSetting("TaxRate", (taxPct / 100).ToString("F4"));
             _db.SetSetting("ServiceRate", (srvPct / 100).ToString("F4"));
             _db.SetSetting("DefaultDiscount", discPct.ToString("F2"));
@@ -408,5 +426,30 @@ namespace PizzaPOS.Views
             FontSize = 11,
             Margin = new Thickness(0, 0, 0, 4)
         };
+
+        void AddPhoneField(string value)
+        {
+            var row = new Grid { Margin = new Thickness(0, 0, 0, 6) };
+            row.ColumnDefinitions.Add(new ColumnDefinition());
+            row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+            var tb = UiHelper.MakeTB(value, "#FF6B35");
+            tb.Margin = new Thickness(0);
+            Grid.SetColumn(tb, 0);
+            row.Children.Add(tb);
+
+            var removeBtn = UiHelper.MakeBtn("✕", "#2a1a1a", UiHelper.B("#E63946"), () =>
+            {
+                _phonesPanel.Children.Remove(row);
+                _extraPhones.Remove(tb);
+            }, 6, 6);
+            removeBtn.MinWidth = 30;
+            removeBtn.MinHeight = 30;
+            Grid.SetColumn(removeBtn, 1);
+            row.Children.Add(removeBtn);
+
+            _phonesPanel.Children.Add(row);
+            _extraPhones.Add(tb);
+        }
     }
 }

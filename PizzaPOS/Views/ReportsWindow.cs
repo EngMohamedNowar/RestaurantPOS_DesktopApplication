@@ -403,6 +403,20 @@ namespace PizzaPOS.Views
             rs.Triggers.Add(hover);
             _dgLoss.RowStyle = rs;
 
+            // الخلية لازم تورّث لون النوع (Color) من الصف، مش لون ثابت،
+            // عشان الربط على DataGridRow.Foreground ميبانش مكسور بسبب CellStyle الثابت
+            var cs = new Style(typeof(DataGridCell));
+            cs.Setters.Add(new Setter(DataGridCell.BorderThicknessProperty, new Thickness(0)));
+            cs.Setters.Add(new Setter(DataGridCell.PaddingProperty, new Thickness(16, 0, 16, 0)));
+            cs.Setters.Add(new Setter(DataGridCell.VerticalAlignmentProperty, VerticalAlignment.Center));
+            cs.Setters.Add(new Setter(DataGridCell.ForegroundProperty,
+                new Binding("Color") { Converter = new HexToBrushConverter() }));
+            var csel = new Trigger { Property = DataGridCell.IsSelectedProperty, Value = true };
+            csel.Setters.Add(new Setter(DataGridCell.BackgroundProperty, UiHelper.B("#1a2d50")));
+            csel.Setters.Add(new Setter(DataGridCell.BorderBrushProperty, Brushes.Transparent));
+            cs.Triggers.Add(csel);
+            _dgLoss.CellStyle = cs;
+
             var scrollLoss = UiHelper.Scroll(_dgLoss);
             Grid.SetRow(scrollLoss, 1);
             g.Children.Add(scrollLoss);

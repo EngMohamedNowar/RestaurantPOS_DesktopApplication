@@ -36,9 +36,14 @@ namespace PizzaPOS.Views
         {
             // ── ساعة ──
             var clock = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            clock.Tick += (_, _) => ClockTxt.Text = DateTime.Now.ToString("HH:mm:ss");
+            clock.Tick += (_, _) =>
+            {
+                ClockTxt.Text = DateTime.Now.ToString("HH:mm:ss");
+                DateTxt.Text = DateTime.Now.ToString("yyyy/MM/dd");
+            };
             clock.Start();
             ClockTxt.Text = DateTime.Now.ToString("HH:mm:ss");
+            DateTxt.Text = DateTime.Now.ToString("yyyy/MM/dd");
 
             // ── تحديث الإحصائيات كل 30 ثانية ──
             var stats = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
@@ -57,6 +62,7 @@ namespace PizzaPOS.Views
             SearchBox.Focus();
             CashierStatusTxt.Text =
                 $"الكاشير: {SessionService.CurrentUser?.FullName ?? "—"}";
+            UserTxt.Text = $"👤 {SessionService.CurrentUser?.FullName ?? "—"}";
 
             RefreshShopName();
 

@@ -53,11 +53,11 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="14" Padding="8">
-                            <Border.Effect>
-                                <DropShadowEffect x:Name="glow"
-                                    Color="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Button}, Path=DataContext.CardAccent}"
-                                    BlurRadius="0" ShadowDepth="0" Opacity="0.75"/>
-                            </Border.Effect>
+                                <Border.Effect>
+                                    <DropShadowEffect x:Name="glow"
+                                        Color="{Binding CardAccent, Converter={StaticResource BrushToColor}}"
+                                        BlurRadius="0" ShadowDepth="0" Opacity="0.75"/>
+                                </Border.Effect>
                             <StackPanel>
                                 <Border Background="{Binding CardIconBg}"
                                         CornerRadius="10"
@@ -77,7 +77,7 @@
                                                TextAlignment="Center"
                                                Foreground="{Binding CardAccent}">
                                         <TextBlock.Effect>
-                                            <DropShadowEffect Color="{Binding RelativeSource={RelativeSource FindAncestor, AncestorType=Border}, Path=DataContext.CardAccent}"
+                                            <DropShadowEffect Color="{Binding CardAccent, Converter={StaticResource BrushToColor}}"
                                                 BlurRadius="6" ShadowDepth="0" Opacity="0.6"/>
                                         </TextBlock.Effect>
                                         <Run Text="{Binding Price, StringFormat={}{0:F2}, Mode=OneWay}"/>

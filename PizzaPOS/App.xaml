@@ -1,8 +1,11 @@
 ﻿<Application x:Class="PizzaPOS.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PizzaPOS"
              ShutdownMode="OnExplicitShutdown">
     <Application.Resources>
+
+        <local:BrushToColorConverter x:Key="BrushToColor"/>
 
         <!-- ═════════ زر صفحة السكرول (شفاف) ═════════ -->
         <Style x:Key="ScrollBarPageButton" TargetType="RepeatButton">

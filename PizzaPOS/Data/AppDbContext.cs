@@ -92,7 +92,7 @@ namespace PizzaPOS.Data
             var cmd = c.CreateCommand();
             cmd.CommandText = @"
                 SELECT Id,OrderNumber,OrderType,PayMethod,
-                       Subtotal,Discount,Tax,Total,PaidAmount,Change,
+                       Subtotal,Discount,Tax,ServiceCharge,Total,PaidAmount,Change,
                        Notes,CustomerId,CustomerName,CustomerPhone,
                        DeliveryAddress,DriverId,DriverName,DeliveryFee,
                        CreatedAt,Status,DeliveryStatus
@@ -110,20 +110,21 @@ namespace PizzaPOS.Data
                 Subtotal = r.GetDouble(4),
                 Discount = r.GetDouble(5),
                 Tax = r.GetDouble(6),
-                Total = r.GetDouble(7),
-                PaidAmount = r.GetDouble(8),
-                Change = r.GetDouble(9),
-                Notes = r.IsDBNull(10) ? "" : r.GetString(10),
-                CustomerId = r.IsDBNull(11) ? 0 : r.GetInt32(11),
-                CustomerName = r.IsDBNull(12) ? "" : r.GetString(12),
-                CustomerPhone = r.IsDBNull(13) ? "" : r.GetString(13),
-                DeliveryAddress = r.IsDBNull(14) ? "" : r.GetString(14),
-                DriverId = r.IsDBNull(15) ? 0 : r.GetInt32(15),
-                DriverName = r.IsDBNull(16) ? "" : r.GetString(16),
-                DeliveryFee = r.IsDBNull(17) ? 0 : r.GetDouble(17),
-                CreatedAt = r.IsDBNull(18) ? "" : r.GetString(18),
-                Status = r.IsDBNull(19) ? "" : r.GetString(19),
-                DeliveryStatus = r.IsDBNull(20) ? "" : r.GetString(20)
+                ServiceCharge = r.IsDBNull(7) ? 0 : r.GetDouble(7),
+                Total = r.GetDouble(8),
+                PaidAmount = r.GetDouble(9),
+                Change = r.GetDouble(10),
+                Notes = r.IsDBNull(11) ? "" : r.GetString(11),
+                CustomerId = r.IsDBNull(12) ? 0 : r.GetInt32(12),
+                CustomerName = r.IsDBNull(13) ? "" : r.GetString(13),
+                CustomerPhone = r.IsDBNull(14) ? "" : r.GetString(14),
+                DeliveryAddress = r.IsDBNull(15) ? "" : r.GetString(15),
+                DriverId = r.IsDBNull(16) ? 0 : r.GetInt32(16),
+                DriverName = r.IsDBNull(17) ? "" : r.GetString(17),
+                DeliveryFee = r.IsDBNull(18) ? 0 : r.GetDouble(18),
+                CreatedAt = r.IsDBNull(19) ? "" : r.GetString(19),
+                Status = r.IsDBNull(20) ? "" : r.GetString(20),
+                DeliveryStatus = r.IsDBNull(21) ? "" : r.GetString(21)
             };
 
             var ic = c.CreateCommand();
@@ -155,7 +156,7 @@ namespace PizzaPOS.Data
                 var cmd = conn.CreateCommand(); cmd.Transaction = tx;
                 cmd.CommandText = @"UPDATE Orders SET
                     PayMethod=@pm, Subtotal=@sub, Discount=@disc,
-                    Tax=@tax, Total=@tot, PaidAmount=@paid, Change=@chg,
+                    Tax=@tax, ServiceCharge=@sc, Total=@tot, PaidAmount=@paid, Change=@chg,
                     Notes=@notes, CustomerName=@cname, CustomerPhone=@cphone,
                     DeliveryAddress=@caddr, DriverId=@did, DriverName=@dname,
                     DeliveryFee=@dfee WHERE Id=@id";
@@ -163,6 +164,7 @@ namespace PizzaPOS.Data
                 cmd.Parameters.AddWithValue("@sub", o.Subtotal);
                 cmd.Parameters.AddWithValue("@disc", o.Discount);
                 cmd.Parameters.AddWithValue("@tax", o.Tax);
+                cmd.Parameters.AddWithValue("@sc", o.ServiceCharge);
                 cmd.Parameters.AddWithValue("@tot", o.Total);
                 cmd.Parameters.AddWithValue("@paid", o.PaidAmount);
                 cmd.Parameters.AddWithValue("@chg", o.Change);
@@ -616,7 +618,7 @@ namespace PizzaPOS.Data
             cmd.CommandText = @"SELECT c.Id,c.Name,c.Phone,c.Address,c.Notes,c.CreatedAt,
                 COALESCE(c.LoyaltyPoints,0),
                 (SELECT COUNT(*) FROM Orders o WHERE o.CustomerId=c.Id AND o.Status NOT IN ('cancelled','held')),
-                (SELECT COALESCE(SUM(o.Total),0) FROM Orders o WHERE o.CustomerId=c.Id AND o.Status NOT IN ('cancelled','held'))
+                (SELECT COALESCE(SUM(o.Total - COALESCE(o.DeliveryFee,0)),0) FROM Orders o WHERE o.CustomerId=c.Id AND o.Status NOT IN ('cancelled','held'))
                 FROM Customers c
                 WHERE (@s IS NULL OR c.Name  LIKE '%'||@s||'%'
                                   OR c.Phone LIKE '%'||@s||'%')
@@ -947,7 +949,9 @@ namespace PizzaPOS.Data
                 WHERE o.Status NOT IN ('cancelled','held')
                   AND date(o.CreatedAt) BETWEEN @f AND @t
                 GROUP BY oi.Name
-                ORDER BY SUM(oi.Subtotal) DESC LIMIT 10";
+                ORDER BY SUM(oi.Subtotal - CASE WHEN o.Subtotal > 0
+                    THEN o.Discount * (oi.Subtotal * 1.0 / o.Subtotal)
+                    ELSE 0 END) DESC LIMIT 10";
             cmd.Parameters.AddWithValue("@f", from.ToString("yyyy-MM-dd"));
             cmd.Parameters.AddWithValue("@t", to.ToString("yyyy-MM-dd"));
             var list = new List<ProductStat>();
@@ -1095,7 +1099,6 @@ namespace PizzaPOS.Data
                         WHERE date(l.Date) = date(o.CreatedAt)
                           AND date(l.Date) BETWEEN @f AND @t
                     ), 0)
-                    + SUM(o.Discount)
                     + COALESCE((
                         SELECT SUM((oi2.Cost - oi2.Price) * oi2.Qty)
                         FROM OrderItems oi2
@@ -1212,7 +1215,7 @@ namespace PizzaPOS.Data
         {
             using var c = Open();
             var cmd = c.CreateCommand();
-            cmd.CommandText = @"SELECT COALESCE(SUM(Total),0),COUNT(*),COALESCE(AVG(Total),0)
+            cmd.CommandText = @"SELECT COALESCE(SUM(Total - COALESCE(DeliveryFee,0)),0),COUNT(*),COALESCE(AVG(Total - COALESCE(DeliveryFee,0)),0)
                 FROM Orders WHERE ShiftId=@sid AND Status NOT IN ('cancelled','held')";
             cmd.Parameters.AddWithValue("@sid", shiftId);
             using var r = cmd.ExecuteReader(); r.Read();
@@ -1226,8 +1229,8 @@ namespace PizzaPOS.Data
             var cmd = c.CreateCommand();
             cmd.CommandText = @"
                 SELECT
-                    COALESCE(SUM(CASE WHEN PayMethod IN ('كاش','نقدي')     THEN Total ELSE 0 END), 0),
-                    COALESCE(SUM(CASE WHEN PayMethod NOT IN ('كاش','نقدي') THEN Total ELSE 0 END), 0)
+                    COALESCE(SUM(CASE WHEN PayMethod IN ('كاش','نقدي')     THEN Total - COALESCE(DeliveryFee,0) ELSE 0 END), 0),
+                    COALESCE(SUM(CASE WHEN PayMethod NOT IN ('كاش','نقدي') THEN Total - COALESCE(DeliveryFee,0) ELSE 0 END), 0)
                 FROM Orders
                 WHERE ShiftId=@sid
                   AND Status NOT IN ('cancelled','held')";

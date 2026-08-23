@@ -2,6 +2,7 @@
 using System.Globalization;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Text;                 // مهم
@@ -21,6 +22,16 @@ namespace PizzaPOS
             if (value is Color color) return color;
             return Colors.Transparent;
         }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
+    // ScrollBar الرأسي لازم IsDirectionReversed=True عشان اتجاه السكرول ما ينعكسش
+    public class OrientationToReverseConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            => value is Orientation o && o == Orientation.Vertical;
 
         public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
             => throw new NotImplementedException();

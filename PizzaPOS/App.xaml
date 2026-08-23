@@ -6,6 +6,7 @@
     <Application.Resources>
 
         <local:BrushToColorConverter x:Key="BrushToColor"/>
+        <local:OrientationToReverseConverter x:Key="OrientationToReverse"/>
 
         <!-- ═════════ زر صفحة السكرول (شفاف) ═════════ -->
         <Style x:Key="ScrollBarPageButton" TargetType="RepeatButton">
@@ -65,7 +66,8 @@
                 <Setter.Value>
                     <ControlTemplate TargetType="ScrollBar">
                         <Grid Background="{TemplateBinding Background}" SnapsToDevicePixels="True">
-                            <Track x:Name="PART_Track">
+                            <Track x:Name="PART_Track"
+                               IsDirectionReversed="{Binding Orientation, RelativeSource={RelativeSource TemplatedParent}, Converter={StaticResource OrientationToReverse}}">
                                 <Track.DecreaseRepeatButton>
                                     <RepeatButton Style="{StaticResource ScrollBarPageButton}"
                                                   Command="ScrollBar.PageUpCommand"/>

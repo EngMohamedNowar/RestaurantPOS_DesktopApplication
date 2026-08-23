@@ -378,19 +378,26 @@ namespace PizzaPOS.Views
                 Binding = new Binding("Description"),
                 Width = new DataGridLength(1, DataGridLengthUnitType.Star)
             });
-            _dgLoss.Columns.Add(UiHelper.ColNum("المبلغ ج", "Amount", 110, "#E63946"));
-
-            _dgLoss.Resources.Add(typeof(DataGridRow), new Style
+            _dgLoss.Columns.Add(new DataGridTextColumn
             {
-                Setters =
+                Header = "المبلغ ج",
+                Binding = new Binding("Amount") { StringFormat = "{0:F2}" },
+                Width = 110,
+                ElementStyle = new Style(typeof(TextBlock))
                 {
-                    new Setter(DataGridRow.ForegroundProperty, new Binding("Color") { Converter = new HexToBrushConverter() }),
-                    new Setter(DataGridRow.FontWeightProperty, FontWeights.Bold)
+                    Setters =
+                    {
+                        new Setter(TextBlock.FontWeightProperty, FontWeights.Bold),
+                        new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Center),
+                        new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center)
+                    }
                 }
             });
 
             var rs = new Style(typeof(DataGridRow));
-            rs.Setters.Add(new Setter(DataGridRow.ForegroundProperty, UiHelper.B("#eef0f2")));
+            rs.Setters.Add(new Setter(DataGridRow.ForegroundProperty,
+                new Binding("Color") { Converter = new HexToBrushConverter() }));
+            rs.Setters.Add(new Setter(DataGridRow.FontWeightProperty, FontWeights.Bold));
             var hover = new Trigger { Property = DataGridRow.IsMouseOverProperty, Value = true };
             hover.Setters.Add(new Setter(DataGridRow.BackgroundProperty, UiHelper.B("#12192e")));
             rs.Triggers.Add(hover);

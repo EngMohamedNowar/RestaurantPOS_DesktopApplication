@@ -892,13 +892,16 @@ namespace PizzaPOS.Views
             disc = Math.Min(disc, sub);
 
             string taxStr = _db.GetSetting("TaxRate", "14");
+            string srvStr = _db.GetSetting("ServiceRate", "0");
             double taxPct = double.TryParse(taxStr, out var t) ? t : 14;
+            double srvPct = double.TryParse(srvStr, out var sr) ? sr : 0;
             if (taxPct < 1) taxPct *= 100;
+            if (srvPct is > 0 and < 1) srvPct *= 100;
 
             double after = sub - disc;
             double tax = after * (taxPct / 100);
-            double fee = double.TryParse(_tbFee?.Text, out var f) ? f : 0;
-            double total = after + tax + fee;
+            double srv = after * (srvPct / 100);
+            double total = after + tax + srv;
 
             if (_subtotalTxt != null) _subtotalTxt.Text = $"المجموع: {sub:F2} ج";
             if (_discTxt != null) _discTxt.Text = disc > 0 ? $"خصم: -{disc:F2} ج" : "";
@@ -1013,11 +1016,14 @@ namespace PizzaPOS.Views
             double sub = _items.Sum(i => i.Price * i.Qty);
             double disc = double.TryParse(_tbDiscount.Text, out var d) ? Math.Min(d, sub) : 0;
             string taxStr = _db.GetSetting("TaxRate", "14");
+            string srvStr = _db.GetSetting("ServiceRate", "0");
             double taxPct = double.TryParse(taxStr, out var t) ? t : 14;
+            double srvPct = double.TryParse(srvStr, out var sr) ? sr : 0;
             if (taxPct < 1) taxPct *= 100;
+            if (srvPct is > 0 and < 1) srvPct *= 100;
             double after = sub - disc;
             double tax = after * (taxPct / 100);
-            double fee = double.TryParse(_tbFee?.Text, out var f) ? f : 0;
+            double srv = after * (srvPct / 100);
 
             var pm = (_cbPayMethod.SelectedItem as ComboBoxItem)?.Tag?.ToString()
                      ?? _order.PayMethod;
@@ -1034,9 +1040,8 @@ namespace PizzaPOS.Views
             _order.Subtotal = sub;
             _order.Discount = disc;
             _order.Tax = tax;
-            _order.Total = after + tax + fee;
-            _order.PaidAmount = after + tax + fee;
-            _order.Change = 0;
+            _order.ServiceCharge = srv;
+            _order.Total = after + tax + srv + _order.DeliveryFee;
             _order.PayMethod = pm;
             _order.Notes = _tbNotes.Text.Trim();
             _order.CustomerName = _tbCustName?.Text.Trim() ?? _order.CustomerName;
@@ -1044,7 +1049,6 @@ namespace PizzaPOS.Views
             _order.DeliveryAddress = _tbAddress?.Text.Trim() ?? _order.DeliveryAddress;
             _order.DriverId = driverId;
             _order.DriverName = driverName;
-            _order.DeliveryFee = fee;
 
             _db.UpdateOrder(_order);
             return true;

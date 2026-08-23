@@ -99,27 +99,32 @@ namespace PizzaPOS.Services
         public void DeductForOrder(IEnumerable<OrderItem> items, int userId)
         {
             using var conn = Open();
-            foreach (var item in items)
+            using var tx = conn.BeginTransaction();
+            try
             {
-                var q = conn.CreateCommand();
-                q.CommandText = "SELECT IngredientId,QtyUsed FROM ProductIngredients WHERE ProductId=@pid";
-                q.Parameters.AddWithValue("@pid", item.ProductId);
-                using var r = q.ExecuteReader();
-                while (r.Read())
+                foreach (var item in items)
                 {
-                    int ingId = r.GetInt32(0);
-                    double used = r.GetDouble(1) * item.Qty;
-                    using var tx = conn.BeginTransaction();
-                    var m = conn.CreateCommand(); m.Transaction = tx;
-                    m.CommandText = "INSERT INTO StockMovements(IngredientId,Type,Qty,Note,UserId) VALUES(@i,'out',@q,'أوردر',@u)";
-                    m.Parameters.AddWithValue("@i", ingId); m.Parameters.AddWithValue("@q", -used); m.Parameters.AddWithValue("@u", userId);
-                    m.ExecuteNonQuery();
-                    var u = conn.CreateCommand(); u.Transaction = tx;
-                    u.CommandText = "UPDATE Ingredients SET Stock=MAX(0,Stock-@q) WHERE Id=@i";
-                    u.Parameters.AddWithValue("@q", used); u.Parameters.AddWithValue("@i", ingId);
-                    u.ExecuteNonQuery(); tx.Commit();
+                    var q = conn.CreateCommand(); q.Transaction = tx;
+                    q.CommandText = "SELECT IngredientId,QtyUsed FROM ProductIngredients WHERE ProductId=@pid";
+                    q.Parameters.AddWithValue("@pid", item.ProductId);
+                    using var r = q.ExecuteReader();
+                    while (r.Read())
+                    {
+                        int ingId = r.GetInt32(0);
+                        double used = r.GetDouble(1) * item.Qty;
+                        var m = conn.CreateCommand(); m.Transaction = tx;
+                        m.CommandText = "INSERT INTO StockMovements(IngredientId,Type,Qty,Note,UserId) VALUES(@i,'out',@q,'أوردر',@u)";
+                        m.Parameters.AddWithValue("@i", ingId); m.Parameters.AddWithValue("@q", -used); m.Parameters.AddWithValue("@u", userId);
+                        m.ExecuteNonQuery();
+                        var u = conn.CreateCommand(); u.Transaction = tx;
+                        u.CommandText = "UPDATE Ingredients SET Stock=MAX(0,Stock-@q) WHERE Id=@i";
+                        u.Parameters.AddWithValue("@q", used); u.Parameters.AddWithValue("@i", ingId);
+                        u.ExecuteNonQuery();
+                    }
                 }
+                tx.Commit();
             }
+            catch { tx.Rollback(); throw; }
         }
 
         public List<StockMovement> GetMovements(int days = 7)

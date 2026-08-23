@@ -128,7 +128,8 @@ namespace PizzaPOS.Data
             };
 
             var ic = c.CreateCommand();
-            ic.CommandText = @"SELECT Id,ProductId,Name,Price,Cost,Qty,Subtotal,SizeName,ExtrasNote
+            ic.CommandText = @"SELECT Id,ProductId,Name,Price,Cost,Qty,Subtotal,SizeName,ExtrasNote,
+                        COALESCE(SizeExtraPrice,0), COALESCE(ExtrasPrice,0)
                 FROM OrderItems WHERE OrderId=@oid";
             ic.Parameters.AddWithValue("@oid", id);
             using var ir = ic.ExecuteReader();
@@ -141,7 +142,9 @@ namespace PizzaPOS.Data
                 Cost = ir.GetDouble(4),
                 Qty = ir.GetInt32(5),
                 SizeName = ir.IsDBNull(7) ? "" : ir.GetString(7),
-                ExtrasNote = ir.IsDBNull(8) ? "" : ir.GetString(8)
+                ExtrasNote = ir.IsDBNull(8) ? "" : ir.GetString(8),
+                SizeExtraPrice = ir.GetDouble(9),
+                ExtrasPrice = ir.GetDouble(10)
             });
             return o;
         }
@@ -187,8 +190,8 @@ namespace PizzaPOS.Data
                 {
                     var ic = conn.CreateCommand(); ic.Transaction = tx;
                     ic.CommandText = @"INSERT INTO OrderItems
-                        (OrderId,ProductId,Name,Price,Cost,Qty,Subtotal,SizeName,ExtrasNote)
-                        VALUES(@oid,@pid,@n,@p,@co,@q,@s,@sz,@ex)";
+                        (OrderId,ProductId,Name,Price,Cost,Qty,Subtotal,SizeName,ExtrasNote,SizeExtraPrice,ExtrasPrice)
+                        VALUES(@oid,@pid,@n,@p,@co,@q,@s,@sz,@ex,@sep,@exp)";
                     ic.Parameters.AddWithValue("@oid", o.Id);
                     ic.Parameters.AddWithValue("@pid", item.ProductId);
                     ic.Parameters.AddWithValue("@n", item.Name);
@@ -198,6 +201,8 @@ namespace PizzaPOS.Data
                     ic.Parameters.AddWithValue("@s", item.Price * item.Qty);
                     ic.Parameters.AddWithValue("@sz", (object?)item.SizeName ?? DBNull.Value);
                     ic.Parameters.AddWithValue("@ex", (object?)item.ExtrasNote ?? DBNull.Value);
+                    ic.Parameters.AddWithValue("@sep", item.SizeExtraPrice);
+                    ic.Parameters.AddWithValue("@exp", item.ExtrasPrice);
                     ic.ExecuteNonQuery();
                 }
                 tx.Commit();
@@ -834,8 +839,8 @@ namespace PizzaPOS.Data
                 {
                     var ic = conn.CreateCommand(); ic.Transaction = tx;
                     ic.CommandText = @"INSERT INTO OrderItems
-                        (OrderId,ProductId,Name,Price,Cost,Qty,Subtotal,SizeName,ExtrasNote)
-                        VALUES(@oid,@pid,@n,@p,@co,@q,@s,@sz,@ex)";
+                        (OrderId,ProductId,Name,Price,Cost,Qty,Subtotal,SizeName,ExtrasNote,SizeExtraPrice,ExtrasPrice)
+                        VALUES(@oid,@pid,@n,@p,@co,@q,@s,@sz,@ex,@sep,@exp)";
                     ic.Parameters.AddWithValue("@oid", oid);
                     ic.Parameters.AddWithValue("@pid", item.ProductId);
                     ic.Parameters.AddWithValue("@n", item.Name);
@@ -845,6 +850,8 @@ namespace PizzaPOS.Data
                     ic.Parameters.AddWithValue("@s", item.Subtotal);
                     ic.Parameters.AddWithValue("@sz", (object?)item.SizeName ?? DBNull.Value);
                     ic.Parameters.AddWithValue("@ex", (object?)item.ExtrasNote ?? DBNull.Value);
+                    ic.Parameters.AddWithValue("@sep", item.SizeExtraPrice);
+                    ic.Parameters.AddWithValue("@exp", item.ExtrasPrice);
                     ic.ExecuteNonQuery();
                 }
                 tx.Commit();

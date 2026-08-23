@@ -213,7 +213,7 @@ namespace PizzaPOS.ViewModels
                     Name = p.Name,
                     Icon = p.Icon,
                     BasePrice = p.Price,
-                    Cost = p.Cost,
+                    Cost = p.Cost > 0 ? p.Cost : p.Price * 0.4,
                     ExtrasKey = $"{p.Id}|",
                     Qty = 1
                 };

@@ -470,7 +470,6 @@ namespace PizzaPOS.Views
             TextBox _tbPhone = null!;
             TextBox _tbAddress = null!;
             TextBox _tbNotes = null!;
-            TextBox _tbPoints = null!;
 
             public CustomerEditDialog(Customer? editing)
             {
@@ -572,19 +571,6 @@ namespace PizzaPOS.Views
                 _tbNotes.Margin = new Thickness(0, 4, 0, 14);
                 fields.Children.Add(_tbNotes);
 
-                fields.Children.Add(UiHelper.FieldLabel("نقاط الولاء (يمكن تعديلها يدوياً)"));
-                _tbPoints = UiHelper.MakeTB(
-                    (_editing?.LoyaltyPoints ?? 0).ToString(), "#a78bfa");
-                _tbPoints.Margin = new Thickness(0, 4, 0, 6);
-                fields.Children.Add(_tbPoints);
-                fields.Children.Add(new TextBlock
-                {
-                    Text = "💡 النقاط تُحسب تلقائياً من الأوردرات، لكن يمكنك تعديلها يدوياً",
-                    Foreground = UiHelper.B("#4a6080"),
-                    FontSize = 10,
-                    Margin = new Thickness(0, 0, 0, 0)
-                });
-
                 Grid.SetRow(fields, 1);
                 root.Children.Add(fields);
 
@@ -636,10 +622,6 @@ namespace PizzaPOS.Views
                     _tbPhone.Focus(); return;
                 }
 
-                int points = 0;
-                if (!string.IsNullOrWhiteSpace(_tbPoints.Text))
-                    int.TryParse(_tbPoints.Text, out points);
-
                 Result = new Customer
                 {
                     Id = _editing?.Id ?? 0,
@@ -648,7 +630,7 @@ namespace PizzaPOS.Views
                     Address = _tbAddress.Text.Trim(),
                     Notes = _tbNotes.Text.Trim(),
                     CreatedAt = _editing?.CreatedAt ?? "",
-                    LoyaltyPoints = points,
+                    LoyaltyPoints = _editing?.LoyaltyPoints ?? 0,
                     TotalOrders = _editing?.TotalOrders ?? 0,
                     TotalSpent = _editing?.TotalSpent ?? 0
                 };

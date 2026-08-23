@@ -307,7 +307,15 @@ namespace PizzaPOS.Data
             using var tx = conn.BeginTransaction();
             try
             {
-                // 1) احذف ProductExtras للمنتجات دي
+                // 1) احذف ProductIngredients للمنتجات دي
+                var delIngredients = conn.CreateCommand(); delIngredients.Transaction = tx;
+                delIngredients.CommandText = @"
+            DELETE FROM ProductIngredients
+            WHERE ProductId IN (SELECT Id FROM Products WHERE CategoryId=@cid)";
+                delIngredients.Parameters.AddWithValue("@cid", id);
+                delIngredients.ExecuteNonQuery();
+
+                // 2) احذف ProductExtras للمنتجات دي
                 var delExtras = conn.CreateCommand(); delExtras.Transaction = tx;
                 delExtras.CommandText = @"
             DELETE FROM ProductExtras
@@ -315,7 +323,7 @@ namespace PizzaPOS.Data
                 delExtras.Parameters.AddWithValue("@cid", id);
                 delExtras.ExecuteNonQuery();
 
-                // 2) احذف ProductSizes للمنتجات دي
+                // 3) احذف ProductSizes للمنتجات دي
                 var delSizes = conn.CreateCommand(); delSizes.Transaction = tx;
                 delSizes.CommandText = @"
             DELETE FROM ProductSizes
@@ -323,13 +331,13 @@ namespace PizzaPOS.Data
                 delSizes.Parameters.AddWithValue("@cid", id);
                 delSizes.ExecuteNonQuery();
 
-                // 3) hard-delete المنتجات نفسها
+                // 4) hard-delete المنتجات نفسها
                 var delProducts = conn.CreateCommand(); delProducts.Transaction = tx;
                 delProducts.CommandText = "DELETE FROM Products WHERE CategoryId=@cid";
                 delProducts.Parameters.AddWithValue("@cid", id);
                 delProducts.ExecuteNonQuery();
 
-                // 4) احذف الفئة
+                // 5) احذف الفئة
                 var delCat = conn.CreateCommand(); delCat.Transaction = tx;
                 delCat.CommandText = "DELETE FROM Categories WHERE Id=@id";
                 delCat.Parameters.AddWithValue("@id", id);
@@ -848,7 +856,7 @@ namespace PizzaPOS.Data
         {
             using var c = Open();
             var cmd = c.CreateCommand();
-            cmd.CommandText = @"SELECT COALESCE(SUM(Total),0),COUNT(*),COALESCE(AVG(Total),0)
+            cmd.CommandText = @"SELECT COALESCE(SUM(Total - COALESCE(DeliveryFee,0)),0),COUNT(*),COALESCE(AVG(Total - COALESCE(DeliveryFee,0)),0)
                 FROM Orders
                 WHERE date(CreatedAt)=date('now','localtime')
                   AND Status NOT IN ('cancelled','held')";
@@ -860,7 +868,7 @@ namespace PizzaPOS.Data
         {
             using var c = Open();
             var cmd = c.CreateCommand();
-            cmd.CommandText = @"SELECT Id,OrderNumber,OrderType,PayMethod,Total,CreatedAt
+            cmd.CommandText = @"SELECT Id,OrderNumber,OrderType,PayMethod,Total - COALESCE(DeliveryFee,0),CreatedAt
                 FROM Orders WHERE Status NOT IN ('cancelled','held')
                 ORDER BY Id DESC LIMIT @lim";
             cmd.Parameters.AddWithValue("@lim", limit);
@@ -885,7 +893,13 @@ namespace PizzaPOS.Data
             var cmd = c.CreateCommand();
             cmd.CommandText = @"
                 SELECT
-                    COALESCE(SUM(oi.Subtotal - (oi.Cost * oi.Qty)), 0)
+                    COALESCE(SUM(
+                        oi.Subtotal
+                        - CASE WHEN o.Subtotal > 0
+                               THEN o.Discount * (oi.Subtotal * 1.0 / o.Subtotal)
+                               ELSE 0 END
+                        - (oi.Cost * oi.Qty)
+                    ), 0)
                     - COALESCE((SELECT SUM(Tax) FROM Orders
                                 WHERE date(CreatedAt)=date('now','localtime')
                                   AND Status NOT IN ('cancelled','held')), 0)
@@ -925,7 +939,13 @@ namespace PizzaPOS.Data
             using var c = Open();
             var cmd = c.CreateCommand();
             cmd.CommandText = @"SELECT oi.Name, COALESCE(cat.Name,'—'),
-                SUM(oi.Qty), SUM(oi.Subtotal), SUM((oi.Price-oi.Cost)*oi.Qty)
+                SUM(oi.Qty),
+                SUM(oi.Subtotal - CASE WHEN o.Subtotal > 0
+                    THEN o.Discount * (oi.Subtotal * 1.0 / o.Subtotal)
+                    ELSE 0 END),
+                SUM(oi.Subtotal - CASE WHEN o.Subtotal > 0
+                    THEN o.Discount * (oi.Subtotal * 1.0 / o.Subtotal)
+                    ELSE 0 END - (oi.Cost * oi.Qty))
                 FROM OrderItems oi
                 JOIN Orders o ON o.Id=oi.OrderId
                 LEFT JOIN Products     p   ON p.Id=oi.ProductId
@@ -1051,16 +1071,22 @@ namespace PizzaPOS.Data
             cmd.CommandText = @"
                 SELECT
                     date(o.CreatedAt),
-                    SUM(o.Total),
-                    SUM(CASE WHEN o.PayMethod IN ('كاش','نقدي') THEN o.Total ELSE 0 END),
-                    SUM(CASE WHEN o.PayMethod NOT IN ('كاش','نقدي') THEN o.Total ELSE 0 END),
+                    SUM(o.Total - COALESCE(o.DeliveryFee, 0)),
+                    SUM(CASE WHEN o.PayMethod IN ('كاش','نقدي') THEN o.Total - COALESCE(o.DeliveryFee, 0) ELSE 0 END),
+                    SUM(CASE WHEN o.PayMethod NOT IN ('كاش','نقدي') THEN o.Total - COALESCE(o.DeliveryFee, 0) ELSE 0 END),
                     COUNT(*),
                     SUM(o.Tax),
                     SUM(o.Discount),
                     SUM(COALESCE(o.ServiceCharge, 0)),
 
                     COALESCE((
-                        SELECT SUM(oi.Subtotal - (oi.Cost * oi.Qty))
+                        SELECT SUM(
+                            oi.Subtotal
+                            - CASE WHEN o2.Subtotal > 0
+                                   THEN o2.Discount * (oi.Subtotal * 1.0 / o2.Subtotal)
+                                   ELSE 0 END
+                            - (oi.Cost * oi.Qty)
+                        )
                         FROM OrderItems oi
                         JOIN Orders o2 ON o2.Id = oi.OrderId
                         WHERE o2.Status NOT IN ('cancelled','held')

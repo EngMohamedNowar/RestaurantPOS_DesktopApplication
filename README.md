@@ -85,6 +85,58 @@ A full-featured **Point of Sale (POS)** desktop application built with **WPF** a
 
 ---
 
+## Screenshots
+
+### Login & Shift
+| | | |
+|:---:|:---:|:---:|
+| ![Login](PizzaPOS/screenshots/01-login.png) | ![Open Shift](PizzaPOS/screenshots/02-open-shift.png) | |
+
+### Point of Sale
+| | | |
+|:---:|:---:|:---:|
+| ![POS Admin](PizzaPOS/screenshots/03-pos-admin.png) | ![POS Admin 2](PizzaPOS/screenshots/04-pos-admin-2.png) | |
+
+### Product Management
+| | | |
+|:---:|:---:|:---:|
+| ![Categories](PizzaPOS/screenshots/05-categories.png) | ![Products](PizzaPOS/screenshots/06-products.png) | ![Add Product](PizzaPOS/screenshots/11-add-product.png) |
+| ![Sizes & Extras](PizzaPOS/screenshots/12-sizes-extras.png) | ![Ingredients](PizzaPOS/screenshots/13-ingredients.png) | ![Add Ingredient](PizzaPOS/screenshots/14-add-ingredient.png) |
+
+### Warehouse Management
+| | | |
+|:---:|:---:|:---:|
+| ![Warehouse](PizzaPOS/screenshots/07-warehouse.png) | ![Stock Purchase](PizzaPOS/screenshots/15-stock-purchase.png) | ![Add Stock](PizzaPOS/screenshots/16-add-stock.png) |
+| ![Stock Movements](PizzaPOS/screenshots/17-stock-movements.png) | ![Ingredient Categories](PizzaPOS/screenshots/18-ingredient-categories.png) | |
+
+### Offers & Promotions
+| | | |
+|:---:|:---:|:---:|
+| ![Offers](PizzaPOS/screenshots/08-offers.png) | ![Add Offer](PizzaPOS/screenshots/09-add-offer.png) | ![Send WhatsApp](PizzaPOS/screenshots/10-send-whatsapp.png) |
+
+### Reports
+| | | |
+|:---:|:---:|:---:|
+| ![Daily Report](PizzaPOS/screenshots/19-report-daily.png) | ![Top Products](PizzaPOS/screenshots/20-report-top-products.png) | ![Losses](PizzaPOS/screenshots/21-report-losses.png) |
+
+### Customer & Driver Management
+| | | |
+|:---:|:---:|:---:|
+| ![Customers](PizzaPOS/screenshots/22-customers.png) | ![Add Customer](PizzaPOS/screenshots/23-add-customer.png) | ![Drivers](PizzaPOS/screenshots/24-drivers.png) |
+| ![Add Driver](PizzaPOS/screenshots/25-add-driver.png) | | |
+
+### User Management
+| | | |
+|:---:|:---:|:---:|
+| ![Users](PizzaPOS/screenshots/26-users.png) | ![Add User](PizzaPOS/screenshots/27-add-user.png) | |
+
+### Settings & Tracking
+| | | |
+|:---:|:---:|:---:|
+| ![Settings](PizzaPOS/screenshots/28-settings.png) | ![Order Tracking](PizzaPOS/screenshots/29-order-tracking.png) | |
+
+---
+
 ## Tech Stack
 
 | Technology | Purpose |

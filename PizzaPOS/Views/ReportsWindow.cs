@@ -380,6 +380,15 @@ namespace PizzaPOS.Views
             });
             _dgLoss.Columns.Add(UiHelper.ColNum("المبلغ ج", "Amount", 110, "#E63946"));
 
+            _dgLoss.Resources.Add(typeof(DataGridRow), new Style
+            {
+                Setters =
+                {
+                    new Setter(DataGridRow.ForegroundProperty, new Binding("Color") { Converter = new HexToBrushConverter() }),
+                    new Setter(DataGridRow.FontWeightProperty, FontWeights.Bold)
+                }
+            });
+
             var rs = new Style(typeof(DataGridRow));
             rs.Setters.Add(new Setter(DataGridRow.ForegroundProperty, UiHelper.B("#eef0f2")));
             var hover = new Trigger { Property = DataGridRow.IsMouseOverProperty, Value = true };
@@ -400,7 +409,7 @@ namespace PizzaPOS.Views
             };
             footer.Child = new TextBlock
             {
-                Text = "⚠️  الخسائر تشمل: المصاريف اليدوية + البيع بأقل من التكلفة + الخصومات المُعطاة للعملاء",
+                Text = "⚠️  الخسائر تشمل: المصاريف اليدوية + البيع بأقل من التكلفة + الخصومات المُعطاة",
                 Foreground = UiHelper.B("#4a6080"),
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center
@@ -1024,5 +1033,24 @@ namespace PizzaPOS.Views
             DialogResult = true;
             Close();
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  HexToBrushConverter
+    // ══════════════════════════════════════════════════════════════════════════
+    public class HexToBrushConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            if (value is string hex && !string.IsNullOrEmpty(hex))
+            {
+                try { return new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); }
+                catch { return Brushes.White; }
+            }
+            return Brushes.White;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+            => throw new NotImplementedException();
     }
 }

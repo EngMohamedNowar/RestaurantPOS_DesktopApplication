@@ -36,9 +36,14 @@ namespace PizzaPOS.Views
         {
             // ── ساعة ──
             var clock = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
-            clock.Tick += (_, _) => ClockTxt.Text = DateTime.Now.ToString("HH:mm:ss");
+            clock.Tick += (_, _) =>
+            {
+                ClockTxt.Text = DateTime.Now.ToString("HH:mm:ss");
+                DateTxt.Text = DateTime.Now.ToString("yyyy/MM/dd");
+            };
             clock.Start();
             ClockTxt.Text = DateTime.Now.ToString("HH:mm:ss");
+            DateTxt.Text = DateTime.Now.ToString("yyyy/MM/dd");
 
             // ── تحديث الإحصائيات كل 30 ثانية ──
             var stats = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
@@ -57,6 +62,9 @@ namespace PizzaPOS.Views
             SearchBox.Focus();
             CashierStatusTxt.Text =
                 $"الكاشير: {SessionService.CurrentUser?.FullName ?? "—"}";
+            UserTxt.Text = $"👤 {SessionService.CurrentUser?.FullName ?? "—"}";
+
+            RefreshShopName();
 
             bool isAdmin = SessionService.CurrentUser?.IsAdmin == true;
             BtnCategories.Visibility = isAdmin ? Visibility.Visible : Visibility.Collapsed;
@@ -155,8 +163,9 @@ namespace PizzaPOS.Views
         {
             if (SessionService.CurrentUser?.IsAdmin != true) return;
             new SettingsWindow { Owner = this }.ShowDialog();
+            RefreshShopName();
             _vm.ClearOrder();
-            _vm.RefreshStats(); // ← تحديث بعد تغيير الإعدادات
+            _vm.RefreshStats();
         }
 
         void OpenCustomers_Click(object s, RoutedEventArgs e)
@@ -176,5 +185,12 @@ namespace PizzaPOS.Views
 
         void CloseShift_Click(object s, RoutedEventArgs e)
             => _vm.CloseShiftCmd.Execute(null);
+
+        void RefreshShopName()
+        {
+            SessionService.RefreshShopName();
+            Title = $"🍕 {SessionService.ShopName}";
+            ShopNameHeader.Text = SessionService.ShopName;
+        }
     }
 }

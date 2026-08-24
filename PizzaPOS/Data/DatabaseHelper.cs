@@ -31,7 +31,7 @@ namespace PizzaPOS.Data
 
         public static async Task ExecAsync(SqliteConnection conn, string sql)
         {
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             await cmd.ExecuteNonQueryAsync();
         }
@@ -218,6 +218,8 @@ namespace PizzaPOS.Data
             // ── Migrations OrderItems ──
             TryMigrate(conn, "ALTER TABLE OrderItems ADD COLUMN SizeName   TEXT", "OrderItems.SizeName");
             TryMigrate(conn, "ALTER TABLE OrderItems ADD COLUMN ExtrasNote TEXT", "OrderItems.ExtrasNote");
+            TryMigrate(conn, "ALTER TABLE OrderItems ADD COLUMN SizeExtraPrice REAL DEFAULT 0", "OrderItems.SizeExtraPrice");
+            TryMigrate(conn, "ALTER TABLE OrderItems ADD COLUMN ExtrasPrice     REAL DEFAULT 0", "OrderItems.ExtrasPrice");
 
             // ── Settings ──
             Exec(conn, @"CREATE TABLE IF NOT EXISTS Settings (
@@ -569,7 +571,7 @@ namespace PizzaPOS.Data
 
         public static void Exec(SqliteConnection conn, string sql)
         {
-            var cmd = conn.CreateCommand();
+            using var cmd = conn.CreateCommand();
             cmd.CommandText = sql;
             cmd.ExecuteNonQuery();
         }

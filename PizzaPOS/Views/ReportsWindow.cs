@@ -378,14 +378,44 @@ namespace PizzaPOS.Views
                 Binding = new Binding("Description"),
                 Width = new DataGridLength(1, DataGridLengthUnitType.Star)
             });
-            _dgLoss.Columns.Add(UiHelper.ColNum("المبلغ ج", "Amount", 110, "#E63946"));
+            _dgLoss.Columns.Add(new DataGridTextColumn
+            {
+                Header = "المبلغ ج",
+                Binding = new Binding("Amount") { StringFormat = "{0:F2}" },
+                Width = 110,
+                ElementStyle = new Style(typeof(TextBlock))
+                {
+                    Setters =
+                    {
+                        new Setter(TextBlock.FontWeightProperty, FontWeights.Bold),
+                        new Setter(TextBlock.TextAlignmentProperty, TextAlignment.Center),
+                        new Setter(TextBlock.VerticalAlignmentProperty, VerticalAlignment.Center)
+                    }
+                }
+            });
 
             var rs = new Style(typeof(DataGridRow));
-            rs.Setters.Add(new Setter(DataGridRow.ForegroundProperty, UiHelper.B("#eef0f2")));
+            rs.Setters.Add(new Setter(DataGridRow.ForegroundProperty,
+                new Binding("Color") { Converter = new HexToBrushConverter() }));
+            rs.Setters.Add(new Setter(DataGridRow.FontWeightProperty, FontWeights.Bold));
             var hover = new Trigger { Property = DataGridRow.IsMouseOverProperty, Value = true };
             hover.Setters.Add(new Setter(DataGridRow.BackgroundProperty, UiHelper.B("#12192e")));
             rs.Triggers.Add(hover);
             _dgLoss.RowStyle = rs;
+
+            // الخلية لازم تورّث لون النوع (Color) من الصف، مش لون ثابت،
+            // عشان الربط على DataGridRow.Foreground ميبانش مكسور بسبب CellStyle الثابت
+            var cs = new Style(typeof(DataGridCell));
+            cs.Setters.Add(new Setter(DataGridCell.BorderThicknessProperty, new Thickness(0)));
+            cs.Setters.Add(new Setter(DataGridCell.PaddingProperty, new Thickness(16, 0, 16, 0)));
+            cs.Setters.Add(new Setter(DataGridCell.VerticalAlignmentProperty, VerticalAlignment.Center));
+            cs.Setters.Add(new Setter(DataGridCell.ForegroundProperty,
+                new Binding("Color") { Converter = new HexToBrushConverter() }));
+            var csel = new Trigger { Property = DataGridCell.IsSelectedProperty, Value = true };
+            csel.Setters.Add(new Setter(DataGridCell.BackgroundProperty, UiHelper.B("#1a2d50")));
+            csel.Setters.Add(new Setter(DataGridCell.BorderBrushProperty, Brushes.Transparent));
+            cs.Triggers.Add(csel);
+            _dgLoss.CellStyle = cs;
 
             var scrollLoss = UiHelper.Scroll(_dgLoss);
             Grid.SetRow(scrollLoss, 1);
@@ -400,7 +430,7 @@ namespace PizzaPOS.Views
             };
             footer.Child = new TextBlock
             {
-                Text = "⚠️  الخسائر تشمل: المصاريف اليدوية + البيع بأقل من التكلفة + الخصومات المُعطاة للعملاء",
+                Text = "⚠️  الخسائر تشمل: المصاريف اليدوية + البيع بأقل من التكلفة + الخصومات المُعطاة",
                 Foreground = UiHelper.B("#4a6080"),
                 FontSize = 11,
                 VerticalAlignment = VerticalAlignment.Center
@@ -1024,5 +1054,24 @@ namespace PizzaPOS.Views
             DialogResult = true;
             Close();
         }
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  HexToBrushConverter
+    // ══════════════════════════════════════════════════════════════════════════
+    public class HexToBrushConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+        {
+            if (value is string hex && !string.IsNullOrEmpty(hex))
+            {
+                try { return new SolidColorBrush((Color)ColorConverter.ConvertFromString(hex)); }
+                catch { return Brushes.White; }
+            }
+            return Brushes.White;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, System.Globalization.CultureInfo culture)
+            => throw new NotImplementedException();
     }
 }

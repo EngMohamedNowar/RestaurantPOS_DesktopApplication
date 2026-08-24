@@ -2,6 +2,7 @@
 using PizzaPOS.Data;
 using PizzaPOS.Helpers;
 using PizzaPOS.Models;
+using PizzaPOS.Services;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -26,7 +27,7 @@ namespace PizzaPOS.Views
         TextBox _searchBox = null!;
         readonly AppDbContext _db = new();
 
-        const string ShopName = "NAPOLI Pizza";
+        string ShopName => SessionService.ShopName;
 
         public SendOfferDialog(Offer offer, List<Customer> customers)
         {
@@ -338,10 +339,17 @@ namespace PizzaPOS.Views
 
         string BuildMessagePreview()
         {
-            string shopPhone = _db.GetSetting("Phone", "");
+            var phones = new List<string>();
+            var p1 = _db.GetSetting("Phone", "");
+            if (!string.IsNullOrWhiteSpace(p1)) phones.Add(p1);
+            for (int i = 2; i <= 10; i++)
+            {
+                var p = _db.GetSetting($"Phone{i}", "");
+                if (!string.IsNullOrWhiteSpace(p)) phones.Add(p);
+            }
 
             var msg = "";
-            msg += "        *NAPOLI Pizza*\n";
+            msg += $"        *{ShopName}*\n";
             msg += "━━━━━━━━━━━━━━━━━━━━━━━\n\n";
             msg += $"*{_offer.Title}*\n";
 
@@ -357,8 +365,8 @@ namespace PizzaPOS.Views
             msg += "\n━━━━━━━━━━━━━━━━━━━━━━━\n";
             msg += "اطلب الآن قبل ما ينتهي العرض\n";
 
-            if (!string.IsNullOrWhiteSpace(shopPhone))
-                msg += $"{shopPhone}";
+            if (phones.Count > 0)
+                msg += string.Join(" | ", phones);
 
             return msg;
         }

@@ -1,6 +1,10 @@
 ﻿using System;
+using System.Globalization;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Media;
 using System.Text;                 // مهم
 using PizzaPOS.Data;
 using PizzaPOS.Services;
@@ -8,6 +12,31 @@ using PizzaPOS.Views;
 
 namespace PizzaPOS
 {
+    // يحوّل SolidColorBrush → Color عشان نستخدمه في DropShadowEffect.Color
+    // (الـ Freezable مش بيرث DataContext من الشجرة، فبنربط على الـ Brush مباشرة)
+    public class BrushToColorConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is SolidColorBrush brush) return brush.Color;
+            if (value is Color color) return color;
+            return Colors.Transparent;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
+    // ScrollBar الرأسي لازم IsDirectionReversed=True عشان اتجاه السكرول ما ينعكسش
+    public class OrientationToReverseConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+            => value is Orientation o && o == Orientation.Vertical;
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+            => throw new NotImplementedException();
+    }
+
     public partial class App : Application
     {
         protected override void OnStartup(StartupEventArgs e)

@@ -136,7 +136,7 @@
                                    HorizontalAlignment="Center"
                                    VerticalAlignment="Center"/>
                     </Border>
-                    <TextBlock Text="N A P O L I" FontSize="23" FontWeight="Black"
+                    <TextBlock x:Name="ShopNameText" Text="N A P O L I" FontSize="23" FontWeight="Black"
                                Foreground="#eef0f2" HorizontalAlignment="Center"
                                FontFamily="Segoe UI Black"/>
                     <Border Background="#1a0a0a" BorderBrush="#E63946"

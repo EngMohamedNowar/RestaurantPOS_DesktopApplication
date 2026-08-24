@@ -53,11 +53,11 @@
                                 BorderBrush="{TemplateBinding BorderBrush}"
                                 BorderThickness="{TemplateBinding BorderThickness}"
                                 CornerRadius="14" Padding="8">
-                            <Border.Effect>
-                                <DropShadowEffect x:Name="glow"
-                                    Color="{Binding CardAccent}"
-                                    BlurRadius="0" ShadowDepth="0" Opacity="0.75"/>
-                            </Border.Effect>
+                                <Border.Effect>
+                                    <DropShadowEffect x:Name="glow"
+                                        Color="{Binding CardAccent, Converter={StaticResource BrushToColor}}"
+                                        BlurRadius="0" ShadowDepth="0" Opacity="0.75"/>
+                                </Border.Effect>
                             <StackPanel>
                                 <Border Background="{Binding CardIconBg}"
                                         CornerRadius="10"
@@ -77,7 +77,7 @@
                                                TextAlignment="Center"
                                                Foreground="{Binding CardAccent}">
                                         <TextBlock.Effect>
-                                            <DropShadowEffect Color="{Binding CardAccent}"
+                                            <DropShadowEffect Color="{Binding CardAccent, Converter={StaticResource BrushToColor}}"
                                                 BlurRadius="6" ShadowDepth="0" Opacity="0.6"/>
                                         </TextBlock.Effect>
                                         <Run Text="{Binding Price, StringFormat={}{0:F2}, Mode=OneWay}"/>
@@ -308,6 +308,25 @@
             <Setter Property="BorderBrush"     Value="#1e2d4a"/>
         </Style>
 
+        <!-- مجموعة أزرار في الناف بار -->
+        <Style x:Key="NavGroup" TargetType="Border">
+            <Setter Property="Background"      Value="#0a1120"/>
+            <Setter Property="CornerRadius"    Value="9"/>
+            <Setter Property="Padding"         Value="6,4"/>
+            <Setter Property="Margin"          Value="0,0,2,0"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush"     Value="#16223c"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
+        </Style>
+
+        <!-- فاصل رأسي بين المجموعات -->
+        <Style x:Key="NavDiv" TargetType="Border">
+            <Setter Property="Width"           Value="1"/>
+            <Setter Property="Background"      Value="#23344f"/>
+            <Setter Property="Margin"          Value="7,7,7,7"/>
+            <Setter Property="VerticalAlignment" Value="Stretch"/>
+        </Style>
+
     </Window.Resources>
 
     <Grid>
@@ -315,7 +334,7 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
-            <RowDefinition Height="54"/>
+            <RowDefinition Height="64"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="26"/>
         </Grid.RowDefinitions>
@@ -324,40 +343,44 @@
         <Border Grid.Row="0" BorderThickness="0,0,0,2" BorderBrush="#E63946">
             <Border.Background>
                 <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
-                    <GradientStop Color="#0f1526" Offset="0"/>
-                    <GradientStop Color="#141d35" Offset="0.5"/>
-                    <GradientStop Color="#0f1526" Offset="1"/>
+                    <GradientStop Color="#0c1222" Offset="0"/>
+                    <GradientStop Color="#15203c" Offset="0.5"/>
+                    <GradientStop Color="#0c1222" Offset="1"/>
                 </LinearGradientBrush>
             </Border.Background>
-            <Grid Margin="10,0">
+            <Grid Margin="12,0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="Auto"/>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
 
-                <!-- Logo -->
+                <!-- ══ Logo + Shop ══ -->
                 <StackPanel Grid.Column="0" Orientation="Horizontal" VerticalAlignment="Center">
-                    <Border Background="#FF6B35" CornerRadius="8" Width="32" Height="32" Margin="0,0,8,0">
+                    <Border Background="#FF6B35" CornerRadius="11" Width="40" Height="40" Margin="0,0,10,0">
                         <Border.Effect>
-                            <DropShadowEffect Color="#FF6B35" BlurRadius="10" ShadowDepth="0" Opacity="0.55"/>
+                            <DropShadowEffect Color="#FF6B35" BlurRadius="14" ShadowDepth="0" Opacity="0.6"/>
                         </Border.Effect>
-                        <TextBlock Text="🍕" FontSize="17" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                        <TextBlock Text="🍕" FontSize="21" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                     </Border>
-                    <StackPanel VerticalAlignment="Center">
-                        <TextBlock Text="NAPOLI" FontSize="15" FontWeight="Black" Foreground="#FF6B35" FontFamily="Segoe UI Black"/>
-                        <TextBlock Text="POS-System" FontSize="8" Foreground="#b0c4de" FontWeight="Bold"/>
+                    <StackPanel VerticalAlignment="Center" Margin="0,0,6,0">
+                        <TextBlock x:Name="ShopNameHeader" Text="NAPOLI" FontSize="17" FontWeight="Black"
+                                   Foreground="#FF6B35" FontFamily="Segoe UI Black"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,1,0,0">
+                            <Ellipse Width="7" Height="7" Fill="#06d6a0" VerticalAlignment="Center" Margin="0,0,4,0"/>
+                            <TextBlock Text="الشفت مفتوح" FontSize="9" Foreground="#5aaa80" FontWeight="Bold" VerticalAlignment="Center"/>
+                        </StackPanel>
                     </StackPanel>
                 </StackPanel>
 
-                <!-- Stats + Buttons -->
+                <!-- ══ Stats + Groups ══ -->
                 <ScrollViewer Grid.Column="1"
                               HorizontalScrollBarVisibility="Auto"
                               VerticalScrollBarVisibility="Hidden"
-                              VerticalAlignment="Center" Margin="8,0">
+                              VerticalAlignment="Center" Margin="10,0">
                     <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
 
-                        <!-- Stat Cards -->
+                        <!-- إحصائيات -->
                         <Border Style="{StaticResource StatCard}">
                             <StackPanel>
                                 <TextBlock Text="{Binding TodaySales, StringFormat={}{0:F0}}" FontSize="14" FontWeight="Black" Foreground="#06d6a0" HorizontalAlignment="Center"/>
@@ -399,30 +422,54 @@
                             </StackPanel>
                         </Border>
 
-                        <!-- Separator -->
-                        <Border Width="1" Background="#2a3f6a" Margin="0,8,8,8"/>
+                        <Border Style="{StaticResource NavDiv}"/>
 
-                        <!-- Header Buttons — Height=32 من الـ Style، Margin موحد -->
-                        <Button x:Name="BtnUsers"      Content="👥 مستخدمين"      Click="OpenUsers_Click"           Style="{StaticResource HeaderBtn}" Foreground="#c4b5fd" BorderBrush="#a78bfa" Margin="0,0,4,0"/>
-                        <Button x:Name="BtnSettings"   Content="⚙️ إعدادات"        Click="OpenSettings_Click"        Style="{StaticResource HeaderBtn}" Foreground="#c4b5fd" BorderBrush="#a78bfa" Margin="0,0,4,0"/>
-                        <Button x:Name="BtnCategories" Content="🗂 فئات"           Click="OpenCategories_Click"      Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#ffd166" Margin="0,0,4,0"/>
-                        <Button x:Name="BtnProducts"   Content="📦 منتجات"         Click="OpenProducts_Click"        Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#ffd166" Margin="0,0,4,0"/>
-                        <Button x:Name="BtnReports"    Content="📊 تقارير"          Click="OpenReports_Click"         Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#ffd166" Margin="0,0,4,0"/>
-                        <Button                        Content="⏸ معلق (F5)"       Click="HeldOrders_Click"          Style="{StaticResource HeaderBtn}" Foreground="#6effd4" BorderBrush="#06d6a0" Margin="0,0,4,0"/>
-                        <Button                        Content="⏹ إغلاق شفت"       Command="{Binding CloseShiftCmd}" Style="{StaticResource HeaderBtn}" Background="#2a1020" Foreground="#ff8090" BorderBrush="#E63946" Margin="0,0,4,0"/>
-                        <Button x:Name="BtnDrivers"    Content="🛵 سائقين"         Click="OpenDrivers_Click"         Style="{StaticResource HeaderBtn}" Foreground="#6effd4" BorderBrush="#06d6a0" Margin="0,0,4,0"/>
-                        <Button x:Name="BtnCustomers"  Content="👤 زبائن"           Click="OpenCustomers_Click"       Style="{StaticResource HeaderBtn}" Foreground="#c4b5fd" BorderBrush="#a78bfa" Margin="0,0,4,0"/>
-                        <Button x:Name="BtnWarehouse"  Content="📦 مخزن"            Click="OpenWarehouse_Click"       Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#ffd166" Margin="0,0,4,0"/>
-                        <Button x:Name="BtnOffers"     Content="🏷️ عروض"           Click="OpenOffers_Click"          Style="{StaticResource HeaderBtn}" Foreground="#ff8090" BorderBrush="#E63946" Margin="0,0,4,0"/>
-                        <Button                        Content="📋 تتبع الأوردرات" Click="OpenTracking_Click"        Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#FF6B35"/>
+                        <!-- إدارة -->
+                        <Border Style="{StaticResource NavGroup}">
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="BtnCategories" Content="🗂 فئات"           Click="OpenCategories_Click"      Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#ffd166" Margin="0,0,4,0"/>
+                                <Button x:Name="BtnProducts"   Content="📦 منتجات"         Click="OpenProducts_Click"        Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#ffd166" Margin="0,0,4,0"/>
+                                <Button x:Name="BtnWarehouse"  Content="📦 مخزن"            Click="OpenWarehouse_Click"       Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#ffd166" Margin="0,0,4,0"/>
+                                <Button x:Name="BtnOffers"     Content="🏷️ عروض"           Click="OpenOffers_Click"          Style="{StaticResource HeaderBtn}" Foreground="#ff8090" BorderBrush="#E63946"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource NavDiv}"/>
+
+                        <!-- أعمال -->
+                        <Border Style="{StaticResource NavGroup}">
+                            <StackPanel Orientation="Horizontal">
+                                <Button x:Name="BtnReports"    Content="📊 تقارير"          Click="OpenReports_Click"         Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#ffd166" Margin="0,0,4,0"/>
+                                <Button x:Name="BtnCustomers"  Content="👤 زبائن"           Click="OpenCustomers_Click"       Style="{StaticResource HeaderBtn}" Foreground="#c4b5fd" BorderBrush="#a78bfa" Margin="0,0,4,0"/>
+                                <Button x:Name="BtnDrivers"    Content="🛵 سائقين"         Click="OpenDrivers_Click"         Style="{StaticResource HeaderBtn}" Foreground="#6effd4" BorderBrush="#06d6a0" Margin="0,0,4,0"/>
+                                <Button x:Name="BtnUsers"      Content="👥 مستخدمين"      Click="OpenUsers_Click"           Style="{StaticResource HeaderBtn}" Foreground="#c4b5fd" BorderBrush="#a78bfa" Margin="0,0,4,0"/>
+                                <Button x:Name="BtnSettings"   Content="⚙️ إعدادات"        Click="OpenSettings_Click"        Style="{StaticResource HeaderBtn}" Foreground="#c4b5fd" BorderBrush="#a78bfa"/>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Style="{StaticResource NavDiv}"/>
+
+                        <!-- عمليات -->
+                        <Border Style="{StaticResource NavGroup}">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Content="⏸ معلق (F5)" Click="HeldOrders_Click"    Style="{StaticResource HeaderBtn}" Foreground="#6effd4" BorderBrush="#06d6a0" Margin="0,0,4,0"/>
+                                <Button Content="📋 تتبع الأوردرات" Click="OpenTracking_Click" Style="{StaticResource HeaderBtn}" Foreground="#fde68a" BorderBrush="#FF6B35" Margin="0,0,4,0"/>
+                                <Button Content="⏹ إغلاق شفت" Command="{Binding CloseShiftCmd}" Style="{StaticResource HeaderBtn}" Background="#2a1020" Foreground="#ff8090" BorderBrush="#E63946"/>
+                            </StackPanel>
+                        </Border>
 
                     </StackPanel>
                 </ScrollViewer>
 
-                <!-- Clock -->
-                <Border Grid.Column="2" Background="#0d1525" CornerRadius="7"
-                        Padding="8,4" BorderThickness="1" BorderBrush="#1e2d4a" VerticalAlignment="Center">
-                    <TextBlock x:Name="ClockTxt" FontSize="13" FontWeight="Black" Foreground="#ffd166" FontFamily="Consolas"/>
+                <!-- ══ Clock + User ══ -->
+                <Border Grid.Column="2" Background="#0d1525" CornerRadius="9"
+                        Padding="12,5" BorderThickness="1" BorderBrush="#1e2d4a" VerticalAlignment="Center">
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock x:Name="ClockTxt" FontSize="14" FontWeight="Black" Foreground="#ffd166"
+                                   FontFamily="Consolas" HorizontalAlignment="Center"/>
+                        <TextBlock x:Name="DateTxt" FontSize="9" Foreground="#7d93b0" HorizontalAlignment="Center" Margin="0,1,0,0"/>
+                        <TextBlock x:Name="UserTxt" FontSize="9" FontWeight="Bold" Foreground="#a78bfa" HorizontalAlignment="Center" Margin="0,1,0,0"/>
+                    </StackPanel>
                 </Border>
             </Grid>
         </Border>

@@ -117,58 +117,65 @@
 
 | | | |
 |:---:|:---:|:---:|
-| ![Login](PizzaPOS/screenshots/01-login.png) | ![Open Shift](PizzaPOS/screenshots/02-open-shift.png) | |
+| ![Login](PizzaPOS/screenshots/01-login.png) | ![Open Shift](PizzaPOS/screenshots/02-open-shift.png) | ![Close Shift](PizzaPOS/screenshots/03-close-shift.png) |
+| **Login** | **Open Shift** | **Close Shift** |
 
 ### Point of Sale
 
 | | | |
 |:---:|:---:|:---:|
-| ![POS Admin](PizzaPOS/screenshots/03-pos-admin.png) | ![POS Admin 2](PizzaPOS/screenshots/04-pos-admin-2.png) | |
+| ![POS Admin](PizzaPOS/screenshots/04-pos-admin.png) | ![POS Cashier](PizzaPOS/screenshots/05-pos-cashier.png) | ![Product Detail](PizzaPOS/screenshots/06-product-detail.png) |
+| **POS (Admin)** | **POS (Cashier)** | **Product Sizes & Extras** |
+| ![Delivery](PizzaPOS/screenshots/07-delivery.png) | ![Cash Payment](PizzaPOS/screenshots/08-cash-payment.png) | ![Order Tracking](PizzaPOS/screenshots/09-order-tracking.png) |
+| **Delivery Details** | **Cash Payment** | **Order Tracking Board** |
+| ![Held Orders](PizzaPOS/screenshots/10-held-orders.png) | | |
+| **Held Orders** | | |
 
-### Product Management
+### Product & Category Management
 
 | | | |
 |:---:|:---:|:---:|
-| ![Categories](PizzaPOS/screenshots/05-categories.png) | ![Products](PizzaPOS/screenshots/06-products.png) | ![Add Product](PizzaPOS/screenshots/11-add-product.png) |
-| ![Sizes & Extras](PizzaPOS/screenshots/12-sizes-extras.png) | ![Ingredients](PizzaPOS/screenshots/13-ingredients.png) | ![Add Ingredient](PizzaPOS/screenshots/14-add-ingredient.png) |
+| ![Categories](PizzaPOS/screenshots/11-categories.png) | ![Products](PizzaPOS/screenshots/12-products.png) | ![Add Product](PizzaPOS/screenshots/13-add-product.png) |
+| **Category Management** | **Product Management** | **Add New Product** |
+| ![Sizes & Extras](PizzaPOS/screenshots/14-sizes-extras.png) | ![Ingredients](PizzaPOS/screenshots/15-ingredients.png) | |
+| **Sizes & Extras** | **Product Recipe (Ingredients)** | |
 
 ### Warehouse Management
 
 | | | |
 |:---:|:---:|:---:|
-| ![Warehouse](PizzaPOS/screenshots/07-warehouse.png) | ![Stock Purchase](PizzaPOS/screenshots/15-stock-purchase.png) | ![Add Stock](PizzaPOS/screenshots/16-add-stock.png) |
-| ![Stock Movements](PizzaPOS/screenshots/17-stock-movements.png) | ![Ingredient Categories](PizzaPOS/screenshots/18-ingredient-categories.png) | |
+| ![Warehouse](PizzaPOS/screenshots/16-warehouse.png) | ![Add Ingredient](PizzaPOS/screenshots/17-add-ingredient.png) | ![Ingredient Categories](PizzaPOS/screenshots/18-ingredient-categories.png) |
+| **Warehouse** | **Add New Ingredient** | **Ingredient Categories** |
+| ![Stock Purchase](PizzaPOS/screenshots/19-stock-purchase.png) | ![Stock Movements](PizzaPOS/screenshots/20-stock-movements.png) | |
+| **Stock Purchase** | **Stock Movements History** | |
 
-### Offers & Promotions
+### Offers & WhatsApp
 
-| | | |
-|:---:|:---:|:---:|
-| ![Offers](PizzaPOS/screenshots/08-offers.png) | ![Add Offer](PizzaPOS/screenshots/09-add-offer.png) | ![Send WhatsApp](PizzaPOS/screenshots/10-send-whatsapp.png) |
+| | |
+|:---:|:---:|
+| ![Offers](PizzaPOS/screenshots/21-offers.png) | ![Send WhatsApp](PizzaPOS/screenshots/22-send-whatsapp.png) |
+| **Offers & Promotions** | **Send Offer via WhatsApp** |
 
-### Reports
-
-| | | |
-|:---:|:---:|:---:|
-| ![Daily Report](PizzaPOS/screenshots/19-report-daily.png) | ![Top Products](PizzaPOS/screenshots/20-report-top-products.png) | ![Losses](PizzaPOS/screenshots/21-report-losses.png) |
-
-### Customer & Driver Management
+### Reports & Analytics
 
 | | | |
 |:---:|:---:|:---:|
-| ![Customers](PizzaPOS/screenshots/22-customers.png) | ![Add Customer](PizzaPOS/screenshots/23-add-customer.png) | ![Drivers](PizzaPOS/screenshots/24-drivers.png) |
-| ![Add Driver](PizzaPOS/screenshots/25-add-driver.png) | | |
+| ![Daily Report](PizzaPOS/screenshots/23-report-daily.png) | ![Top Products](PizzaPOS/screenshots/24-report-top-products.png) | ![Loss History](PizzaPOS/screenshots/25-report-losses.png) |
+| **Daily Report** | **Top Products** | **Loss History** |
 
-### User Management
-
-| | | |
-|:---:|:---:|:---:|
-| ![Users](PizzaPOS/screenshots/26-users.png) | ![Add User](PizzaPOS/screenshots/27-add-user.png) | |
-
-### Settings & Tracking
+### Customer, Driver & User Management
 
 | | | |
 |:---:|:---:|:---:|
-| ![Settings](PizzaPOS/screenshots/28-settings.png) | ![Order Tracking](PizzaPOS/screenshots/29-order-tracking.png) | |
+| ![Customers](PizzaPOS/screenshots/26-customers.png) | ![Drivers](PizzaPOS/screenshots/27-drivers.png) | ![Users](PizzaPOS/screenshots/28-users.png) |
+| **Customer Management** | **Driver Management** | **User Management** |
+
+### Settings
+
+| |
+|:---:|
+| ![Settings](PizzaPOS/screenshots/29-settings.png) |
+| **System Settings** |
 
 ---
 
@@ -301,6 +308,14 @@ RestaurantPOS_DesktopApplication/
 - License file stored at: `%AppData%\PizzaPOS\license.dat`
 
 ---
+
+## 📱 Screenshots
+
+<div align="center">
+
+> 📸 *Screenshots coming soon!*
+
+</div>
 
 ---
 

@@ -63,25 +63,28 @@
                                         CornerRadius="10"
                                         Padding="4" Margin="0,0,0,5"
                                         HorizontalAlignment="Center">
-                                    <TextBlock Text="{Binding Icon}" FontSize="28"
-                                               HorizontalAlignment="Center"/>
+                                    <TextBlock Text="{Binding Icon}" FontSize="30"
+                                               HorizontalAlignment="Center"
+                                               TextOptions.TextRenderingMode="ClearType"/>
                                 </Border>
                                 <TextBlock Text="{Binding Name}"
-                                           FontSize="10" FontWeight="Bold"
-                                           TextAlignment="Center" TextWrapping="Wrap"
-                                           Foreground="#dde4f0" Margin="0,0,0,5"/>
+                                           FontSize="11" FontWeight="Bold"
+                                           TextAlignment="Center"
+                                           TextWrapping="Wrap"
+                                           Height="28"
+                                           Foreground="#e8ecf4" Margin="0,0,0,5"
+                                           TextOptions.TextRenderingMode="ClearType"
+                                           FontFamily="Tahoma"/>
                                 <Border Background="{Binding CardPriceBg}"
                                         CornerRadius="6"
                                         Padding="5,3" HorizontalAlignment="Center">
-                                    <TextBlock FontSize="12" FontWeight="Black"
+                                    <TextBlock FontSize="13" FontWeight="Black"
                                                TextAlignment="Center"
-                                               Foreground="{Binding CardAccent}">
-                                        <TextBlock.Effect>
-                                            <DropShadowEffect Color="{Binding CardAccent, Converter={StaticResource BrushToColor}}"
-                                                BlurRadius="6" ShadowDepth="0" Opacity="0.6"/>
-                                        </TextBlock.Effect>
+                                               Foreground="{Binding CardAccent}"
+                                               TextOptions.TextRenderingMode="ClearType"
+                                               FontFamily="Tahoma">
                                         <Run Text="{Binding Price, StringFormat={}{0:F2}, Mode=OneWay}"/>
-                                        <Run Text=" ج" FontSize="9"/>
+                                        <Run Text=" ج" FontSize="10"/>
                                     </TextBlock>
                                 </Border>
                             </StackPanel>
@@ -618,7 +621,7 @@
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Button Style="{StaticResource ProdCard}"
-                                            Width="135" Height="118"
+                                            Width="135" Height="130"
                                             Background="{Binding CardColor}"
                                             BorderBrush="{Binding CardAccent}"
                                             Command="{Binding DataContext.AddProductCmd, RelativeSource={RelativeSource AncestorType=Window}}"

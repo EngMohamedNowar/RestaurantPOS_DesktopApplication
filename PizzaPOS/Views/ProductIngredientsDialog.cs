@@ -61,11 +61,11 @@ namespace PizzaPOS.Views
             _productName = productName;
 
             Title = $"ربط المكونات — {productName}";
-            Width = 820;
-            Height = 620;
-            MinWidth = 500;
-            MinHeight = 400;
-            Background = B("#0f1526");
+            Width = 940;
+            Height = 700;
+            MinWidth = 700;
+            MinHeight = 520;
+            Background = B("#0b1020");
             FlowDirection = FlowDirection.RightToLeft;
             WindowStartupLocation = WindowStartupLocation.CenterOwner;
             FontFamily = new FontFamily("Tahoma");
@@ -79,7 +79,11 @@ namespace PizzaPOS.Views
 
         void BuildUI()
         {
-            var root = new Grid();
+            var root = new Grid
+            {
+                Margin = new Thickness(10),
+                Background = B("#0b1020")
+            };
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // header
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // add bar
             root.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) }); // datagrid
@@ -91,10 +95,12 @@ namespace PizzaPOS.Views
             // ══════════════════════════════════════
             var header = new Border
             {
-                Background = Grad("#111b32", "#0c1220"),
-                BorderBrush = B("#a78bfa"),
-                BorderThickness = new Thickness(0, 0, 0, 2),
-                Padding = new Thickness(22, 16, 22, 16)
+                Background = Grad("#141d35", "#0d1425"),
+                BorderBrush = B("#33476f"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(16),
+                Padding = new Thickness(22, 17, 22, 17),
+                Margin = new Thickness(4, 4, 4, 0)
             };
             var hRow = new Grid();
             hRow.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -103,11 +109,13 @@ namespace PizzaPOS.Views
 
             var hIcon = new Border
             {
-                Background = B("#a78bfa"),
-                CornerRadius = new CornerRadius(12),
-                Width = 50,
-                Height = 50,
-                Margin = new Thickness(0, 0, 14, 0)
+                Background = B("#211a3d"),
+                BorderBrush = B("#a78bfa"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(13),
+                Width = 52,
+                Height = 52,
+                Margin = new Thickness(0, 0, 15, 0)
             };
             hIcon.Effect = new DropShadowEffect
             {
@@ -128,9 +136,9 @@ namespace PizzaPOS.Views
             hInfo.Children.Add(new TextBlock
             {
                 Text = $"ربط المكونات — {_productName}",
-                FontSize = 18,
+                FontSize = 20,
                 FontWeight = FontWeights.Black,
-                Foreground = B("#eef0f2")
+                Foreground = B("#f4f5f7")
             });
 
             var hSubRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 0) };
@@ -154,11 +162,11 @@ namespace PizzaPOS.Views
             // شارة عدد المكونات
             var countBadge = new Border
             {
-                Background = B("#1a0e2a"),
-                BorderBrush = B("#a78bfa"),
+                Background = B("#19152f"),
+                BorderBrush = B("#6f5bbd"),
                 BorderThickness = new Thickness(1),
-                CornerRadius = new CornerRadius(10),
-                Padding = new Thickness(14, 6, 14, 6),
+                CornerRadius = new CornerRadius(11),
+                Padding = new Thickness(15, 7, 15, 7),
                 VerticalAlignment = VerticalAlignment.Center
             };
             countBadge.Child = new TextBlock
@@ -181,10 +189,12 @@ namespace PizzaPOS.Views
             // ══════════════════════════════════════
             var addBar = new Border
             {
-                Background = B("#0c1221"),
-                BorderBrush = B("#1e2d4a"),
-                BorderThickness = new Thickness(0, 0, 0, 1),
-                Padding = new Thickness(18, 12, 18, 12)
+                Background = B("#10182b"),
+                BorderBrush = B("#263858"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(14),
+                Padding = new Thickness(16, 13, 16, 13),
+                Margin = new Thickness(4, 12, 4, 4)
             };
 
             var addBarStack = new StackPanel();
@@ -219,10 +229,10 @@ namespace PizzaPOS.Views
             addBarStack.Children.Add(editBadgeRow);
             _editBadgeRow = editBadgeRow;
 
-            var addGrid = new Grid();
+            var addGrid = new Grid { VerticalAlignment = VerticalAlignment.Center };
             addGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             addGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
-            addGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(140) });
+            addGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(155) });
             addGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
             addGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
@@ -232,7 +242,7 @@ namespace PizzaPOS.Views
 
             // TextBox للكمية
             _qtyBox = UiHelper.MakeTB("1.00");
-            _qtyBox.Width = 140;
+            _qtyBox.Width = 155;
             _qtyBox.TextAlignment = TextAlignment.Center;
             _qtyBox.GotFocus += (_, _) => _qtyBox.SelectAll();
             _qtyBox.PreviewTextInput += (_, e) =>
@@ -253,8 +263,8 @@ namespace PizzaPOS.Views
 
             var qtyUnit = new Border
             {
-                Background = B("#0a1520"),
-                BorderBrush = B("#1e2d4a"),
+                Background = B("#0b1323"),
+                BorderBrush = B("#2b3d63"),
                 BorderThickness = new Thickness(1, 1, 1, 1),
                 Padding = new Thickness(10, 0, 10, 0),
                 VerticalAlignment = VerticalAlignment.Stretch
@@ -271,7 +281,9 @@ namespace PizzaPOS.Views
 
             // زر الإضافة / التحديث
             _addBtn = UiHelper.MakeBtn("➕  إضافة مادة", "#06d6a0", B("#020f0a"), () => AddIngredient(),
-                paddingV: 12, fontSize: 13);
+                paddingV: 13, fontSize: 13);
+            _addBtn.MinHeight = 44;
+            _addBtn.MinWidth = 145;
             _addBtn.Effect = new DropShadowEffect
             {
                 Color = (Color)ColorConverter.ConvertFromString("#06d6a0"),
@@ -362,15 +374,26 @@ namespace PizzaPOS.Views
 
             var dgWrap = new Border
             {
-                BorderBrush = B("#a78bfa"),
-                BorderThickness = new Thickness(1, 0, 1, 0),
+                BorderBrush = B("#263858"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(15),
+                ClipToBounds = true,
+                Margin = new Thickness(4, 4, 4, 4),
                 Child = new ScrollViewer
                 {
                     Content = _dg,
                     VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
-                    Background = B("#0f1526")
+                    Background = B("#0d1525")
                 }
             };
+            dgWrap.Effect = new DropShadowEffect
+            {
+                Color = Colors.Black,
+                BlurRadius = 18,
+                ShadowDepth = 0,
+                Opacity = 0.22
+            };
+
             Grid.SetRow(dgWrap, 2);
             root.Children.Add(dgWrap);
 
@@ -379,10 +402,12 @@ namespace PizzaPOS.Views
             // ══════════════════════════════════════
             var totalsBar = new Border
             {
-                Background = Grad("#0e1a30", "#0a1020"),
-                BorderBrush = B("#1e2d4a"),
-                BorderThickness = new Thickness(0, 1, 0, 1),
-                Padding = new Thickness(18, 14, 18, 14)
+                Background = Grad("#101b30", "#0b1221"),
+                BorderBrush = B("#263858"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(14),
+                Padding = new Thickness(18, 14, 18, 14),
+                Margin = new Thickness(4, 4, 4, 4)
             };
             var totalsGrid = new Grid();
             totalsGrid.ColumnDefinitions.Add(new ColumnDefinition());
@@ -482,12 +507,14 @@ namespace PizzaPOS.Views
             // ══════════════════════════════════════
             var btnBar = new Border
             {
-                Background = B("#090e1a"),
-                BorderBrush = B("#1a2540"),
-                BorderThickness = new Thickness(0, 1, 0, 0),
-                Padding = new Thickness(18, 12, 18, 14)
+                Background = B("#10182b"),
+                BorderBrush = B("#263858"),
+                BorderThickness = new Thickness(1),
+                CornerRadius = new CornerRadius(14),
+                Padding = new Thickness(14, 12, 14, 12),
+                Margin = new Thickness(4, 4, 4, 4)
             };
-            var btnGrid = new Grid();
+            var btnGrid = new Grid { VerticalAlignment = VerticalAlignment.Center };
             btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
             btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
             btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
@@ -496,19 +523,25 @@ namespace PizzaPOS.Views
 
             // زر حذف المادة المحددة
             var deleteBtn = UiHelper.MakeBtn("🗑  حذف المادة المحددة", "#1a080a", B("#E63946"), () => DeleteIngredient(),
-                paddingV: 12, fontSize: 13);
+                paddingV: 13, fontSize: 13);
+            deleteBtn.MinHeight = 44;
+            deleteBtn.MinWidth = 150;
             deleteBtn.BorderBrush = B("#E63946");
             deleteBtn.BorderThickness = new Thickness(1);
 
             // زر الإلغاء
             var cancelBtn = UiHelper.MakeBtn("✕  إلغاء", "#12192e", B("#8892a4"), () => { DialogResult = false; Close(); },
-                paddingV: 12, fontSize: 13);
+                paddingV: 13, fontSize: 13);
+            cancelBtn.MinHeight = 44;
+            cancelBtn.MinWidth = 105;
             cancelBtn.BorderBrush = B("#1e2d4a");
             cancelBtn.BorderThickness = new Thickness(1);
 
             // زر الحفظ
             var saveBtn = UiHelper.MakeBtn("💾  حفظ الوصفة", "#a78bfa", B("#0a0800"), () => SaveAll(),
-                paddingV: 12, fontSize: 13);
+                paddingV: 13, fontSize: 13);
+            saveBtn.MinHeight = 44;
+            saveBtn.MinWidth = 140;
             saveBtn.Effect = new DropShadowEffect
             {
                 Color = (Color)ColorConverter.ConvertFromString("#a78bfa"),

@@ -1267,6 +1267,70 @@ namespace PizzaPOS.Data
             return list;
         }
 
+
+        // ── DeleteIngredient (cascade) ───────────────
+        /// <summary>
+        /// بيرجع عدد المنتجات المرتبطة بالمادة دي في وصفاتهم (ProductIngredients)
+        /// بيُستخدم للتحقق قبل الحذف وعرض تحذير للمستخدم
+        /// </summary>
+        public int GetIngredientUsageCount(int ingredientId)
+        {
+            using var c = Open();
+            var cmd = c.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM ProductIngredients WHERE IngredientId=@id";
+            cmd.Parameters.AddWithValue("@id", ingredientId);
+            return Convert.ToInt32(cmd.ExecuteScalar() ?? 0);
+        }
+
+        /// <summary>
+        /// بيحذف المادة نهائيًا، وقبلها بيشيل أي ربط ليها في وصفات المنتجات
+        /// (ProductIngredients) جوه transaction واحدة، وبعد الحذف بيعيد حساب
+        /// تكلفة أي منتج كانت المادة دي جزء من وصفته
+        /// </summary>
+        public void DeleteIngredient(int id)
+        {
+            var affectedProducts = new List<int>();
+
+            using (var conn = Open())
+            using (var tx = conn.BeginTransaction())
+            {
+                try
+                {
+                    var getCmd = conn.CreateCommand(); getCmd.Transaction = tx;
+                    getCmd.CommandText = "SELECT ProductId FROM ProductIngredients WHERE IngredientId=@iid";
+                    getCmd.Parameters.AddWithValue("@iid", id);
+                    using (var r = getCmd.ExecuteReader())
+                        while (r.Read()) affectedProducts.Add(r.GetInt32(0));
+
+                    var delLinks = conn.CreateCommand(); delLinks.Transaction = tx;
+                    delLinks.CommandText = "DELETE FROM ProductIngredients WHERE IngredientId=@iid";
+                    delLinks.Parameters.AddWithValue("@iid", id);
+                    delLinks.ExecuteNonQuery();
+
+                    var delIng = conn.CreateCommand(); delIng.Transaction = tx;
+                    delIng.CommandText = "DELETE FROM Ingredients WHERE Id=@id";
+                    delIng.Parameters.AddWithValue("@id", id);
+                    delIng.ExecuteNonQuery();
+
+                    tx.Commit();
+                }
+                catch { tx.Rollback(); throw; }
+            }
+
+            foreach (var pid in affectedProducts)
+            {
+                double newCost = CalculateProductCost(pid);
+                using var c2 = Open();
+                var upd = c2.CreateCommand();
+                upd.CommandText = "UPDATE Products SET Cost=@co WHERE Id=@id";
+                upd.Parameters.AddWithValue("@co", newCost);
+                upd.Parameters.AddWithValue("@id", pid);
+                upd.ExecuteNonQuery();
+            }
+        }
+
+
+
         public void SaveOffer(Offer o)
         {
             using var c = Open();

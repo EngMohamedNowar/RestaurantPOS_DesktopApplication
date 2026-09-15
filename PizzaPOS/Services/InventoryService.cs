@@ -127,6 +127,22 @@ namespace PizzaPOS.Services
             catch { tx.Rollback(); throw; }
         }
 
+        public int GetIngredientUsageCount(int ingredientId)
+        {
+            using var c = Open(); var cmd = c.CreateCommand();
+            cmd.CommandText = "SELECT COUNT(*) FROM ProductIngredients WHERE IngredientId=@i";
+            cmd.Parameters.AddWithValue("@i", ingredientId);
+            return Convert.ToInt32(cmd.ExecuteScalar());
+        }
+
+        public void Delete(int ingredientId)
+        {
+            using var c = Open(); var cmd = c.CreateCommand();
+            cmd.CommandText = "DELETE FROM Ingredients WHERE Id=@i";
+            cmd.Parameters.AddWithValue("@i", ingredientId);
+            cmd.ExecuteNonQuery();
+        }
+
         public List<StockMovement> GetMovements(int days = 7)
         {
             using var c = Open(); var cmd = c.CreateCommand();

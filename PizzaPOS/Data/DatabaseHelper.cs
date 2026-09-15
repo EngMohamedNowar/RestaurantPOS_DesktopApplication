@@ -70,13 +70,14 @@ namespace PizzaPOS.Data
 
             // ── Products ──
             Exec(conn, @"CREATE TABLE IF NOT EXISTS Products (
-                Id         INTEGER PRIMARY KEY AUTOINCREMENT,
-                CategoryId INTEGER REFERENCES Categories(Id),
-                Name       TEXT    NOT NULL,
-                Price      REAL    NOT NULL,
-                Cost       REAL    DEFAULT 0,
-                Icon       TEXT    DEFAULT '🍕',
-                IsActive   INTEGER DEFAULT 1);");
+                Id          INTEGER PRIMARY KEY AUTOINCREMENT,
+                CategoryId  INTEGER REFERENCES Categories(Id),
+                Name        TEXT    NOT NULL,
+                Price       REAL    NOT NULL,
+                Cost        REAL    DEFAULT 0,
+                Icon        TEXT    DEFAULT '🍕',
+                Description TEXT    DEFAULT '',
+                IsActive    INTEGER DEFAULT 1);");
 
             // ── ProductSizes ──
             Exec(conn, @"CREATE TABLE IF NOT EXISTS ProductSizes (
@@ -202,6 +203,9 @@ namespace PizzaPOS.Data
             TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN Status TEXT DEFAULT 'new'", "Orders.Status");
             TryMigrate(conn, "UPDATE Orders SET Status='completed' WHERE Status IS NULL OR Status=''", "Orders.Status cleanup");
 
+            // ── Products migration (DB قديمة قبل إضافة الوصف) ──
+            TryMigrate(conn, "ALTER TABLE Products ADD COLUMN Description TEXT DEFAULT ''", "Products.Description");
+
             // ── OrderItems ──
             Exec(conn, @"CREATE TABLE IF NOT EXISTS OrderItems (
                 Id         INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -271,128 +275,176 @@ namespace PizzaPOS.Data
             if ((long)chk.ExecuteScalar()! > 0) return;
 
             // ══════════════════════════════════════════
-            // ── Categories ──
-            // IDs: 1=بيتزا, 2=بيتزا Napoletana, 3=باستا, 4=ساندويتش, 5=فطاير
+            // ── Categories — قائمة نابولي الحقيقية ──
             // ══════════════════════════════════════════
             Exec(conn, @"INSERT INTO Categories(Name,Icon,SortOrder) VALUES
-        ('بيتزا',             '🍕', 1),
-        ('بيتزا Napoletana',  '🍕', 2),
-        ('باستا',             '🍝', 3),
-        ('ساندويتش',          '🥪', 4),
-        ('فطاير',             '🥙', 5);");
+        ('بيتزا',              '🍕', 1),
+        ('فطاير',              '🥙', 2),
+        ('باستا',              '🍝', 3),
+        ('برجر وساندويتش',     '🍔', 4),
+        ('أطباق جانبية',       '🍟', 5),
+        ('قائمة الأطفال',      '🧒', 6);");
 
             // ══════════════════════════════════════════
-            // ── Products ──
+            // ── Products (from Napoli.xlsx recipe costing sheet) ──
             // ══════════════════════════════════════════
+            // --- بيتزا (Cat 1) → IDs 1-16 ---
+            Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon,Description) VALUES
+        (1, 'Margherita', 150, 49.3, '🍕', 'بيتزا كلاسيكية بصلصة الطماطم الطازة، جبنة الموزاريلا، ريحان طازة، أوريجانو وزيت زيتون'),
+        (1, 'Pepperoni', 165, 57.4, '🍕', 'بيتزا بصلصة الطماطم، موزاريلا، شرائح ببروني، جبنة بارميزان، أوريجانو وريحان طازة'),
+        (1, 'Cappricciosa', 180, 62.8, '🍕', 'بيتزا موزاريلا وصلصة طماطم مع شرائح ديك رومي مدخن، مشروم طازة وزيتون، بارميزان'),
+        (1, 'Prosciutto', 165, 56.2, '🍕', 'بيتزا موزاريلا وصلصة طماطم مع شرائح ديك رومي مدخن وجبنة بارميزان'),
+        (1, 'Hawaiian', 175, 60.8, '🍕', 'بيتزا موزاريلا وصلصة طماطم مع ديك رومي مدخن وقطع أناناس طازة'),
+        (1, 'American', 170, 64.4, '🍕', 'بيتزا موزاريلا وصلصة طماطم مع ديك رومي مدخن وشرائح ببروني وبارميزان'),
+        (1, 'Milano', 175, 62.3, '🍕', 'بيتزا موزاريلا وصلصة طماطم مع سلامي، فلفل ألوان مشكل وصوص حار'),
+        (1, 'Funghi', 165, 55.8, '🍕', 'بيتزا موزاريلا وصلصة طماطم بكمية مضاعفة من المشروم الطازة وجبنة بارميزان'),
+        (1, 'Four Seasons', 185, 73.8, '🍕', 'بيتزا موزاريلا وصلصة طماطم بأربع إضافات: ديك رومي، ببروني، فلفل ألوان، مشروم وزيتون'),
+        (1, 'Quattro Formaggi', 200, 74.8, '🍕', 'بيتزا بأربع أنواع جبن: موزاريلا، موزاريلا بافلو، جبنة زرقاء وكيري تشيز'),
+        (1, 'Chicken BBQ', 200, 77.8, '🍕', 'بيتزا موزاريلا مع مكعبات دجاج، بصل وفلفل ألوان ومشروم وصوص باربكيو'),
+        (1, 'Chicken Ranch', 210, 80.6, '🍕', 'بيتزا موزاريلا مع مكعبات دجاج، بصل وفلفل ألوان ومشروم وصوص رانش'),
+        (1, 'Tuna', 200, 101.8, '🍕', 'بيتزا موزاريلا وصلصة طماطم مع تونة، بصل وزيتون أخضر'),
+        (1, 'Mexicano', 200, 79.3, '🍕', 'بيتزا موزاريلا مع مكعبات دجاج، بصل وفلفل ألوان ومشروم وذرة حلوة'),
+        (1, 'Frutti di Mare', 300, 145.8, '🍕', 'بيتزا مأكولات بحرية فاخرة: سمك أبيض، كاليماري، أعواد كابوريا، بلح البحر وجمبري'),
+        (1, 'Napoli Special', 260, 99.7, '🍕', 'بيتزا الشيف الخاصة بالنابولي: شاورما، مكعبات دجاج، ببروني، ديك رومي، هوت دوج ومشروم');");
 
-            // --- بيتزا (Cat 1) → IDs 1-5 ---
-            Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon) VALUES
-        (1, 'Margherita',       99,  0, '🍕'),
-        (1, 'Pepperoni',        120, 0, '🍕'),
-        (1, 'Quattro Formaggi', 135, 0, '🍕'),
-        (1, 'Pollo Special',    115, 0, '🍕'),
-        (1, 'Napoli Doner',     125, 0, '🍕');");
+            // --- فطاير (Cat 2) → IDs 17-20 ---
+            Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon,Description) VALUES
+        (2, 'Hot Dog Fatayer', 140, 46.8, '🥙', 'فطيرة مقرمشة بموزاريلا وقطع طماطم وجبنة كيري ورومانا وفلفل أخضر وشرائح هوت دوج'),
+        (2, 'Sujuk Fatayer', 160, 63.55, '🥙', 'فطيرة بموزاريلا وجبنة كيري ورومانا وفلفل ألوان وزيتون وسجق بلدي غني'),
+        (2, 'Cheese Lovers Fatayer', 140, 47.05, '🥙', 'فطيرة لمحبي الجبن: موزاريلا، جبنة بافلو، كيري، رومانا وبارميزان'),
+        (2, 'Napoli Fatayer', 180, 81.55, '🥙', 'فطيرة بموزاريلا وفلفل أخضر وجبنة كيري ورومانا مع لحم مفروم غني');");
 
-            // --- بيتزا Napoletana (Cat 2) → IDs 6-10 ---
-            Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon) VALUES
-        (2, 'Margherita Napoletana',       115,  0, '🍕'),
-        (2, 'Pepperoni Napoletana',        140, 0, '🍕'),
-        (2, 'Quattro Formaggi Napoletana', 155, 0, '🍕'),
-        (2, 'Pollo Special Napoletana',    135, 0, '🍕'),
-        (2, 'Napoli Doner Napoletana',     145, 0, '🍕');");
+            // --- باستا (Cat 3) → IDs 21-23 ---
+            Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon,Description) VALUES
+        (3, 'Tuscan Fettuccine', 180, 85, '🍝', 'فيتوتشيني بصوص الكريمة مع مشروم، فلفل ألوان، دجاج وجبنة بارميزان وبقدونس'),
+        (3, 'Pesto Pasta', 180, 77, '🍝', 'باستا فوسيلي بصوص البيستو مع مكعبات دجاج وكريمة طازة وبارميزان'),
+        (3, 'Napoli Sujuk Pasta', 170, 72.5, '🍝', 'باستا بيني بصلصة نابوليتانا حمراء مع سجق وفلفل أخضر وبارميزان');");
 
-            // --- باستا (Cat 3) → IDs 11-13 ---
-            Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon) VALUES
-        (3, 'Napoli Pasta',  89,  0, '🍝'),
-        (3, 'Tuscan Pasta',  99,  0, '🍝'),
-        (3, 'Pesto Pasta',   92,  0, '🍝');");
+            // --- برجر وساندويتش (Cat 4) → IDs 24-31 ---
+            Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon,Description) VALUES
+        (4, 'Classic Beef Burger', 200, 98.5, '🍔', 'برجر لحم بقري بصوص تكساس وجبنة إيمنتال وبيكون بقري وخس وطماطم وبيض'),
+        (4, 'Casper Burger', 200, 86, '🍔', 'برجر لحم بقري مع كرسبي موزاريلا وصوص باربكيو وخس وطماطم'),
+        (4, 'Good Melted Burger', 200, 102.5, '🍔', 'برجر لحم بقري مغطى بثلاث أنواع جبن (موزاريلا، شيدر، إيمنتال) مع مشروم سوتيه وأنيون رينجز'),
+        (4, 'Mexicano Sandwich', 120, 47, '🥪', 'ساندوتش تورتيلا بدجاج فاهيتا وموزاريلا ومايونيز وخس وبطاطس مقرمشة'),
+        (4, 'Chicken Taouk Sandwich', 120, 49, '🥙', 'ساندوتش خبز سوري بدجاج طاووق وصوص طحينة وخس وبطاطس مقرمشة'),
+        (4, 'Crispy Crepe', 120, 57, '🌯', 'كريب مقرمش بأصابع دجاج كرسبي وجبنة شيدر وديك رومي مدخن وصوص ثاوزند آيلاند'),
+        (4, 'Chicken Quesadillas', 120, 62, '🌮', 'تورتيلا بدجاج كيساديا وجبنة شيدر وذرة حلوة وجالابينو مع بطاطس'),
+        (4, 'Napoli Sandwich', 120, 63, '🥙', 'ساندوتش خبز دوة بشاورما ولحمة وجبنة موزاريلا وفلفل ألوان وبصل ومشروم');");
 
-            // --- ساندويتش (Cat 4) → IDs 14-17 ---
-            Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon) VALUES
-        (4, 'Beef Burger',          75,  0, '🍔'),
-        (4, 'Chicken Fajita Sand.', 65,  0, '🥪'),
-        (4, 'Shawarma Sand.',       60,  0, '🥙'),
-        (4, 'Crepe Sand.',          55,  0, '🥪');");
+            // --- أطباق جانبية (Cat 5) → IDs 32-35 ---
+            Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon,Description) VALUES
+        (5, 'Box Fries', 25, 8.4, '🍟', 'بطاطس مقرمشة طازة'),
+        (5, 'Texas Fries', 65, 30.4, '🍟', 'بطاطس مقرمشة مغطاة بلحم مفروم وجبنة شيدر وجالابينو'),
+        (5, 'Chicken Fingers', 70, 30, '🍗', 'أصابع دجاج مقرمشة'),
+        (5, 'Mozzarella Sticks', 60, 20, '🧀', 'أصابع موزاريلا مقرمشة');");
 
-            // --- فطاير (Cat 5) → IDs 18-20 ---
-            Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon) VALUES
-        (5, 'Fatayer Sujuk',       50,  0, '🥙'),
-        (5, 'Fatayer Minced Beef', 50,  0, '🥙'),
-        (5, 'Cherry Napoli',       55,  0, '🥙');");
+            // --- قائمة الأطفال (Cat 6) → IDs 36-38 ---
+            Exec(conn, @"INSERT INTO Products(CategoryId,Name,Price,Cost,Icon,Description) VALUES
+        (6, 'Mini Burger', 80, 35, '🍔', 'برجر أطفال صغير بجبنة شيدر وصوص آيلاند وبطاطس مقرمشة'),
+        (6, 'Mac & Cheese White', 65, 26, '🍝', 'مكرونة بصوص الجبنة الأبيض والكريمة الطازة'),
+        (6, 'Mac & Meatballs Red', 80, 38, '🍝', 'مكرونة بصلصة حمراء مع كرات لحم');");
 
             // ══════════════════════════════════════════
             // ── ProductSizes ──
             // ══════════════════════════════════════════
 
-            // بيتزا (IDs 1-5) → Small / Medium / Large
+            // بيتزا (IDs 1-16) → Small / Medium / Large
             Exec(conn, @"INSERT INTO ProductSizes(ProductId,Name,ExtraPrice,SortOrder) VALUES
         (1,'Small',0,1),(1,'Medium',25,2),(1,'Large',50,3),
         (2,'Small',0,1),(2,'Medium',25,2),(2,'Large',50,3),
         (3,'Small',0,1),(3,'Medium',25,2),(3,'Large',50,3),
         (4,'Small',0,1),(4,'Medium',25,2),(4,'Large',50,3),
-        (5,'Small',0,1),(5,'Medium',25,2),(5,'Large',50,3);");
+        (5,'Small',0,1),(5,'Medium',25,2),(5,'Large',50,3),
+        (6,'Small',0,1),(6,'Medium',25,2),(6,'Large',50,3),
+        (7,'Small',0,1),(7,'Medium',25,2),(7,'Large',50,3),
+        (8,'Small',0,1),(8,'Medium',25,2),(8,'Large',50,3),
+        (9,'Small',0,1),(9,'Medium',25,2),(9,'Large',50,3),
+        (10,'Small',0,1),(10,'Medium',25,2),(10,'Large',50,3),
+        (11,'Small',0,1),(11,'Medium',25,2),(11,'Large',50,3),
+        (12,'Small',0,1),(12,'Medium',25,2),(12,'Large',50,3),
+        (13,'Small',0,1),(13,'Medium',25,2),(13,'Large',50,3),
+        (14,'Small',0,1),(14,'Medium',25,2),(14,'Large',50,3),
+        (15,'Small',0,1),(15,'Medium',25,2),(15,'Large',50,3),
+        (16,'Small',0,1),(16,'Medium',25,2),(16,'Large',50,3);");
 
-            // بيتزا Napoletana (IDs 6-10) → Small / Medium / Large
+            // باستا (IDs 21-23) → Regular / Large
             Exec(conn, @"INSERT INTO ProductSizes(ProductId,Name,ExtraPrice,SortOrder) VALUES
-        (6, 'Small',0,1),(6, 'Medium',25,2),(6, 'Large',50,3),
-        (7, 'Small',0,1),(7, 'Medium',25,2),(7, 'Large',50,3),
-        (8, 'Small',0,1),(8, 'Medium',25,2),(8, 'Large',50,3),
-        (9, 'Small',0,1),(9, 'Medium',25,2),(9, 'Large',50,3),
-        (10,'Small',0,1),(10,'Medium',25,2),(10,'Large',50,3);");
+        (21,'Regular',0,1),(21,'Large',20,2),
+        (22,'Regular',0,1),(22,'Large',20,2),
+        (23,'Regular',0,1),(23,'Large',20,2);");
 
-            // باستا (IDs 11-13) → Regular / Large
+            // برجر وساندويتش (IDs 24-31) → Regular / Large
             Exec(conn, @"INSERT INTO ProductSizes(ProductId,Name,ExtraPrice,SortOrder) VALUES
-        (11,'Regular',0,1),(11,'Large',20,2),
-        (12,'Regular',0,1),(12,'Large',20,2),
-        (13,'Regular',0,1),(13,'Large',20,2);");
+        (24,'Regular',0,1),(24,'Large',15,2),
+        (25,'Regular',0,1),(25,'Large',15,2),
+        (26,'Regular',0,1),(26,'Large',15,2),
+        (27,'Regular',0,1),(27,'Large',15,2),
+        (28,'Regular',0,1),(28,'Large',15,2),
+        (29,'Regular',0,1),(29,'Large',15,2),
+        (30,'Regular',0,1),(30,'Large',15,2),
+        (31,'Regular',0,1),(31,'Large',15,2);");
 
-            // ساندويتش (IDs 14-17) → Regular / Large
-            Exec(conn, @"INSERT INTO ProductSizes(ProductId,Name,ExtraPrice,SortOrder) VALUES
-        (14,'Regular',0,1),(14,'Large',15,2),
-        (15,'Regular',0,1),(15,'Large',15,2),
-        (16,'Regular',0,1),(16,'Large',15,2),
-        (17,'Regular',0,1),(17,'Large',15,2);");
-
-            // فطاير (IDs 18-20) → بدون أحجام (حجم واحد)
+            // فطاير، أطباق جانبية، قائمة الأطفال → بدون أحجام (حجم واحد)
 
             // ══════════════════════════════════════════
-            // ── ProductExtras ──
+            // ── ProductExtras (إضافات) ──
             // ══════════════════════════════════════════
 
-            // بيتزا Extras (IDs 1-5)
+            // بيتزا Extras (IDs 1-16)
             Exec(conn, @"INSERT INTO ProductExtras(ProductId,Name,Price) VALUES
-        (1,'Extra Cheese',15),(1,'Extra Pepperoni',15),(1,'Mushrooms',10),(1,'Black Olives',10),(1,'Jalapenos',10),(1,'Fresh Basil',5),
-        (2,'Extra Cheese',15),(2,'Extra Pepperoni',15),(2,'Mushrooms',10),(2,'Black Olives',10),(2,'Jalapenos',10),(2,'Hot Sauce',5),
-        (3,'Extra Cheese',15),(3,'Blue Cheese',20),(3,'Mushrooms',10),(3,'Truffle Oil',25),(3,'Jalapenos',10),
-        (4,'Extra Cheese',15),(4,'Extra Chicken',20),(4,'Mushrooms',10),(4,'Sweet Corn',10),(4,'BBQ Sauce',5),
-        (5,'Extra Cheese',15),(5,'Extra Doner',25),(5,'Jalapenos',10),(5,'Hot Sauce',5),(5,'Black Olives',10);");
+        (1,'Extra Cheese',15),(1,'Mushrooms',10),(1,'Black Olives',10),(1,'Fresh Basil',5),
+        (2,'Extra Cheese',15),(2,'Extra Pepperoni',15),(2,'Jalapenos',10),(2,'Black Olives',10),
+        (3,'Extra Cheese',15),(3,'Mushrooms',10),(3,'Black Olives',10),
+        (4,'Extra Cheese',15),(4,'Mushrooms',10),
+        (5,'Extra Cheese',15),(5,'Mushrooms',10),
+        (6,'Extra Cheese',15),(6,'Extra Pepperoni',15),(6,'Black Olives',10),
+        (7,'Extra Cheese',15),(7,'Hot Sauce',5),(7,'Mixpeppers',10),
+        (8,'Extra Cheese',15),(8,'Mushrooms',10),
+        (9,'Extra Cheese',15),(9,'Mushrooms',10),(9,'Black Olives',10),
+        (10,'Blue Cheese',20),(10,'Extra Mozzarella',15),
+        (11,'Extra Cheese',15),(11,'Extra Chicken',20),(11,'BBQ Sauce',5),
+        (12,'Extra Cheese',15),(12,'Extra Chicken',20),(12,'Ranch Sauce',5),
+        (13,'Extra Cheese',15),(13,'Green Olives',10),
+        (14,'Extra Cheese',15),(14,'Extra Chicken',20),(14,'Sweet Corn',10),
+        (15,'Extra Shrimp',30),(15,'Extra Cheese',15),
+        (16,'Extra Cheese',15),(16,'Extra Pepperoni',15),(16,'Hot Sauce',5);");
 
-            // بيتزا Napoletana Extras (IDs 6-10)
+            // فطاير Extras (IDs 17-20)
             Exec(conn, @"INSERT INTO ProductExtras(ProductId,Name,Price) VALUES
-        (6, 'Extra Cheese',15),(6, 'Extra Pepperoni',15),(6, 'Mushrooms',10),(6, 'Black Olives',10),(6, 'Jalapenos',10),(6, 'Fresh Basil',5),
-        (7, 'Extra Cheese',15),(7, 'Extra Pepperoni',15),(7, 'Mushrooms',10),(7, 'Black Olives',10),(7, 'Jalapenos',10),(7, 'Hot Sauce',5),
-        (8, 'Extra Cheese',15),(8, 'Blue Cheese',20),(8, 'Mushrooms',10),(8, 'Truffle Oil',25),(8, 'Jalapenos',10),
-        (9, 'Extra Cheese',15),(9, 'Extra Chicken',20),(9, 'Mushrooms',10),(9, 'Sweet Corn',10),(9, 'BBQ Sauce',5),
-        (10,'Extra Cheese',15),(10,'Extra Doner',25),(10,'Jalapenos',10),(10,'Hot Sauce',5),(10,'Black Olives',10);");
+        (17,'Extra Cheese',10),(17,'Hot Dog Slices',10),
+        (18,'Extra Sujuk',15),(18,'Extra Cheese',10),
+        (19,'Extra Cheese',15),(19,'Blue Cheese',15),
+        (20,'Extra Meat',15),(20,'Extra Cheese',10);");
 
-            // باستا Extras (IDs 11-13)
+            // باستا Extras (IDs 21-23)
             Exec(conn, @"INSERT INTO ProductExtras(ProductId,Name,Price) VALUES
-        (11,'Extra Sauce',5),(11,'Parmesan',10),(11,'Garlic Bread',15),(11,'Extra Meat',20),
-        (12,'Extra Cream',10),(12,'Extra Chicken',20),(12,'Mushrooms',10),(12,'Parmesan',10),(12,'Garlic Bread',15),
-        (13,'Extra Pesto',10),(13,'Parmesan',10),(13,'Cherry Tomatoes',10),(13,'Garlic Bread',15),(13,'Pine Nuts',15);");
+        (21,'Extra Chicken',15),(21,'Extra Cream',10),
+        (22,'Extra Chicken',15),(22,'Extra Pesto',10),
+        (23,'Extra Sujuk',15),(23,'Extra Cheese',10);");
 
-            // ساندويتش Extras (IDs 14-17)
+            // برجر وساندويتش Extras (IDs 24-31)
             Exec(conn, @"INSERT INTO ProductExtras(ProductId,Name,Price) VALUES
-        (14,'Extra Meat',15),(14,'Cheese Slice',10),(14,'Caramelized Onion',10),(14,'Jalapenos',5),(14,'Mushrooms',10),
-        (15,'Extra Chicken',15),(15,'Cheese Slice',10),(15,'Coleslaw',5),(15,'Jalapenos',5),(15,'BBQ Sauce',5),
-        (16,'Extra Meat',15),(16,'Cheese Slice',10),(16,'Jalapenos',5),(16,'Garlic Sauce',5),(16,'Coleslaw',5),
-        (17,'Extra Cheese',10),(17,'Nutella',10),(17,'Banana',5),(17,'Strawberry Sauce',10);");
+        (24,'Extra Cheese',10),(24,'Extra Beef Patty',25),(24,'Beef Bacon',15),
+        (25,'Extra Cheese',10),(25,'Extra Beef Patty',25),
+        (26,'Extra Cheese',10),(26,'Extra Beef Patty',25),(26,'Onion Rings',10),
+        (27,'Extra Chicken',15),(27,'Extra Cheese',10),
+        (28,'Extra Chicken',15),(28,'Extra Sauce',5),
+        (29,'Extra Chicken Fingers',15),(29,'Extra Cheese',10),
+        (30,'Extra Chicken',15),(30,'Jalapenos',5),
+        (31,'Extra Meat',15),(31,'Extra Cheese',10);");
 
-            // فطاير Extras (IDs 18-20)
+            // أطباق جانبية Extras (IDs 32-35)
             Exec(conn, @"INSERT INTO ProductExtras(ProductId,Name,Price) VALUES
-        (18,'Extra Sujuk',15),(18,'Extra Cheese',10),(18,'Jalapenos',5),
-        (19,'Extra Meat',15),(19,'Extra Cheese',10),(19,'Jalapenos',5),(19,'Hot Sauce',5),
-        (20,'Extra Cherry',10),(20,'Extra Cheese',10),(20,'Cream',10);");
+        (32,'Cheese Sauce',10),(32,'Ketchup',0),
+        (33,'Extra Cheese',10),(33,'Jalapenos',5),
+        (34,'BBQ Sauce',5),(34,'Ranch Sauce',5),
+        (35,'Marinara Sauce',5);");
+
+            // قائمة الأطفال Extras (IDs 36-38)
+            Exec(conn, @"INSERT INTO ProductExtras(ProductId,Name,Price) VALUES
+        (36,'Extra Cheese',8),
+        (37,'Extra Cheese',8),
+        (38,'Extra Cheese',8);");
 
             // ══════════════════════════════════════════
             // ── Ingredient Categories ──
@@ -408,6 +460,10 @@ namespace PizzaPOS.Data
 
             // ══════════════════════════════════════════
             // ── Ingredients — Egypt 2025/2026 wholesale prices (EGP/unit) ──
+            // مرجع عام للخامات؛ التكلفة الفعلية لكل منتج محسوبة مباشرة من
+            // شيت التسعير (Napoli.xlsx) في عمود Cost أعلاه، فمفيش ربط
+            // ProductIngredients لكل صنف دلوقتي — ده جاهز لو حبيت تفعّل
+            // حساب التكلفة أوتوماتيك من المكونات لاحقًا.
             // ══════════════════════════════════════════
             Exec(conn, @"INSERT INTO Ingredients(CategoryId,Name,Unit,Stock,MinStock,CostPerUnit) VALUES
         (1,'Pizza Dough',          'kg',   40, 15, 28),
@@ -462,58 +518,6 @@ namespace PizzaPOS.Data
         (7,'Cashews',              'kg',    2,  1,550);");
 
             // ══════════════════════════════════════════
-            // ── ProductIngredients (recipes) ──
-            // Ingredient IDs: 1=PizzaDough 2=Pasta 3=BreadLoaf 4=CrepeBatter
-            //   5=GroundBeef 6=ChickenBreast 7=Pepperoni 8=Sujuk 9=DonerMeat 10=Shrimp
-            //   11=Mozzarella 12=Cheddar 13=Parmesan 14=Ricotta 15=HeavyCream 16=Eggs 17=Feta
-            //   18=Tomatoes 19=Mushrooms 20=BellPeppers 21=Spinach 22=Onions 23=Garlic
-            //   24=Potatoes 25=Cucumbers 26=Carrots 27=HotPeppers 28=BlackOlives 29=GreenOlives
-            //   30=TomatoSauce 31=PestoSauce 32=OliveOil 33=BBQSauce 34=GarlicSauce
-            //   35=HotSauce 36=Ranch 37=Mustard 38=Mayo
-            // ══════════════════════════════════════════
-            Exec(conn, @"INSERT INTO ProductIngredients(ProductId,IngredientId,QtyUsed) VALUES
-        -- 1 Margherita
-        (1,1,0.30),(1,11,0.15),(1,30,0.08),(1,32,0.02),
-        -- 2 Pepperoni
-        (2,1,0.30),(2,11,0.15),(2,30,0.08),(2,7,0.06),(2,32,0.02),
-        -- 3 Quattro Formaggi
-        (3,1,0.30),(3,11,0.12),(3,12,0.08),(3,13,0.04),(3,14,0.06),(3,32,0.01),
-        -- 4 Pollo Special
-        (4,1,0.30),(4,11,0.15),(4,30,0.08),(4,6,0.12),(4,19,0.06),(4,20,0.04),(4,32,0.02),
-        -- 5 Napoli Doner
-        (5,1,0.30),(5,11,0.12),(5,9,0.10),(5,34,0.04),(5,27,0.02),(5,32,0.02),
-        -- 6 Margherita Napoletana
-        (6,1,0.35),(6,11,0.18),(6,30,0.10),(6,32,0.02),
-        -- 7 Pepperoni Napoletana
-        (7,1,0.35),(7,11,0.18),(7,30,0.10),(7,7,0.08),(7,32,0.02),
-        -- 8 Quattro Formaggi Napoletana
-        (8,1,0.35),(8,11,0.15),(8,12,0.10),(8,13,0.05),(8,14,0.08),(8,32,0.02),
-        -- 9 Pollo Special Napoletana
-        (9,1,0.35),(9,11,0.18),(9,30,0.10),(9,6,0.15),(9,19,0.08),(9,20,0.05),(9,32,0.02),
-        -- 10 Napoli Doner Napoletana
-        (10,1,0.35),(10,11,0.15),(10,9,0.12),(10,34,0.05),(10,27,0.02),(10,32,0.02),
-        -- 11 Napoli Pasta
-        (11,2,0.25),(11,5,0.12),(11,30,0.08),(11,23,0.01),(11,32,0.02),
-        -- 12 Tuscan Pasta
-        (12,2,0.25),(12,6,0.12),(12,15,0.08),(12,19,0.06),(12,13,0.03),(12,32,0.02),
-        -- 13 Pesto Pasta
-        (13,2,0.25),(13,31,0.06),(13,13,0.04),(13,47,0.01),(13,32,0.02),
-        -- 14 Beef Burger
-        (14,3,1),(14,5,0.15),(14,12,0.04),(14,18,0.04),(14,22,0.03),(14,37,0.01),
-        -- 15 Chicken Fajita Sand.
-        (15,3,1),(15,6,0.12),(15,20,0.06),(15,22,0.04),(15,12,0.03),(15,35,0.01),
-        -- 16 Shawarma Sand.
-        (16,3,1),(16,9,0.10),(16,34,0.04),(16,18,0.03),(16,25,0.03),
-        -- 17 Crepe Sand. (Nutella)
-        (17,4,0.15),(17,46,0.05),(17,16,1),
-        -- 18 Fatayer Sujuk
-        (18,1,0.15),(18,8,0.08),(18,11,0.06),
-        -- 19 Fatayer Minced Beef
-        (19,1,0.15),(19,5,0.10),(19,22,0.03),
-        -- 20 Cherry Napoli
-        (20,4,0.15),(20,45,0.08),(20,15,0.05),(20,16,1);");
-
-            // ══════════════════════════════════════════
             // ── Users ──
             // ══════════════════════════════════════════
             Exec(conn, @"INSERT INTO Users(Username,FullName,PinHash,Role) VALUES
@@ -535,7 +539,8 @@ namespace PizzaPOS.Data
         ('EpsonPort',     'USB');");
 
             // ══════════════════════════════════════════
-            // ── حساب التكاليف تلقائياً ──
+            // ── حساب التكاليف تلقائياً (بدون تأثير — التكلفة متسجلة
+            //    مباشرة في Products.Cost من شيت التسعير الأصلي) ──
             // ══════════════════════════════════════════
             CalcProductCosts(conn);
         }

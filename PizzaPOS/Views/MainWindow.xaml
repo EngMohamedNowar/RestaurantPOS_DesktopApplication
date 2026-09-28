@@ -673,7 +673,7 @@
                     <!-- Order Type -->
                     <Border Grid.Row="1" Padding="10,7" BorderBrush="#1e2d4a" BorderThickness="0,0,0,1" Background="#0a0f1c">
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
-                            <RadioButton Content="🍽 صالة" GroupName="ot" Style="{StaticResource OTypeBtn}"
+                            <RadioButton x:Name="otDine" Content="🍽 صالة" GroupName="ot" Style="{StaticResource OTypeBtn}"
                                          Command="{Binding SetOrderTypeCmd}" CommandParameter="صالة">
                                 <RadioButton.Resources>
                                     <Style TargetType="Border">
@@ -681,9 +681,9 @@
                                     </Style>
                                 </RadioButton.Resources>
                             </RadioButton>
-                            <RadioButton Content="🥡 تيك أواي" GroupName="ot" Style="{StaticResource OTypeBtn}"
+                            <RadioButton x:Name="otTake" Content="🥡 تيك أواي" GroupName="ot" Style="{StaticResource OTypeBtn}"
                                          Command="{Binding SetOrderTypeCmd}" CommandParameter="تيك أواي"/>
-                            <RadioButton Content="🛵 ديلفري" GroupName="ot" IsChecked="True" Style="{StaticResource OTypeBtn}"
+                            <RadioButton x:Name="otDelivery" Content="🛵 ديلفري" GroupName="ot" IsChecked="True" Style="{StaticResource OTypeBtn}"
                                          Command="{Binding SetOrderTypeCmd}" CommandParameter="ديلفري">
                                 <RadioButton.Resources>
                                     <Style TargetType="Border">

@@ -545,8 +545,8 @@ namespace PizzaPOS.ViewModels
         {
             OrderItems.Clear();
             _discInput = ""; _notes = "";
-            _orderType = OrderTypeConst.Delivery;
-            Notify(nameof(OrderType));
+            // _orderType مش بيتغير هنا — الأوردر الجديد يفضل على آخر
+            // نوع متحтّم (صالة/تيك أواي/ديلفري) بدل ما يرجع دليفري.
             Notify(nameof(DiscountInput));
             Notify(nameof(Notes));
             // الـ default بيشتغل بس لو اتقرا صح — ParsRate بيرفض النص

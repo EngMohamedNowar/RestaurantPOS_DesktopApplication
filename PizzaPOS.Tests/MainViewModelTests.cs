@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using Microsoft.Data.Sqlite;
 using PizzaPOS.Data;
+using PizzaPOS.Models;
 using PizzaPOS.ViewModels;
 using Xunit;
 
@@ -332,6 +333,32 @@ namespace PizzaPOS.Tests
             Assert.NotEqual(
                 Path.GetFullPath(DatabaseHelper.DbPath),
                 Path.GetFullPath(_dbPath));
+        }
+
+        [Fact]
+        public void Constructor_DefaultOrderType_IsDelivery()
+        {
+            // The XAML hardcodes IsChecked="True" on the delivery radio, so
+            // the viewmodel's default must stay in sync with it.
+            var vm = NewVm();
+
+            Assert.Equal(OrderType.Delivery, vm.OrderType);
+        }
+
+        [Fact]
+        public void ClearOrder_KeepsTheLastSelectedOrderType()
+        {
+            // Regression: ClearOrder used to force the type back to Delivery
+            // after every completed order, so the next order silently changed
+            // type while the radios still showed the cashier's last choice.
+            var vm = NewVm();
+
+            foreach (var type in new[] { OrderType.DineIn, OrderType.Takeaway, OrderType.Delivery })
+            {
+                vm.OrderType = type;
+                vm.ClearOrder();
+                Assert.Equal(type, vm.OrderType);
+            }
         }
     }
 }

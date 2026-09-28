@@ -2,6 +2,7 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Threading;
+using PizzaPOS.Models;
 using PizzaPOS.Services;
 using PizzaPOS.ViewModels;
 
@@ -24,6 +25,16 @@ namespace PizzaPOS.Views
                 // ShutdownMode=OnExplicitShutdown → من غير السطر ده
                 // النافذة بتتقفل والـprocess بيفضل شغال مخفي في Task Manager.
                 Closed += (_, _) => Application.Current?.Shutdown();
+
+                // أزرار النوع (صالة/تيك أواي/ديلفري) لازم تتبع الـ VM —
+                // بيتوسّخوا لو رجّعنا أوردر معلّق بنوع مختلف عن المعروض.
+                _vm.PropertyChanged += (_, e) =>
+                {
+                    if (e.PropertyName != nameof(MainViewModel.OrderType)) return;
+                    otDine.IsChecked = _vm.OrderType == OrderType.DineIn;
+                    otTake.IsChecked = _vm.OrderType == OrderType.Takeaway;
+                    otDelivery.IsChecked = _vm.OrderType == OrderType.Delivery;
+                };
             }
             catch (Exception ex)
             {

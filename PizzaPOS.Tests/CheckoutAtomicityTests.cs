@@ -3,6 +3,7 @@ using Microsoft.Data.Sqlite;
 using PizzaPOS.Data;
 using PizzaPOS.Models;
 using PizzaPOS.Services;
+using PizzaPOS.ViewModels;
 using Xunit;
 
 namespace PizzaPOS.Tests;
@@ -83,6 +84,8 @@ public class CheckoutAtomicityTests : IDisposable
             ProductId INTEGER, Name TEXT, Price REAL DEFAULT 0, Cost REAL DEFAULT 0,
             Qty REAL DEFAULT 0, Subtotal REAL DEFAULT 0, SizeName TEXT, ExtrasNote TEXT,
             SizeExtraPrice REAL DEFAULT 0, ExtrasPrice REAL DEFAULT 0);");
+        Exec(c, @"CREATE TABLE OrderCounters (
+            Day TEXT PRIMARY KEY, LastNumber INTEGER NOT NULL DEFAULT 0);");
 
         Exec(c, "INSERT INTO Ingredients(Id,Name,Unit,Stock,CostPerUnit,IsActive) VALUES(1,'عجين','كجم',10,5,1);");
         Exec(c, "INSERT INTO Products(Id,Name,Price) VALUES(1,'مارgrande',100);");
@@ -133,22 +136,25 @@ public class CheckoutAtomicityTests : IDisposable
     /// الاختبار ده لازم يقودنا نحدّثه (ولو يبقى_skipped نشوف).
     /// </summary>
     StockDeductionResult CommitCheckout(Order order)
-    {
-        using var conn = _db.OpenConnection();
-        using var tx = conn.BeginTransaction();
-        try
+        => DbErrors.RetryOnBusy(() =>
         {
-            _db.SaveOrder(order, conn, tx);
-            var res = _inv.DeductForOrder(
-                order.Items, order.UserId, order.OrderNumber, conn, tx);
-            if (order.CustomerId > 0)
-                _db.AddLoyaltyPoints(
-                    order.CustomerId, (int)(order.Total / 10), conn, tx);
-            tx.Commit();
-            return res;
-        }
-        catch { tx.Rollback(); throw; }
-    }
+            using var conn = _db.OpenConnection();
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                order.OrderNumber = _db.GetNextOrderNumber(conn, tx);
+                _db.SaveOrder(order, conn, tx);
+                var res = _inv.DeductForOrder(
+                    order.Items, order.UserId, order.OrderNumber, conn, tx);
+                if (order.CustomerId > 0)
+                    _db.AddLoyaltyPoints(
+                        order.CustomerId,
+                        (int)(order.Total / MainViewModel.LoyaltyPointsPerEgp), conn, tx);
+                tx.Commit();
+                return res;
+            }
+            catch { tx.Rollback(); throw; }
+        });
 
     // ── المسار السليم ─────────────────────────────────────
 
@@ -169,6 +175,84 @@ public class CheckoutAtomicityTests : IDisposable
         CommitCheckout(MakeOrder());
 
         Assert.Equal(1, Scalar("SELECT COUNT(*) FROM OrderItems"));
+    }
+
+    // ── ترقيم الأوردرات: مفيش فجوات ──────────────────────
+
+    [Fact]
+    public void OrderNumbersAreSequentialAcrossSuccessfulCheckouts()
+    {
+        CommitCheckout(MakeOrder());
+        CommitCheckout(MakeOrder());
+        CommitCheckout(MakeOrder());
+
+        var numbers = Numbers();
+        Assert.Equal(3, numbers.Count);
+        Assert.Equal(DateTime.Now.ToString("yyyyMMdd"), numbers[0].Day);
+        Assert.Equal(new long[] { 1, 2, 3 }, numbers.ConvertAll(n => n.Seq));
+    }
+
+    [Fact]
+    public void RolledBackCheckout_DoesNotBurnAnOrderNumber()
+    {
+        // ده بالظبط الـ bug القديم: الرقم كان بيتحسب بـ COUNT(*)+1
+        // برّه الـ transaction، فلو الـ commit فشل الرقم كان بيتبتلع
+        // وبيبقى فيه فجوة في الترقيم.
+        using (var c = Open())
+            Exec(c, "DROP TABLE Customers;");
+        Assert.Throws<SqliteException>(() => CommitCheckout(MakeOrder(customerId: 7)));
+
+        // لازم العدداد يرجع صفر
+        Assert.Equal(0, Scalar("SELECT COALESCE(SUM(LastNumber),0) FROM OrderCounters"));
+
+        CommitCheckout(MakeOrder());
+        Assert.Equal(1, Numbers()[0].Seq);
+    }
+
+    [Fact]
+    public void CancelledOrders_DoNotCreateGaps()
+    {
+        // الكود القديم كان COUNT(*)+1 فوق جدول Orders، فأي أوردر ملغى
+        // كان بيعمل فجوة مرئية في الترقيم. الإلغاء في التطبيق بيغيّر
+        // الـ Status مش بيمسح السطر، بس الجواب لازم يبقى واحد:
+        // العدّاد مستقل عن جدول الأوردرات.
+        CommitCheckout(MakeOrder());
+        CommitCheckout(MakeOrder());
+        using (var c = Open())
+            Exec(c, "UPDATE Orders SET Status='cancelled' WHERE OrderNumber LIKE '%-0002';");
+
+        CommitCheckout(MakeOrder());
+        Assert.Equal(3, Numbers().ConvertAll(n => n.Seq)[2]);
+    }
+
+    [Fact]
+    public void PreviewNumber_DoesNotConsumeTheCounter()
+    {
+        // GetNextOrderNumber() بدون transaction دالة معاينة بتظهر للمستخدم.
+        // لو هي حجزت الرقم كانت هتبوظ الترقيم، ولو الرقم اللي بتعرضه
+        // مختلف عن اللي هيحصل فعلاً ده بيبوّض الكاشير.
+        var preview = _db.GetNextOrderNumber();
+        var preview2 = _db.GetNextOrderNumber();
+        Assert.Equal(preview, preview2);
+
+        CommitCheckout(MakeOrder());
+        Assert.Equal(preview, Numbers()[0].Number);
+    }
+
+    List<(string Day, long Seq, string Number)> Numbers()
+    {
+        using var c = Open();
+        using var k = c.CreateCommand();
+        k.CommandText = "SELECT OrderNumber FROM Orders ORDER BY Id";
+        var list = new List<(string, long, string)>();
+        using var r = k.ExecuteReader();
+        while (r.Read())
+        {
+            var s = r.GetString(0);
+            if (s.Length < 10) continue;
+            list.Add((s[..8], long.Parse(s[9..]), s));
+        }
+        return list;
     }
 
     // ── الفشل لازم يرجّع كل الخطوة اللي قبله ─────────────

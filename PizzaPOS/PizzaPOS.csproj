@@ -8,12 +8,15 @@
 		<ApplicationIcon>pizza.ico</ApplicationIcon>
 	</PropertyGroup>
 	<ItemGroup>
+		<!--
+			System.Drawing.Common و System.Text.Encoding.CodePages اتشالوا من هنا:
+			الـ Windows Desktop SDK في .NET 10 بيجيبهم لوحده (NU1510)، و
+			System.Text.Encoding.CodePages مفيش أي usage له في الكود أصلاً.
+		-->
 		<PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.11" />
 		<PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />
-		<PackageReference Include="System.Drawing.Common" Version="10.0.11" />
 		<PackageReference Include="System.IO.Ports" Version="10.0.11" />
 		<PackageReference Include="ClosedXML" Version="0.105.1" />
-		<PackageReference Include="System.Text.Encoding.CodePages" Version="10.0.11" />
 	</ItemGroup>
 	<ItemGroup>
 		<Resource Include="pizza.ico" />

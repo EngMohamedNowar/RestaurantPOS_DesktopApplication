@@ -18,6 +18,12 @@ namespace PizzaPOS.ViewModels
 {
     public class MainViewModel : INotifyPropertyChanged
     {
+        /// <summary>كام نقطة الولاء لكل جنيه. الرقم كان مكتوب /10 جوّه
+        /// الكود، فكان مخفي على صاحب المطعم إنه يقدر يغيّره. لو عايز
+        /// تغيّره من غير rebuild، حطّه في Settings تحت مفتاح
+        /// LoyaltyPointsPerEgp.</summary>
+        public const int LoyaltyPointsPerEgp = 10;
+
         public event PropertyChangedEventHandler? PropertyChanged;
         void Notify([CallerMemberName] string? n = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
@@ -385,7 +391,6 @@ namespace PizzaPOS.ViewModels
 
             var order = new Order
             {
-                OrderNumber = _db.GetNextOrderNumber(),
                 ShiftId = SessionService.CurrentShift?.Id ?? 0,
                 UserId = SessionService.CurrentUser?.Id ?? 0,
                 OrderType = _orderType,
@@ -457,28 +462,38 @@ namespace PizzaPOS.ViewModels
         /// بتبنيهم كلهم على CSFor(path) واحد.
         /// </summary>
         StockDeductionResult CommitCheckout(Order order, List<OrderItem> snapshot)
-        {
-            using var conn = _db.OpenConnection();
-            using var tx = conn.BeginTransaction();
-            try
+            // الـ retry بيلفّ الـ transaction كله مش خطوة جوه: لو الـ DB
+            // كانت مقفولة، الـ transaction اتفتحت وم.Unlock اتقفل — ما ينفع
+            // نعيد محاولة جوّاها.
+            => DbErrors.RetryOnBusy(() =>
             {
-                _db.SaveOrder(order, conn, tx);
-
-                var res = _inv.DeductForOrder(
-                    snapshot, order.UserId, order.OrderNumber, conn, tx);
-
-                // Loyalty: 1 point per 10 EGP spent
-                if (order.CustomerId > 0)
+                using var conn = _db.OpenConnection();
+                using var tx = conn.BeginTransaction();
+                try
                 {
-                    int earnedPoints = (int)(order.Total / 10);
-                    _db.AddLoyaltyPoints(order.CustomerId, earnedPoints, conn, tx);
-                }
+                    // الرقم بيتحجز هنا جوّه الـ transaction، مش قبلها. لو
+                    // الحفظ أو الخصم فشل، الـ rollback بيرجّع العدّاد تاني
+                    // مفيش فجوة في الترقيم. نفس الرقم كمان بينفع لـ
+                    // DeductForOrder في الملاحظة بتاعته.
+                    order.OrderNumber = _db.GetNextOrderNumber(conn, tx);
 
-                tx.Commit();
-                return res;
-            }
-            catch { tx.Rollback(); throw; }
-        }
+                    _db.SaveOrder(order, conn, tx);
+
+                    var res = _inv.DeductForOrder(
+                        snapshot, order.UserId, order.OrderNumber, conn, tx);
+
+                    // الولاء: نقطة لكل 10 جنيه
+                    if (order.CustomerId > 0)
+                    {
+                        int earnedPoints = (int)(order.Total / LoyaltyPointsPerEgp);
+                        _db.AddLoyaltyPoints(order.CustomerId, earnedPoints, conn, tx);
+                    }
+
+                    tx.Commit();
+                    return res;
+                }
+                catch { tx.Rollback(); throw; }
+            });
 
         // ── Hold / Resume ────────────────────────────
         void HoldOrder()

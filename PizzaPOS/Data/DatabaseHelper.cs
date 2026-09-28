@@ -1,4 +1,4 @@
-﻿// Data/DatabaseHelper.cs
+// Data/DatabaseHelper.cs
 using System;
 using System.IO;
 using System.Threading.Tasks;
@@ -117,10 +117,22 @@ namespace PizzaPOS.Data
             => ex.SqliteErrorCode == 1
                && ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase);
 
-        public static void Initialize()
+        public static void Initialize() => Initialize(DbPath);
+
+        /// <summary>
+        /// نفس <see cref="Initialize()"/> بس على مسار محدد.
+        ///
+        /// السبب إن migrations ومخططات الـ DB مكانش ليهم أي تغطية اختبار:
+        /// كل اختبار كان بيعمل الـ schema بإيده، يعني لو migration في
+        /// الإنتاج كانت غلط محدش كان هيعرف. الدالة دي بتخلّي الاختبار
+        /// ينادي نفس الكود الحقيقي على ملف مؤقت.
+        /// </summary>
+        public static void Initialize(string dbPath)
         {
-            Directory.CreateDirectory(Path.GetDirectoryName(DbPath)!);
-            using var conn = Open();
+            Directory.CreateDirectory(Path.GetDirectoryName(dbPath)!);
+            using var conn = new SqliteConnection(CSFor(dbPath));
+            conn.Open();
+            Configure(conn);
 
             Exec(conn, "PRAGMA journal_mode=WAL;");
             Exec(conn, "PRAGMA foreign_keys=ON;");
@@ -209,31 +221,6 @@ namespace PizzaPOS.Data
 
             TryMigrate(conn, "ALTER TABLE Users ADD COLUMN MustChangePin INTEGER DEFAULT 0", "Users.MustChangePin");
 
-            // ── صورة الوردية: قيد على مستوى قاعدة البيانات ──
-            //
-            // OpenShift كان فيه check-then-act: GetOpenShift وبعدين INSERT.
-            // ده TOCTOU — الـ single-instance بيمنع processes تانية، بس جوه
-            // نفس الـ process نداءين قريبين ممكن يعدّوا الـ check مع بعض
-            // ويقفلوا ورديتين لنفس اليوزر، فالتسوية بتتقسّم والـ difference
-            // في كل واحد بيبقى غلط.
-            //
-            // partial unique index بيخلي الـ DB نفسه هو اللي يرفض.
-            // (SQLite داعم partial indexes من 3.8.0).
-            //
-            // مهم: لازم يتعمل normalization قبل الإنشاء — قواعد قديمة
-            // ممكن يكون فيها أكتر من Status='open' لنفس اليوزر (من
-            // الـ double-click bug ده)، و CREATE INDEX هيفشل عندها
-            // وmigration هتتقفل بـ error كل تشغيل. فنقفل الأقدم.
-            Exec(conn, @"UPDATE Shifts SET Status='closed',
-                ClosedAt=COALESCE(ClosedAt, datetime('now','localtime')),
-                ClosingCash=COALESCE(ClosingCash, 0),
-                ExpectedCash=COALESCE(ExpectedCash, 0)
-                WHERE Id NOT IN (
-                    SELECT MAX(Id) FROM Shifts WHERE Status='open'
-                    GROUP BY UserId);");
-            Exec(conn, @"CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_OneOpenPerUser
-                ON Shifts(UserId) WHERE Status='open';");
-
             // ── Bootstrap security: أي حساب ما زال على SHA256 القديم (64 محرف hex)
             //    معناها إن الـ PIN لسه هو الافتراضي المعلن في الكود، فجبره على التغيير.
             //
@@ -253,6 +240,32 @@ namespace PizzaPOS.Data
                 OpenedAt     TEXT    DEFAULT (datetime('now','localtime')),
                 ClosedAt     TEXT,
                 Status       TEXT    DEFAULT 'open');");
+
+            // لازم التسوية والـ index ييجوا **بعد** إنشاء جدول Shifts.
+            // كانوا قبله، فأي تثبيت جديد (DB فاضية) كان Initialize
+            // بيرمي "no such table: Shifts" عند أول تشغيل.
+            //
+            // التسوية: نفس الـ process نداءين قريبين ممكن يعدّوا الـ check مع بعض
+            // ويقفلوا ورديتين لنفس اليوزر، فالتسوية بتتقسّم والـ difference
+            // في كل واحد بيبقى غلط.
+            //
+            // partial unique index بيخلي الـ DB نفسه هو اللي يرفض.
+            // (SQLite داعم partial indexes من 3.8.0).
+            //
+            // مهم: لازم يتعمل normalization قبل الإنشاء — قواعد قديمة
+            // ممكن يكون فيها أكتر من Status='open' لنفس اليوزر (من
+            // الـ double-click bug ده)، و CREATE INDEX هيفشل عندها
+            // وmigration هتتقفل بـ error كل تشغيل. فنقفل الأقدم.
+            TryMigrate(conn, @"UPDATE Shifts SET Status='closed',
+                ClosedAt=COALESCE(ClosedAt, datetime('now','localtime')),
+                ClosingCash=COALESCE(ClosingCash, 0),
+                ExpectedCash=COALESCE(ExpectedCash, 0)
+                WHERE Id NOT IN (
+                    SELECT MAX(Id) FROM Shifts WHERE Status='open'
+                    GROUP BY UserId);", "Shifts open-shift reconciliation");
+
+            TryMigrate(conn, @"CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_OneOpenPerUser
+                ON Shifts(UserId) WHERE Status='open';", "Shifts one-open-per-user index");
 
             // ── Customers ──
             Exec(conn, @"CREATE TABLE IF NOT EXISTS Customers (
@@ -309,6 +322,27 @@ namespace PizzaPOS.Data
             TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN DeliveryStatus  TEXT    DEFAULT ''", "Orders.DeliveryStatus");
             TryMigrate(conn, "ALTER TABLE Orders ADD COLUMN Status TEXT DEFAULT 'new'", "Orders.Status");
             TryMigrate(conn, "UPDATE Orders SET Status='completed' WHERE Status IS NULL OR Status=''", "Orders.Status cleanup");
+
+            // ── OrderCounters ──
+            // عدّاد مستقل لكل يوم. الكود القديم كان بيحسب رقم الأوردر
+            // بـ COUNT(*)+1، فأي أوردر ملغى أو transaction راحت rollback
+            // كان بيعمل فجوة في الترقيم. العدّاد ده بيتحرك جوه الـ
+            // transaction نفسه، فالـ rollback بيرجّعه.
+            Exec(conn, @"CREATE TABLE IF NOT EXISTS OrderCounters (
+                Day       TEXT    PRIMARY KEY,
+                LastNumber INTEGER NOT NULL DEFAULT 0);");
+
+            // Backfill: start the counter at the highest number already in
+            // Orders so we never re-issue a number from an old order.
+            // Format is yyyyMMdd-NNNN, so the seq starts at char 10.
+            TryMigrate(conn, @"INSERT INTO OrderCounters(Day, LastNumber)
+                SELECT substr(OrderNumber, 1, 8), MAX(CAST(substr(OrderNumber, 10) AS INTEGER))
+                FROM Orders
+                WHERE OrderNumber LIKE '________-____'
+                  AND CAST(substr(OrderNumber, 10) AS INTEGER) > 0
+                GROUP BY substr(OrderNumber, 1, 8)
+                ON CONFLICT(Day) DO UPDATE SET LastNumber = MAX(LastNumber, excluded.LastNumber);",
+                "OrderCounters backfill");
 
             // ── Products migration (DB قديمة قبل إضافة الوصف) ──
             TryMigrate(conn, "ALTER TABLE Products ADD COLUMN Description TEXT DEFAULT ''", "Products.Description");

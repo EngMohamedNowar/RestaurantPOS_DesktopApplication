@@ -534,9 +534,9 @@ namespace PizzaPOS.Views
             CustomerId = cust.Id;
             DeliveryFee = fee;
 
-            if (_cbDriver.SelectedItem is ComboBoxItem ci && (int)(ci.Tag ?? 0) > 0)
+            if (_cbDriver.SelectedItem is ComboBoxItem ci && ci.Tag is int driverId && driverId > 0)
             {
-                DriverId = (int)ci.Tag;
+                DriverId = driverId;
                 DriverName = _drivers.FirstOrDefault(d => d.Id == DriverId)?.Name ?? "";
             }
 
@@ -560,9 +560,9 @@ namespace PizzaPOS.Views
             DeliveryAddress = _tbAddress.Text.Trim();
             DeliveryFee = fee;
 
-            if (_cbDriver.SelectedItem is ComboBoxItem ci && (int)(ci.Tag ?? 0) > 0)
+            if (_cbDriver.SelectedItem is ComboBoxItem ci && ci.Tag is int driverId && driverId > 0)
             {
-                DriverId = (int)ci.Tag;
+                DriverId = driverId;
                 DriverName = _drivers.FirstOrDefault(d => d.Id == DriverId)?.Name ?? "";
             }
 

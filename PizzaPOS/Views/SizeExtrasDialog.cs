@@ -21,7 +21,6 @@ namespace PizzaPOS.Views
 
         ProductSize? _selectedSize;
         TextBlock _totalTxt = null!;
-        TextBlock _totalLabelTxt = null!;
 
         SolidColorBrush B(string hex) =>
             new((Color)ColorConverter.ConvertFromString(hex));

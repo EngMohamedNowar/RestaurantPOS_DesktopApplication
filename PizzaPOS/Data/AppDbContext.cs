@@ -817,13 +817,47 @@ namespace PizzaPOS.Data
         }
 
         // ── Orders ──────────────────────────────────
+        /// <summary>
+        /// رقم الأوردر المتوقع **للمعاينة فقط** — ما بيحجزش ولا بيخصم.
+        ///
+        /// الرقم الحقيقي بيتحدد جوه الـ transaction وقت الحفظ
+        /// (<see cref="GetNextOrderNumber(SqliteConnection, SqliteTransaction)"/>)،
+        /// عشان لو الـ commit فشل الرقم ميتحجزش. الدالة دي للعرض بس،
+        /// فمحصلش نسختين مختلفتين في نفس اللحظة.
+        /// </summary>
         public string GetNextOrderNumber()
         {
             using var c = Open();
             var cmd = c.CreateCommand();
-            cmd.CommandText = "SELECT COUNT(*)+1 FROM Orders WHERE date(CreatedAt)=date('now','localtime')";
+            cmd.CommandText = @"SELECT COALESCE(MAX(LastNumber), 0) + 1
+                FROM OrderCounters WHERE Day = @d";
+            cmd.Parameters.AddWithValue("@d", OrderDay());
             long n = (long)(cmd.ExecuteScalar() ?? 1L);
-            return $"{DateTime.Now:yyyyMMdd}-{n:D4}";
+            return FormatOrderNumber(n);
+        }
+
+        static string OrderDay() => DateTime.Now.ToString("yyyyMMdd");
+
+        static string FormatOrderNumber(long n) => $"{DateTime.Now:yyyyMMdd}-{n:D4}";
+
+        /// <summary>
+        /// يحجز رقم الأوردر جوه الـ transaction وبيرجعه.
+        ///
+        /// الكود القديم كان بيحسب الرقم بـ COUNT(*)+1 **بره** الـ transaction،
+        /// وده كان بيعمل فجوات: لو الـ commit راح rollback، الرقم بيتبتلع
+        /// من غير ما يتسجّل. العدّاد هنا بيزيد جوّه نفس الـ transaction، فالـ
+        /// rollback بيرجّعه كمان — يعني أرقام متصلة من غير فجوات.
+        /// </summary>
+        public string GetNextOrderNumber(SqliteConnection conn, SqliteTransaction tx)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.Transaction = tx;
+            cmd.CommandText = @"INSERT INTO OrderCounters(Day, LastNumber) VALUES(@d, 1)
+                ON CONFLICT(Day) DO UPDATE SET LastNumber = LastNumber + 1
+                RETURNING LastNumber;";
+            cmd.Parameters.AddWithValue("@d", OrderDay());
+            long n = (long)cmd.ExecuteScalar()!;
+            return FormatOrderNumber(n);
         }
 
         public int SaveOrder(Order o)

@@ -70,8 +70,8 @@ namespace PizzaPOS.Views
             var btnCopyHwid = UiHelper.MakeBtn("نسخ", "#444466", Brushes.White, () =>
             {
                 Clipboard.SetText(HardwareId.GetShortId());
-                _txtStatus.Text = "تم نسخ الـ Hardware ID!";
-                _txtStatus.Foreground = UiHelper.B("#4CAF50");
+                _txtStatus?.Text = "تم نسخ الـ Hardware ID!";
+                _txtStatus?.Foreground = UiHelper.B("#4CAF50");
             }, 8, 11, 0, "6");
             btnCopyHwid.Width = 50;
             btnCopyHwid.HorizontalAlignment = HorizontalAlignment.Right;

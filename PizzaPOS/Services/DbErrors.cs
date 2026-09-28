@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using System.Windows;
 using Microsoft.Data.Sqlite;
 
@@ -50,6 +51,40 @@ public static class DbErrors
 
         return "حصل خطأ غير متوقع:\n\n" + ex.Message;
     }
+
+    /// <summary>
+    /// يشغّل عملية ويعيد المحاولة لو قاعدة البيانات مشغولة.
+    ///
+    /// busy_timeout (5 ثواني) بيخلي SQLite يستنى جوه عملية واحدة. بس لو
+    /// القفل فضل أكتر من كده — backup أو مزامنة — العملية بترمي. إعادة
+    /// المحاولة هنا بتغطي الحالتين، والـ backoff بيمنعنا نضغط على DB
+    /// مفتوحة.
+    ///
+    /// مهم: اللازم تحطّ العملية كاملة (الـ transaction كله) جوه الـ lambda.
+    /// لو الـ error جه من نص transaction، الـ transaction نفسها فاسدة
+    /// ومحتاجة تتعمل من الأول، فإعادة محاولة نصها بس هتبوظ.
+    /// </summary>
+    public static T RetryOnBusy<T>(Func<T> operation, int maxAttempts = 3)
+    {
+        if (maxAttempts < 1) throw new ArgumentOutOfRangeException(nameof(maxAttempts));
+
+        for (int attempt = 1; ; attempt++)
+        {
+            try
+            {
+                return operation();
+            }
+            catch (Exception ex) when (IsBusy(ex) && attempt < maxAttempts)
+            {
+                AppLogger.Warn(
+                    $"DB busy on attempt {attempt}/{maxAttempts}, retrying: {ex.Message}");
+                Thread.Sleep(200 * attempt);
+            }
+        }
+    }
+
+    public static void RetryOnBusy(Action operation, int maxAttempts = 3)
+        => RetryOnBusy<bool>(() => { operation(); return true; }, maxAttempts);
 
     /// <summary>
     /// سطر واحد بتستدعيه أي عملية حذف/حفظ: يسجّل في اللوج المستخدم

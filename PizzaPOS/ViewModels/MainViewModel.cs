@@ -28,9 +28,27 @@ namespace PizzaPOS.ViewModels
         void Notify([CallerMemberName] string? n = null) =>
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(n));
 
-        readonly AppDbContext _db = new();
-        readonly InventoryService _inv = new();
-        readonly EpsonService _printer = new();
+        readonly AppDbContext _db;
+        readonly InventoryService _inv;
+        readonly EpsonService _printer;
+
+        /// <summary>
+        /// بيشتغل على قاعدة البيانات الحقيقية. ده اللي الـ production بيستخدمه.
+        /// </summary>
+        public MainViewModel() : this(DatabaseHelper.CS) { }
+
+        /// <summary>
+        /// بيشتغل على connection string معطى. موجود عشان الاختبارات تقدر
+        /// تبني ViewModel على DB مؤقتة بدل ما تفتح قاعدة بيانات صاحب
+        /// المطعم بالغلط.
+        /// </summary>
+        public MainViewModel(string connectionString)
+        {
+            _db = new AppDbContext(connectionString);
+            _inv = new InventoryService(connectionString);
+            _printer = new EpsonService();
+            Init();
+        }
 
         public ObservableCollection<Category> Categories { get; } = new();
         public ObservableCollection<Product> Products { get; } = new();
@@ -149,8 +167,8 @@ namespace PizzaPOS.ViewModels
             SelectedCategoryId = (int?)p == 0 ? null : (int?)p);
         public ICommand CloseShiftCmd => new RelayCommand(_ => CloseShift());
 
-        // ── Constructor ──────────────────────────────
-        public MainViewModel()
+        // ── Constructor body ─────────────────────────
+        void Init()
         {
             OrderItems.CollectionChanged += (_, _) =>
             {

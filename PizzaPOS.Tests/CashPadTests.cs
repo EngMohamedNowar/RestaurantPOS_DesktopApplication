@@ -1,5 +1,6 @@
 using System;
 using System.Globalization;
+using System.Text.RegularExpressions;
 using PizzaPOS.Services;
 using Xunit;
 
@@ -436,6 +437,97 @@ namespace PizzaPOS.Tests
         }
 
         // ── helpers ──────────────────────────────────
+
+        [Fact]
+        public void QuickAmount_QPrefix_Tag_SetsAmount()
+        {
+            var p = Pad(100);
+
+            p.Press("Q50");
+
+            Assert.Equal("50", p.Input);
+        }
+
+        [Fact]
+        public void QuickAmount_AllXamlTags_SetTheirAmount()
+        {
+            foreach (var pair in new[] { ("Q50", "50"), ("Q100", "100"),
+                                         ("Q200", "200"), ("Q500", "500") })
+            {
+                var p = Pad(1000);
+                p.Press(pair.Item1);
+                Assert.Equal(pair.Item2, p.Input);
+            }
+        }
+
+        [Fact]
+        public void QuickAmount_UnknownQTag_IsIgnored()
+        {
+            var p = Pad(100);
+            p.Press("7");
+
+            p.Press("Q999");
+
+            Assert.Equal("7", p.Input);
+        }
+
+        [Fact]
+        public void DoubleZeroTag_AppendsTwoZeros()
+        {
+            var p = Pad(100);
+            p.Press("1");
+
+            p.Press("00");
+
+            Assert.Equal("100", p.Input);
+        }
+
+        [Fact]
+        public void DoubleZeroTag_OnEmptyInput_GivesZero()
+        {
+            var p = Pad(100);
+
+            p.Press("00");
+
+            Assert.Equal("0", p.Input);
+        }
+
+        [Fact]
+        public void EveryTagInCashDialogXaml_ChangesPadState()
+        {
+            string? xaml = null;
+            var dir = new System.IO.DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null && xaml == null)
+            {
+                var candidate = System.IO.Path.Combine(
+                    dir.FullName, "PizzaPOS", "Views", "CashDialog.xaml");
+                if (System.IO.File.Exists(candidate)) xaml = candidate;
+                dir = dir.Parent;
+            }
+            Assert.True(xaml != null,
+                "CashDialog.xaml not found walking up from " + AppContext.BaseDirectory);
+
+            var text = System.IO.File.ReadAllText(xaml);
+            var tags = Regex.Matches(text, "Tag=\"([^\"]*)\"")
+                .Cast<Match>()
+                .Select(m => m.Groups[1].Value)
+                .Distinct()
+                .ToList();
+
+            Assert.NotEmpty(tags);
+
+            foreach (var tag in tags)
+            {
+                if (tag == "ENTER") continue;
+
+                var p = new CashPad(100);
+                p.Press("7");
+                var before = p.Input;
+                p.Press(tag);
+                Assert.True(p.Input != before,
+                    $"Tag \"{tag}\" in CashDialog.xaml does nothing in CashPad");
+            }
+        }
 
         static double BuildAndReadChange(double total, string keys)
         {

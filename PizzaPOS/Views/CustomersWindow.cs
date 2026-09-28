@@ -29,7 +29,7 @@ namespace PizzaPOS.Views
 
         public CustomersWindow()
         {
-            Title = "ðŸ‘¥ Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡";
+            Title = "👥 إدارة العملاء";
             Width = 1060; Height = 660;
             MinWidth = 900;
             Background = UiHelper.B("#070b14");
@@ -48,7 +48,7 @@ namespace PizzaPOS.Views
             root.RowDefinitions.Add(new RowDefinition());
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            // â•â• Header â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            // ══ Header ══════════════════════════════════════════════════════
             var header = new Border
             {
                 Background = UiHelper.B("#0c1221"),
@@ -78,7 +78,7 @@ namespace PizzaPOS.Views
             };
             iconBorder.Child = new TextBlock
             {
-                Text = "ðŸ‘¥",
+                Text = "👥",
                 FontSize = 22,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
@@ -87,14 +87,14 @@ namespace PizzaPOS.Views
             var titleStack = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             titleStack.Children.Add(new TextBlock
             {
-                Text = "Ø¥Ø¯Ø§Ø±Ø© Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡",
+                Text = "إدارة العملاء",
                 FontSize = 18,
                 FontWeight = FontWeights.Black,
                 Foreground = UiHelper.B("#eef0f2")
             });
             titleStack.Children.Add(new TextBlock
             {
-                Text = "Ø¥Ø¯Ø§Ø±Ø© Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ ÙˆÙ†Ø¸Ø§Ù… Ù†Ù‚Ø§Ø· Ø§Ù„ÙˆÙ„Ø§Ø¡",
+                Text = "إدارة بيانات العملاء ونظام نقاط الولاء",
                 FontSize = 10,
                 Foreground = UiHelper.B("#4a6080"),
                 Margin = new Thickness(0, 3, 0, 0)
@@ -113,7 +113,7 @@ namespace PizzaPOS.Views
                 FontWeight = FontWeights.Bold,
                 Foreground = UiHelper.B("#a78bfa")
             };
-            _customers.CollectionChanged += (_, _) => headerCountTxt.Text = $"{_customers.Count} Ø¹Ù…ÙŠÙ„";
+            _customers.CollectionChanged += (_, _) => headerCountTxt.Text = $"{_customers.Count} عميل";
             countBadge.Child = headerCountTxt;
 
             Grid.SetColumn(iconBorder, 0); hGrid.Children.Add(iconBorder);
@@ -123,7 +123,7 @@ namespace PizzaPOS.Views
             Grid.SetRow(header, 0);
             root.Children.Add(header);
 
-            // â•â• Stats Bar â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            // ══ Stats Bar ══════════════════════════════════════════════════
             var statsBorder = new Border
             {
                 Background = UiHelper.B("#090e1a"),
@@ -158,16 +158,16 @@ namespace PizzaPOS.Views
                 Foreground = UiHelper.B("#E63946")
             };
 
-            statsPanel.Children.Add(UiHelper.MakeStatCard("ðŸ‘¥ Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡", _totalCountTxt, "#a78bfa", "#130f20"));
-            statsPanel.Children.Add(UiHelper.MakeStatCard("â­ Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù†Ù‚Ø§Ø·", _totalPointsTxt, "#06d6a0", "#0a1f18"));
-            statsPanel.Children.Add(UiHelper.MakeStatCard("ðŸ’° Ù…ØªÙˆØ³Ø· Ø§Ù„Ù…Ø´ØªØ±ÙŠØ§Øª", _avgSpendTxt, "#ffd166", "#1a1508"));
-            statsPanel.Children.Add(UiHelper.MakeStatCard("ðŸ† ÙƒØ¨Ø§Ø± Ø§Ù„Ø¹Ù…Ù„Ø§Ø¡ (Ù…Ø§Ø³ÙŠ+Ø°Ù‡Ø¨ÙŠ)", _topTierTxt, "#E63946", "#1a080a"));
+            statsPanel.Children.Add(UiHelper.MakeStatCard("👥 إجمالي العملاء", _totalCountTxt, "#a78bfa", "#130f20"));
+            statsPanel.Children.Add(UiHelper.MakeStatCard("⭐ إجمالي النقاط", _totalPointsTxt, "#06d6a0", "#0a1f18"));
+            statsPanel.Children.Add(UiHelper.MakeStatCard("💰 متوسط المشتريات", _avgSpendTxt, "#ffd166", "#1a1508"));
+            statsPanel.Children.Add(UiHelper.MakeStatCard("🏆 كبار العملاء (ماسي+ذهبي)", _topTierTxt, "#E63946", "#1a080a"));
 
             statsBorder.Child = statsPanel;
             Grid.SetRow(statsBorder, 1);
             root.Children.Add(statsBorder);
 
-            // â•â• Search Bar â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            // ══ Search Bar ══════════════════════════════════════════════════
             var searchBar = new Border
             {
                 Background = UiHelper.B("#0c1221"),
@@ -183,7 +183,7 @@ namespace PizzaPOS.Views
 
             var searchLabel = new TextBlock
             {
-                Text = "ðŸ”  Ø¨Ø­Ø«:",
+                Text = "🔍  بحث:",
                 FontSize = 11,
                 FontWeight = FontWeights.Bold,
                 Foreground = UiHelper.B("#4a6080"),
@@ -202,7 +202,7 @@ namespace PizzaPOS.Views
             Grid.SetRow(searchBar, 2);
             root.Children.Add(searchBar);
 
-            // â•â• DataGrid â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            // ══ DataGrid ═══════════════════════════════════════════════════
             _dg = UiHelper.BuildGrid(
                 accent: "#a78bfa",
                 headerFg: "#ffd166",
@@ -213,7 +213,7 @@ namespace PizzaPOS.Views
 
             _dg.Columns.Add(new DataGridTextColumn
             {
-                Header = "Ø§Ù„Ø§Ø³Ù…",
+                Header = "الاسم",
                 Binding = new Binding("Name"),
                 Width = 140,
                 ElementStyle = new Style(typeof(TextBlock))
@@ -226,18 +226,18 @@ namespace PizzaPOS.Views
                     }
                 }
             });
-            _dg.Columns.Add(UiHelper.Col("Ø§Ù„ØªÙ„ÙŠÙÙˆÙ†", "Phone", 120));
+            _dg.Columns.Add(UiHelper.Col("التليفون", "Phone", 120));
             _dg.Columns.Add(new DataGridTextColumn
             {
-                Header = "Ø§Ù„Ø¹Ù†ÙˆØ§Ù†",
+                Header = "العنوان",
                 Binding = new Binding("Address"),
                 Width = new DataGridLength(1, DataGridLengthUnitType.Star)
             });
-            _dg.Columns.Add(UiHelper.ColInt("Ø§Ù„Ø·Ù„Ø¨Ø§Øª", "TotalOrders", 80, "#ffd166"));
+            _dg.Columns.Add(UiHelper.ColInt("الطلبات", "TotalOrders", 80, "#ffd166"));
             _dg.Columns.Add(new DataGridTextColumn
             {
-                Header = "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„Ù…Ø´ØªØ±ÙŠØ§Øª",
-                Binding = new Binding("TotalSpent") { StringFormat = "{0:F2} Ø¬" },
+                Header = "إجمالي المشتريات",
+                Binding = new Binding("TotalSpent") { StringFormat = "{0:F2} ج" },
                 Width = 130,
                 ElementStyle = new Style(typeof(TextBlock))
                 {
@@ -250,18 +250,18 @@ namespace PizzaPOS.Views
                     }
                 }
             });
-            _dg.Columns.Add(UiHelper.ColInt("Ø§Ù„Ù†Ù‚Ø§Ø·", "LoyaltyPoints", 80, "#a78bfa"));
+            _dg.Columns.Add(UiHelper.ColInt("النقاط", "LoyaltyPoints", 80, "#a78bfa"));
 
-            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
-            //  Ø¹Ù…ÙˆØ¯ Ø§Ù„Ù…Ø³ØªÙˆÙ‰ (Tier) â€” ÙƒÙ„ Ù…Ø³ØªÙˆÙ‰ Ø¨Ù„ÙˆÙ†Ù‡ Ø§Ù„Ù…Ù…ÙŠØ²
-            //  ðŸ’Ž Ù…Ø§Ø³ÙŠ  â†’ Ø£Ø²Ø±Ù‚ Ù…Ø§Ø³ÙŠ ÙØ§ØªØ­ Ù„Ø§Ù…Ø¹
-            //  ðŸ¥‡ Ø°Ù‡Ø¨ÙŠ  â†’ Ø¯Ù‡Ø¨ÙŠ
-            //  ðŸ¥ˆ ÙØ¶ÙŠ   â†’ ÙØ¶ÙŠ
-            //  ðŸ¥‰ Ø¨Ø±ÙˆÙ†Ø²ÙŠ â†’ Ø¨Ø±ÙˆÙ†Ø²ÙŠ
-            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            // ══════════════════════════════════════════════
+            //  عمود المستوى (Tier) — كل مستوى بلونه المميز
+            //  💎 ماسي  → أزرق ماسي فاتح لامع
+            //  🥇 ذهبي  → دهبي
+            //  🥈 فضي   → فضي
+            //  🥉 برونزي → برونزي
+            // ══════════════════════════════════════════════
             var tierCol = new DataGridTemplateColumn
             {
-                Header = "Ø§Ù„Ù…Ø³ØªÙˆÙ‰",
+                Header = "المستوى",
                 Width = 120
             };
             var tierTpl = new DataTemplate();
@@ -280,38 +280,38 @@ namespace PizzaPOS.Views
             tierFactory.AppendChild(tierTxt);
             tierTpl.VisualTree = tierFactory;
 
-            // â”€â”€ Style Ø¨ÙŠØ­Ø¯Ø¯ Ù„ÙˆÙ† ÙƒÙ„ Ù…Ø³ØªÙˆÙ‰ Ø¨Ù†Ø§Ø¡Ù‹ Ø¹Ù„Ù‰ Ù‚ÙŠÙ…Ø© LoyaltyTier â”€â”€
+            // ── Style بيحدد لون كل مستوى بناءً على قيمة LoyaltyTier ──
             var tierBorderStyle = new Style(typeof(Border));
-            // Ø§Ù„Ù„ÙˆÙ† Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠ (Ø¨Ø±ÙˆÙ†Ø²ÙŠ) ÙƒÙ€ fallback
+            // اللون الافتراضي (برونزي) كـ fallback
             tierBorderStyle.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#cd7f32")));
 
             var diamondTrigger = new DataTrigger
             {
                 Binding = new Binding("LoyaltyTier"),
-                Value = "ðŸ’Ž Ù…Ø§Ø³ÙŠ"
+                Value = "💎 ماسي"
             };
-            diamondTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#7dd3ea"))); // Ø£Ø²Ø±Ù‚ Ù…Ø§Ø³ÙŠ ÙØ§ØªØ­
+            diamondTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#7dd3ea"))); // أزرق ماسي فاتح
 
             var goldTrigger = new DataTrigger
             {
                 Binding = new Binding("LoyaltyTier"),
-                Value = "ðŸ¥‡ Ø°Ù‡Ø¨ÙŠ"
+                Value = "🥇 ذهبي"
             };
-            goldTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#ffd700"))); // Ø¯Ù‡Ø¨ÙŠ
+            goldTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#ffd700"))); // دهبي
 
             var silverTrigger = new DataTrigger
             {
                 Binding = new Binding("LoyaltyTier"),
-                Value = "ðŸ¥ˆ ÙØ¶ÙŠ"
+                Value = "🥈 فضي"
             };
-            silverTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#c0c0c0"))); // ÙØ¶ÙŠ
+            silverTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#c0c0c0"))); // فضي
 
             var bronzeTrigger = new DataTrigger
             {
                 Binding = new Binding("LoyaltyTier"),
-                Value = "ðŸ¥‰ Ø¨Ø±ÙˆÙ†Ø²ÙŠ"
+                Value = "🥉 برونزي"
             };
-            bronzeTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#cd7f32"))); // Ø¨Ø±ÙˆÙ†Ø²ÙŠ
+            bronzeTrigger.Setters.Add(new Setter(Border.BackgroundProperty, UiHelper.B("#cd7f32"))); // برونزي
 
             tierBorderStyle.Triggers.Add(diamondTrigger);
             tierBorderStyle.Triggers.Add(goldTrigger);
@@ -320,7 +320,7 @@ namespace PizzaPOS.Views
 
             tierFactory.SetValue(FrameworkElement.StyleProperty, tierBorderStyle);
 
-            // Ù†Øµ Ø§Ù„Ù…Ø³ØªÙˆÙ‰ Ø¯Ø§ÙƒÙ† Ø¯Ø§ÙŠÙ…Ø§Ù‹ Ø¹Ø´Ø§Ù† ÙŠØ¨Ø§Ù† ÙˆØ§Ø¶Ø­ ÙÙˆÙ‚ Ø§Ù„Ø£Ù„ÙˆØ§Ù† Ø§Ù„ÙØ§ØªØ­Ø© Ø¯ÙŠ
+            // نص المستوى داكن دايماً عشان يبان واضح فوق الألوان الفاتحة دي
             tierTxt.SetValue(TextBlock.ForegroundProperty, UiHelper.B("#0a0a14"));
 
             tierCol.CellTemplate = tierTpl;
@@ -349,7 +349,7 @@ namespace PizzaPOS.Views
             Grid.SetRow(gridWrapper, 3);
             root.Children.Add(gridWrapper);
 
-            // â•â• Action Bar â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+            // ══ Action Bar ══════════════════════════════════════════════════
             var actionBar = new Border
             {
                 Background = UiHelper.B("#0c1221"),
@@ -364,7 +364,7 @@ namespace PizzaPOS.Views
             actionGrid.ColumnDefinitions.Add(new ColumnDefinition());
             actionGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            var addBtn = UiHelper.MakeActionButton("âž•  Ø¥Ø¶Ø§ÙØ© Ø¹Ù…ÙŠÙ„", "#06d6a0", UiHelper.B("#0a0a14"));
+            var addBtn = UiHelper.MakeActionButton("➕  إضافة عميل", "#06d6a0", UiHelper.B("#0a0a14"));
             addBtn.Effect = new DropShadowEffect
             {
                 Color = (Color)ColorConverter.ConvertFromString("#06d6a0"),
@@ -374,15 +374,15 @@ namespace PizzaPOS.Views
             };
             addBtn.Click += (_, _) => AddCustomer();
 
-            var editBtn = UiHelper.MakeActionButton("âœï¸  ØªØ¹Ø¯ÙŠÙ„", "#ffd166", UiHelper.B("#0a0a14"));
+            var editBtn = UiHelper.MakeActionButton("✏️  تعديل", "#ffd166", UiHelper.B("#0a0a14"));
             editBtn.Click += (_, _) => EditCustomer();
 
-            var delBtn = UiHelper.MakeActionButton("ðŸ—‘  Ø­Ø°Ù", "#1a0810", UiHelper.B("#E63946"));
+            var delBtn = UiHelper.MakeActionButton("🗑  حذف", "#1a0810", UiHelper.B("#E63946"));
             delBtn.BorderBrush = UiHelper.B("#E63946");
             delBtn.BorderThickness = new Thickness(1);
             delBtn.Click += (_, _) => DeleteCustomer();
 
-            var refreshBtn = UiHelper.MakeActionButton("ðŸ”„  ØªØ­Ø¯ÙŠØ«", "#1e3a5f", UiHelper.B("#7ab8f5"));
+            var refreshBtn = UiHelper.MakeActionButton("🔄  تحديث", "#1e3a5f", UiHelper.B("#7ab8f5"));
             refreshBtn.Click += (_, _) =>
             {
                 _tbSearch.Text = "";
@@ -403,7 +403,7 @@ namespace PizzaPOS.Views
             UpdateStats();
         }
 
-        // â”€â”€ CRUD â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // ── CRUD ─────────────────────────────────────
         void Load(string? search = null)
         {
             _customers.Clear();
@@ -417,8 +417,8 @@ namespace PizzaPOS.Views
             _totalCountTxt.Text = all.Count.ToString();
             _totalPointsTxt.Text = all.Sum(c => c.LoyaltyPoints).ToString("N0");
             _avgSpendTxt.Text = all.Count > 0
-                ? $"{all.Average(c => c.TotalSpent):F2} Ø¬"
-                : "0.00 Ø¬";
+                ? $"{all.Average(c => c.TotalSpent):F2} ج"
+                : "0.00 ج";
             _topTierTxt.Text = all.Count(c =>
                 c.TotalSpent >= 2000).ToString("N0");
         }
@@ -435,7 +435,7 @@ namespace PizzaPOS.Views
         {
             if (_dg.SelectedItem is not Customer c)
             {
-                MessageBox.Show("Ø§Ø®ØªØ± Ø¹Ù…ÙŠÙ„ Ø£ÙˆÙ„Ø§Ù‹", "ØªÙ†Ø¨ÙŠÙ‡",
+                MessageBox.Show("اختر عميل أولاً", "تنبيه",
                     MessageBoxButton.OK, MessageBoxImage.Warning); return;
             }
             var dlg = new CustomerEditDialog(c) { Owner = this };
@@ -448,12 +448,12 @@ namespace PizzaPOS.Views
         {
             if (_dg.SelectedItem is not Customer c)
             {
-                MessageBox.Show("Ø§Ø®ØªØ± Ø¹Ù…ÙŠÙ„ Ø£ÙˆÙ„Ø§Ù‹", "ØªÙ†Ø¨ÙŠÙ‡",
+                MessageBox.Show("اختر عميل أولاً", "تنبيه",
                     MessageBoxButton.OK, MessageBoxImage.Warning); return;
             }
             if (MessageBox.Show(
-                $"Ù‡Ù„ ØªØ±ÙŠØ¯ Ø­Ø°Ù Ø§Ù„Ø¹Ù…ÙŠÙ„ \"{c.Name}\"ØŸ\nØ³ÙŠØªÙ… Ø­Ø°Ù Ø¬Ù…ÙŠØ¹ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¹Ù…ÙŠÙ„ Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹.",
-                "ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø­Ø°Ù",
+                $"هل تريد حذف العميل \"{c.Name}\"؟\nسيتم حذف جميع بيانات العميل نهائياً.",
+                "تأكيد الحذف",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
             try
@@ -462,15 +462,15 @@ namespace PizzaPOS.Views
             }
             catch (Exception ex)
             {
-                DbErrors.Report(ex, "Ø­Ø°Ù Ø§Ù„Ø¹Ù…ÙŠÙ„");
+                DbErrors.Report(ex, "حذف العميل");
                 return;
             }
             Load(_tbSearch.Text.Trim());
         }
 
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        // ══════════════════════════════════════════════════════════════════
         //  CustomerEditDialog
-        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+        // ══════════════════════════════════════════════════════════════════
         public class CustomerEditDialog : Window
         {
             public Customer? Result { get; private set; }
@@ -483,7 +483,7 @@ namespace PizzaPOS.Views
             public CustomerEditDialog(Customer? editing)
             {
                 _editing = editing;
-                Title = editing == null ? "âž• Ø¹Ù…ÙŠÙ„ Ø¬Ø¯ÙŠØ¯" : "âœï¸ ØªØ¹Ø¯ÙŠÙ„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¹Ù…ÙŠÙ„";
+                Title = editing == null ? "➕ عميل جديد" : "✏️ تعديل بيانات العميل";
                 Width = 440;
                 SizeToContent = SizeToContent.Height;
                 Background = UiHelper.B("#070b14");
@@ -501,7 +501,7 @@ namespace PizzaPOS.Views
                 root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
                 root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-                // â”€â”€ Header â”€â”€
+                // ── Header ──
                 var header = new Border
                 {
                     Background = UiHelper.B("#0c1221"),
@@ -524,7 +524,7 @@ namespace PizzaPOS.Views
                 };
                 hIcon.Child = new TextBlock
                 {
-                    Text = _editing == null ? "âž•" : "âœï¸",
+                    Text = _editing == null ? "➕" : "✏️",
                     FontSize = 20,
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
@@ -532,7 +532,7 @@ namespace PizzaPOS.Views
                 var hInfo = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
                 hInfo.Children.Add(new TextBlock
                 {
-                    Text = _editing == null ? "Ø¥Ø¶Ø§ÙØ© Ø¹Ù…ÙŠÙ„ Ø¬Ø¯ÙŠØ¯" : "ØªØ¹Ø¯ÙŠÙ„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¹Ù…ÙŠÙ„",
+                    Text = _editing == null ? "إضافة عميل جديد" : "تعديل بيانات العميل",
                     FontSize = 16,
                     FontWeight = FontWeights.Black,
                     Foreground = _editing == null
@@ -542,8 +542,8 @@ namespace PizzaPOS.Views
                 hInfo.Children.Add(new TextBlock
                 {
                     Text = _editing == null
-                        ? "Ø£Ø¯Ø®Ù„ Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¹Ù…ÙŠÙ„ Ø§Ù„Ø¬Ø¯ÙŠØ¯"
-                        : $"ØªØ¹Ø¯ÙŠÙ„: {_editing.Name}",
+                        ? "أدخل بيانات العميل الجديد"
+                        : $"تعديل: {_editing.Name}",
                     FontSize = 10,
                     Foreground = UiHelper.B("#4a6080"),
                     Margin = new Thickness(0, 3, 0, 0)
@@ -554,25 +554,25 @@ namespace PizzaPOS.Views
                 Grid.SetRow(header, 0);
                 root.Children.Add(header);
 
-                // â”€â”€ Fields â”€â”€
+                // ── Fields ──
                 var fields = new StackPanel { Margin = new Thickness(20, 16, 20, 8) };
 
-                fields.Children.Add(UiHelper.FieldLabel("Ø§Ù„Ø§Ø³Ù… *"));
+                fields.Children.Add(UiHelper.FieldLabel("الاسم *"));
                 _tbName = UiHelper.MakeTB(_editing?.Name ?? "", "#a78bfa");
                 _tbName.Margin = new Thickness(0, 4, 0, 14);
                 fields.Children.Add(_tbName);
 
-                fields.Children.Add(UiHelper.FieldLabel("Ø§Ù„ØªÙ„ÙŠÙÙˆÙ† *"));
+                fields.Children.Add(UiHelper.FieldLabel("التليفون *"));
                 _tbPhone = UiHelper.MakeTB(_editing?.Phone ?? "", "#a78bfa");
                 _tbPhone.Margin = new Thickness(0, 4, 0, 14);
                 fields.Children.Add(_tbPhone);
 
-                fields.Children.Add(UiHelper.FieldLabel("Ø§Ù„Ø¹Ù†ÙˆØ§Ù†"));
+                fields.Children.Add(UiHelper.FieldLabel("العنوان"));
                 _tbAddress = UiHelper.MakeTB(_editing?.Address ?? "", "#a78bfa");
                 _tbAddress.Margin = new Thickness(0, 4, 0, 14);
                 fields.Children.Add(_tbAddress);
 
-                fields.Children.Add(UiHelper.FieldLabel("Ù…Ù„Ø§Ø­Ø¸Ø§Øª"));
+                fields.Children.Add(UiHelper.FieldLabel("ملاحظات"));
                 _tbNotes = UiHelper.MakeTB(_editing?.Notes ?? "", "#a78bfa");
                 _tbNotes.Height = 60;
                 _tbNotes.AcceptsReturn = true;
@@ -583,7 +583,7 @@ namespace PizzaPOS.Views
                 Grid.SetRow(fields, 1);
                 root.Children.Add(fields);
 
-                // â”€â”€ Button Bar â”€â”€
+                // ── Button Bar ──
                 var btnBar = new Border
                 {
                     Background = UiHelper.B("#090e1a"),
@@ -596,11 +596,11 @@ namespace PizzaPOS.Views
                 btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
                 btnGrid.ColumnDefinitions.Add(new ColumnDefinition());
 
-                var cancelBtn = UiHelper.MakeBtn("Ø¥Ù„ØºØ§Ø¡", "#12192e", UiHelper.B("#8892a4"),
+                var cancelBtn = UiHelper.MakeBtn("إلغاء", "#12192e", UiHelper.B("#8892a4"),
                     () => { DialogResult = false; Close(); }, borderBrush: UiHelper.B("#1e2d4a"));
 
                 var saveColor = _editing == null ? "#06d6a0" : "#ffd166";
-                var saveLabel = _editing == null ? "âž• Ø¥Ø¶Ø§ÙØ©" : "ðŸ’¾ Ø­ÙØ¸";
+                var saveLabel = _editing == null ? "➕ إضافة" : "💾 حفظ";
                 var saveBtn = UiHelper.MakeBtn(saveLabel, saveColor,
                     UiHelper.B("#0a0a14"), Save);
 
@@ -620,13 +620,13 @@ namespace PizzaPOS.Views
             {
                 if (string.IsNullOrWhiteSpace(_tbName.Text))
                 {
-                    MessageBox.Show("Ø£Ø¯Ø®Ù„ Ø§Ø³Ù… Ø§Ù„Ø¹Ù…ÙŠÙ„", "ØªÙ†Ø¨ÙŠÙ‡",
+                    MessageBox.Show("أدخل اسم العميل", "تنبيه",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     _tbName.Focus(); return;
                 }
                 if (string.IsNullOrWhiteSpace(_tbPhone.Text))
                 {
-                    MessageBox.Show("Ø£Ø¯Ø®Ù„ Ø±Ù‚Ù… Ø§Ù„ØªÙ„ÙŠÙÙˆÙ†", "ØªÙ†Ø¨ÙŠÙ‡",
+                    MessageBox.Show("أدخل رقم التليفون", "تنبيه",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     _tbPhone.Focus(); return;
                 }

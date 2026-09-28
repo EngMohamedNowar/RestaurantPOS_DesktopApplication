@@ -74,7 +74,13 @@ namespace PizzaPOS.Services
                     break;
 
                 default:
+                    // XAML يبعت "Q50" والقائمة فيها "50" — نقبل الاتنين
+                    if (tag.Length > 1 && tag[0] == 'Q' &&
+                        _quickAmounts.Contains(tag[1..])) { Input = tag[1..]; break; }
                     if (_quickAmounts.Contains(tag)) { Input = tag; break; }
+
+                    if (tag == "00") { AppendDigit("0"); AppendDigit("0"); break; }
+
                     if (!IsDigit(tag)) break;
                     AppendDigit(tag);
                     break;

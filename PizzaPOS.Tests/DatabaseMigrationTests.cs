@@ -42,6 +42,8 @@ namespace PizzaPOS.Tests
 
         long Scalar(string sql) { long r = 0; Open(c => { using var k = c.CreateCommand(); k.CommandText = sql; r = Convert.ToInt64(k.ExecuteScalar()); }); return r; }
 
+        double Real(string sql) { double r = 0; Open(c => { using var k = c.CreateCommand(); k.CommandText = sql; r = Convert.ToDouble(k.ExecuteScalar()); }); return r; }
+
         void Exec(string sql) => Open(c => { using var k = c.CreateCommand(); k.CommandText = sql; k.ExecuteNonQuery(); });
 
         [Fact]
@@ -79,6 +81,33 @@ namespace PizzaPOS.Tests
 
             Assert.Equal(0, Scalar(@"SELECT COUNT(*) FROM Products p
                 WHERE NOT EXISTS (SELECT 1 FROM ProductIngredients pi WHERE pi.ProductId = p.Id)"));
+
+            // 290 = مجموع سطور الوصفات في RecipeSeeder. لو اسم مادة مش
+            // متعرّف، الـ seeder بيتخطّاها وبيسجّل warning — والعدد هنا
+            // هيبقى أقل، فالسطر الناقص بيتاخد في الاختبار.
+            Assert.Equal(290, Scalar("SELECT COUNT(*) FROM ProductIngredients"));
+        }
+
+        [Fact]
+        public void Initialize_KeepsThePricingSheetProductCost()
+        {
+            // Cost=49.3 جاي من شيت التسعير (Napoli.txt). roll-up الوصفة
+            // بيطلع 47.20 — لازم يفضل أداة احتياطية لصنف من غير سعر،
+            // مش بديل يطمس رقم الشيت.
+            DatabaseHelper.Initialize(_dbPath);
+
+            Assert.Equal(49.3, Real("SELECT Cost FROM Products WHERE Name='Margherita'"), 2);
+        }
+
+        [Fact]
+        public void Initialize_SeedsAllNinetyIngredients()
+        {
+            // 50 أساسية من DatabaseHelper + 40 (الستة الناقصة + 34 وصفة
+            // Napoli) من RecipeSeeder. أي زيادة يعني ازدواج في القوائم.
+            DatabaseHelper.Initialize(_dbPath);
+
+            Assert.Equal(90, Scalar("SELECT COUNT(*) FROM Ingredients"));
+            Assert.Equal(0, Scalar("SELECT COUNT(*) FROM Ingredients WHERE CostPerUnit <= 0"));
         }
 
         [Fact]

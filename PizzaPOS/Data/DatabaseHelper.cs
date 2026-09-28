@@ -614,31 +614,32 @@ namespace PizzaPOS.Data
 
             // ══════════════════════════════════════════
             // ── Ingredients — Egypt 2025/2026 wholesale prices (EGP/unit) ──
-            // مرجع عام للخامات؛ التكلفة الفعلية لكل منتج محسوبة مباشرة من
-            // شيت التسعير (Napoli.xlsx) في عمود Cost أعلاه، فمفيش ربط
-            // ProductIngredients لكل صنف دلوقتي — ده جاهز لو حبيت تفعّل
-            // حساب التكلفة أوتوماتيك من المكونات لاحقًا.
+            // مرجع عام للخامات. التكاليف اللي جاية من شيت التسعير
+            // (Napoli.txt — سطور بكمية موثوقة ≥ 20 غم) اتكتبوا هنا
+            // مباشرة: موزاريلا 230، صوص طماطم 67، بارميزان 850،
+            // دجاج 200، كريمة 233، فطر 150، لحمة 350، تشيدر 350.
+            // الوصفات نفسها في RecipeSeeder وحلولة ProductIngredients.
             // ══════════════════════════════════════════
             Exec(conn, @"INSERT INTO Ingredients(CategoryId,Name,Unit,Stock,MinStock,CostPerUnit) VALUES
         (1,'Pizza Dough',          'kg',   40, 15, 28),
         (1,'Pasta',                'kg',   25,  8, 35),
         (1,'Bread Loaf',           'pcs',  50, 15, 12),
         (1,'Crepe Batter',         'kg',   15,  5, 25),
-        (2,'Ground Beef',          'kg',   12,  4,220),
-        (2,'Chicken Breast',       'kg',   15,  5,135),
+        (2,'Ground Beef',          'kg',   12,  4,350),
+        (2,'Chicken Breast',       'kg',   15,  5,200),
         (2,'Pepperoni',            'kg',    5,  2,380),
         (2,'Sujuk',                'kg',    6,  2,260),
         (2,'Doner Meat',           'kg',    8,  3,200),
         (2,'Shrimp',               'kg',    4,  2,350),
-        (3,'Mozzarella Cheese',    'kg',   20,  8,160),
-        (3,'Cheddar Cheese',       'kg',   10,  4,130),
-        (3,'Parmesan Cheese',      'kg',    4,  2,280),
+        (3,'Mozzarella Cheese',    'kg',   20,  8,230),
+        (3,'Cheddar Cheese',       'kg',   10,  4,350),
+        (3,'Parmesan Cheese',      'kg',    4,  2,850),
         (3,'Ricotta Cheese',       'kg',    5,  2,110),
-        (3,'Heavy Cream',          'ltr',   8,  3, 70),
+        (3,'Heavy Cream',          'ltr',   8,  3,233),
         (3,'Eggs',                 'pcs', 120, 40,  6),
         (3,'Feta Cheese',          'kg',    6,  2, 95),
         (4,'Tomatoes',             'kg',   15,  6, 18),
-        (4,'Mushrooms',            'kg',    6,  3, 70),
+        (4,'Mushrooms',            'kg',    6,  3,150),
         (4,'Bell Peppers',         'kg',    8,  3, 40),
         (4,'Spinach',              'kg',    5,  2, 25),
         (4,'Onions',               'kg',   10,  4, 12),
@@ -649,7 +650,7 @@ namespace PizzaPOS.Data
         (4,'Hot Peppers',          'kg',    3,  1, 25),
         (4,'Black Olives',         'kg',    5,  2, 90),
         (4,'Green Olives',         'kg',    5,  2, 80),
-        (5,'Tomato Sauce',         'kg',   12,  5, 45),
+        (5,'Tomato Sauce',         'kg',   12,  5, 67),
         (5,'Pesto Sauce',          'kg',    3,  1,220),
         (5,'Olive Oil',            'ltr',   6,  3,180),
         (5,'BBQ Sauce',            'kg',    4,  2, 90),
@@ -701,8 +702,11 @@ namespace PizzaPOS.Data
         ('EpsonPort',     'USB');");
 
             // ══════════════════════════════════════════
-            // ── حساب التكاليف تلقائياً (بدون تأثير — التكلفة متسجلة
-            //    مباشرة في Products.Cost من شيت التسعير الأصلي) ──
+            // ── تكاليف الأصناف ──
+            //    Products.Cost جاية من شيت التسعير الأصلي — مانحقّعش
+            //    الـ roll-up فوقها. CalcProductCosts بتملّي التكلفة
+            //    بس للصنف اللي سعره 0 (مثلاً صنف اتضاف من شاشة المنتجات
+            //    من غير تكلفة). ──
             // ══════════════════════════════════════════
             CalcProductCosts(conn);
         }
@@ -710,13 +714,17 @@ namespace PizzaPOS.Data
         static void CalcProductCosts(SqliteConnection conn)
         {
             var cmd = conn.CreateCommand();
-            cmd.CommandText = "SELECT Id FROM Products WHERE IsActive=1";
-            var ids = new List<int>();
+            cmd.CommandText = "SELECT Id, Cost FROM Products WHERE IsActive=1";
+            var rows = new List<(int Id, double Cost)>();
             using (var r = cmd.ExecuteReader())
-                while (r.Read()) ids.Add(r.GetInt32(0));
+                while (r.Read()) rows.Add((r.GetInt32(0), r.GetDouble(1)));
 
-            foreach (var pid in ids)
+            foreach (var (pid, currentCost) in rows)
             {
+                // التكلفة الشيت = مقدّسة: roll-up الوصفة أداة احتياطية
+                // للproducts اللي مالهاش سعر مسجّل، مش مصدر بديل.
+                if (currentCost > 0) continue;
+
                 var costCmd = conn.CreateCommand();
                 costCmd.CommandText = @"SELECT COALESCE(SUM(pi.QtyUsed * i.CostPerUnit), 0)
                     FROM ProductIngredients pi

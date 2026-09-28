@@ -60,19 +60,19 @@ namespace PizzaPOS.Tests
             c.Execute(@"INSERT INTO Ingredients(CategoryId,Name,Unit,Stock,MinStock,CostPerUnit) VALUES
                       (1,'Pizza Dough','kg',40,15,28),(1,'Pasta','kg',25,8,35),
                       (1,'Bread Loaf','pcs',50,15,12),(1,'Crepe Batter','kg',15,5,25),
-                      (2,'Ground Beef','kg',12,4,220),(2,'Chicken Breast','kg',15,5,135),
+                      (2,'Ground Beef','kg',12,4,350),(2,'Chicken Breast','kg',15,5,200),
                       (2,'Pepperoni','kg',5,2,380),(2,'Sujuk','kg',6,2,260),
                       (2,'Doner Meat','kg',8,3,200),(2,'Shrimp','kg',4,2,350),
-                      (3,'Mozzarella Cheese','kg',20,8,160),(3,'Cheddar Cheese','kg',10,4,130),
-                      (3,'Parmesan Cheese','kg',4,2,280),(3,'Ricotta Cheese','kg',5,2,110),
-                      (3,'Heavy Cream','ltr',8,3,70),(3,'Eggs','pcs',120,40,6),
+                      (3,'Mozzarella Cheese','kg',20,8,230),(3,'Cheddar Cheese','kg',10,4,350),
+                      (3,'Parmesan Cheese','kg',4,2,850),(3,'Ricotta Cheese','kg',5,2,110),
+                      (3,'Heavy Cream','ltr',8,3,233),(3,'Eggs','pcs',120,40,6),
                       (3,'Feta Cheese','kg',6,2,95),(4,'Tomatoes','kg',15,6,18),
-                      (4,'Mushrooms','kg',6,3,70),(4,'Bell Peppers','kg',8,3,40),
+                      (4,'Mushrooms','kg',6,3,150),(4,'Bell Peppers','kg',8,3,40),
                       (4,'Spinach','kg',5,2,25),(4,'Onions','kg',10,4,12),
                       (4,'Garlic','kg',4,2,70),(4,'Potatoes','kg',20,8,18),
                       (4,'Cucumbers','kg',10,4,15),(4,'Carrots','kg',8,3,14),
                       (4,'Hot Peppers','kg',3,1,25),(4,'Black Olives','kg',5,2,90),
-                      (4,'Green Olives','kg',5,2,80),(5,'Tomato Sauce','kg',12,5,45),
+                      (4,'Green Olives','kg',5,2,80),(5,'Tomato Sauce','kg',12,5,67),
                       (5,'Pesto Sauce','kg',3,1,220),(5,'Olive Oil','ltr',6,3,180),
                       (5,'BBQ Sauce','kg',4,2,90),(5,'Garlic Sauce','kg',5,2,65),
                       (5,'Hot Sauce','kg',4,2,55),(5,'Ranch Dressing','kg',3,1,75),
@@ -160,14 +160,14 @@ namespace PizzaPOS.Tests
 
             RecipeSeeder.Seed(c);
 
-            // كل الأصناف اللي فيها موزاريلا (26) لازم تفضل تشير للـ Id الجديد،
-            // والعجين (16 بيتزا) كمان.
+            // كل الأصناف اللي فيها موزاريلا (24) لازم تفضل تشير للـ Id الجديد،
+            // والعجين (20 = 16 بيتزا + 4 فطاير) كمان.
             int mozz = Scalar(c, "SELECT COUNT(*) FROM ProductIngredients WHERE IngredientId = 500");
             int dough = Scalar(c, "SELECT COUNT(*) FROM ProductIngredients WHERE IngredientId = 900");
             int total = Scalar(c, "SELECT COUNT(*) FROM ProductIngredients");
 
-            Assert.Equal(26, mozz);
-            Assert.Equal(16, dough);
+            Assert.Equal(24, mozz);
+            Assert.Equal(20, dough);
             Assert.Equal(38, Scalar(c, "SELECT COUNT(DISTINCT ProductId) FROM ProductIngredients"));
             // مفيش سطر فضل متعلق بالـ Id القديم (1 عجين / 11 موزاريلا)
             Assert.Equal(0, Scalar(c,
@@ -183,13 +183,13 @@ namespace PizzaPOS.Tests
             SeedBase(c);
             RecipeSeeder.Seed(c);
             int after = Scalar(c, "SELECT COUNT(*) FROM ProductIngredients");
-            long sum1 = (long)Scalar(c, "SELECT SUM(QtyUsed) FROM ProductIngredients");
+            double sum1 = Real(c, "SELECT SUM(QtyUsed) FROM ProductIngredients");
 
             RecipeSeeder.Seed(c);
             RecipeSeeder.Seed(c);
 
             Assert.Equal(after, Scalar(c, "SELECT COUNT(*) FROM ProductIngredients"));
-            Assert.Equal(sum1, (long)Scalar(c, "SELECT SUM(QtyUsed) FROM ProductIngredients"));
+            Assert.Equal(sum1, Real(c, "SELECT SUM(QtyUsed) FROM ProductIngredients"));
         }
 
         [Fact]
@@ -198,7 +198,9 @@ namespace PizzaPOS.Tests
             using var c = Open();
             SeedBase(c);
             RecipeSeeder.Seed(c);
-            c.Execute("UPDATE ProductIngredients SET QtyUsed = 99 WHERE QtyUsed = 0.28;");
+            // 0.1 = كمية الموزاريلا في أغلب الوجبات — تنضيف يدوي مشتّت
+            // لازم الـ seeder يرجّعه لقيمة الوصفة الحقيقية.
+            c.Execute("UPDATE ProductIngredients SET QtyUsed = 99 WHERE QtyUsed = 0.1;");
             RecipeSeeder.Seed(c);
 
             Assert.Equal(0, Scalar(c, "SELECT COUNT(*) FROM ProductIngredients WHERE QtyUsed = 99"));
@@ -251,7 +253,8 @@ namespace PizzaPOS.Tests
             Assert.True(zeroCost.Count == 0,
                 "these products have a recipe but roll up to zero cost: " + string.Join(", ", zeroCost));
 
-            // مارجريتا: 0.28*28 + 0.06*45 + 0.12*160 + 0.02*12 + 0.02*40 + 0.02*70 + 0.005*180
+            // مارجريتا (وصف Napoli.txt): 0.265*28 + 0.1*230 + 0.1*67 +
+            // 0.001*180 + 0.001*400 + 1*1 + 0.01*850 = 47.20
             using (var marg = c.CreateCommand())
             {
                 marg.CommandText = @"
@@ -260,7 +263,8 @@ namespace PizzaPOS.Tests
                     JOIN Products p    ON p.Id  = pi.ProductId
                     JOIN Ingredients i ON i.Id  = pi.IngredientId
                     WHERE p.Name = 'Margherita'";
-                Assert.Equal(7.84 + 2.70 + 19.20 + 0.24 + 0.80 + 1.40 + 0.90,
+                Assert.Equal(0.265 * 28 + 0.1 * 230 + 0.1 * 67 + 0.001 * 180
+                             + 0.001 * 400 + 1 * 1 + 0.01 * 850,
                              Math.Round(Convert.ToDouble(marg.ExecuteScalar()), 2), 2);
             }
         }
@@ -272,8 +276,10 @@ namespace PizzaPOS.Tests
             SeedBase(c);
             RecipeSeeder.Seed(c);
 
-            int baseCount = 50;
-            Assert.Equal(baseCount + 6, Scalar(c, "SELECT COUNT(*) FROM Ingredients"));
+            // الـ seeder لازم يضيف اللي ناقص من الـ seed الأساسي (50) بس —
+            // أي زيادة تانية معناها ازدواج في القائمة.
+            Assert.Equal(50 + RecipeSeeder.AddedIngredients.Length,
+                         Scalar(c, "SELECT COUNT(*) FROM Ingredients"));
         }
 
         [Fact]

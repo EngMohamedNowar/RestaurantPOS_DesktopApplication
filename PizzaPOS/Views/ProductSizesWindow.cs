@@ -1,4 +1,4 @@
-﻿// Views/ProductSizesWindow.cs
+// Views/ProductSizesWindow.cs
 using PizzaPOS.Data;
 using PizzaPOS.Models;
 using System;
@@ -9,6 +9,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using PizzaPOS.Services;
 
 namespace PizzaPOS.Views
 {
@@ -488,7 +489,11 @@ namespace PizzaPOS.Views
             if (_dgSizes.SelectedItem is not ProductSize s)
             { Alert("اختر حجماً أولاً"); return; }
             if (Confirm($"حذف حجم \"{s.Name}\"؟"))
-            { _db.DeleteProductSize(s.Id); LoadData(); }
+            {
+                try { _db.DeleteProductSize(s.Id); }
+                catch (Exception ex) { DbErrors.Report(ex, "حذف الحجم"); return; }
+                LoadData();
+            }
         }
 
         // ══ Extras CRUD ══════════════════════════════
@@ -520,7 +525,11 @@ namespace PizzaPOS.Views
             if (_dgExtras.SelectedItem is not ProductExtra e)
             { Alert("اختر إضافة أولاً"); return; }
             if (Confirm($"حذف إضافة \"{e.Name}\"؟"))
-            { _db.DeleteProductExtra(e.Id); LoadData(); }
+            {
+                try { _db.DeleteProductExtra(e.Id); }
+                catch (Exception ex) { DbErrors.Report(ex, "حذف الإضافة"); return; }
+                LoadData();
+            }
         }
 
         // ══ Helpers ══════════════════════════════════

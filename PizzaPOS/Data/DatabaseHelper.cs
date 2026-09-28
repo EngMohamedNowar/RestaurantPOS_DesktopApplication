@@ -209,6 +209,31 @@ namespace PizzaPOS.Data
 
             TryMigrate(conn, "ALTER TABLE Users ADD COLUMN MustChangePin INTEGER DEFAULT 0", "Users.MustChangePin");
 
+            // ── صورة الوردية: قيد على مستوى قاعدة البيانات ──
+            //
+            // OpenShift كان فيه check-then-act: GetOpenShift وبعدين INSERT.
+            // ده TOCTOU — الـ single-instance بيمنع processes تانية، بس جوه
+            // نفس الـ process نداءين قريبين ممكن يعدّوا الـ check مع بعض
+            // ويقفلوا ورديتين لنفس اليوزر، فالتسوية بتتقسّم والـ difference
+            // في كل واحد بيبقى غلط.
+            //
+            // partial unique index بيخلي الـ DB نفسه هو اللي يرفض.
+            // (SQLite داعم partial indexes من 3.8.0).
+            //
+            // مهم: لازم يتعمل normalization قبل الإنشاء — قواعد قديمة
+            // ممكن يكون فيها أكتر من Status='open' لنفس اليوزر (من
+            // الـ double-click bug ده)، و CREATE INDEX هيفشل عندها
+            // وmigration هتتقفل بـ error كل تشغيل. فنقفل الأقدم.
+            Exec(conn, @"UPDATE Shifts SET Status='closed',
+                ClosedAt=COALESCE(ClosedAt, datetime('now','localtime')),
+                ClosingCash=COALESCE(ClosingCash, 0),
+                ExpectedCash=COALESCE(ExpectedCash, 0)
+                WHERE Id NOT IN (
+                    SELECT MAX(Id) FROM Shifts WHERE Status='open'
+                    GROUP BY UserId);");
+            Exec(conn, @"CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_OneOpenPerUser
+                ON Shifts(UserId) WHERE Status='open';");
+
             // ── Bootstrap security: أي حساب ما زال على SHA256 القديم (64 محرف hex)
             //    معناها إن الـ PIN لسه هو الافتراضي المعلن في الكود، فجبره على التغيير.
             //
@@ -611,6 +636,14 @@ namespace PizzaPOS.Data
         (7,'Pistachios',           'kg',    2,  1,500),
         (7,'Crushed Almonds',      'kg',    3,  1,400),
         (7,'Cashews',              'kg',    2,  1,550);");
+
+            // ══════════════════════════════════════════
+            // ── Recipes ──
+            //    بدون الوصفات دي، خصم المخزون وقت الدفع مبيعملش حاجة:
+            //    38/38 صنف مفيش وصفة، فالمخزون بيفضل زي ما هو.
+            //    idempotent — أي تشغيل تاني بيحدّش الكميات بس.
+            // ══════════════════════════════════════════
+            RecipeSeeder.Seed(conn);
 
             // ══════════════════════════════════════════
             // ── Users ──

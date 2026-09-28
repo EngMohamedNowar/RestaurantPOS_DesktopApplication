@@ -13,6 +13,7 @@ using Microsoft.Data.Sqlite;
 using PizzaPOS.Data;
 using PizzaPOS.Helpers;
 using PizzaPOS.Models;
+using PizzaPOS.Services;
 
 namespace PizzaPOS.Views
 {
@@ -35,7 +36,7 @@ namespace PizzaPOS.Views
         TextBlock _editBadge = null!;
         StackPanel _editBadgeRow = null!;
 
-        // ── حالة التعديل ──────────────────────────────
+        // â”€â”€ Ø­Ø§Ù„Ø© Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         int? _editingIngredientId = null;
 
         SolidColorBrush B(string hex) =>
@@ -60,7 +61,7 @@ namespace PizzaPOS.Views
             _productId = productId;
             _productName = productName;
 
-            Title = $"ربط المكونات — {productName}";
+            Title = $"Ø±Ø¨Ø· Ø§Ù„Ù…ÙƒÙˆÙ†Ø§Øª â€” {productName}";
             Width = 940;
             Height = 700;
             MinWidth = 700;
@@ -90,9 +91,9 @@ namespace PizzaPOS.Views
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // totals
             root.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto }); // buttons
 
-            // ══════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             //  HEADER
-            // ══════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             var header = new Border
             {
                 Background = Grad("#141d35", "#0d1425"),
@@ -126,7 +127,7 @@ namespace PizzaPOS.Views
             };
             hIcon.Child = new TextBlock
             {
-                Text = "🧂",
+                Text = "ðŸ§‚",
                 FontSize = 24,
                 HorizontalAlignment = HorizontalAlignment.Center,
                 VerticalAlignment = VerticalAlignment.Center
@@ -135,7 +136,7 @@ namespace PizzaPOS.Views
             var hInfo = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             hInfo.Children.Add(new TextBlock
             {
-                Text = $"ربط المكونات — {_productName}",
+                Text = $"Ø±Ø¨Ø· Ø§Ù„Ù…ÙƒÙˆÙ†Ø§Øª â€” {_productName}",
                 FontSize = 20,
                 FontWeight = FontWeights.Black,
                 Foreground = B("#f4f5f7")
@@ -144,14 +145,14 @@ namespace PizzaPOS.Views
             var hSubRow = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(0, 3, 0, 0) };
             _headerCostTxt = new TextBlock
             {
-                Text = "التكلفة الحالية: 0.00 ج",
+                Text = "Ø§Ù„ØªÙƒÙ„ÙØ© Ø§Ù„Ø­Ø§Ù„ÙŠØ©: 0.00 Ø¬",
                 FontSize = 11,
                 Foreground = B("#a78bfa"),
                 Margin = new Thickness(0, 0, 16, 0)
             };
             _countTxt = new TextBlock
             {
-                Text = "عدد المكونات: 0",
+                Text = "Ø¹Ø¯Ø¯ Ø§Ù„Ù…ÙƒÙˆÙ†Ø§Øª: 0",
                 FontSize = 11,
                 Foreground = B("#4a6080")
             };
@@ -159,7 +160,7 @@ namespace PizzaPOS.Views
             hSubRow.Children.Add(_countTxt);
             hInfo.Children.Add(hSubRow);
 
-            // شارة عدد المكونات
+            // Ø´Ø§Ø±Ø© Ø¹Ø¯Ø¯ Ø§Ù„Ù…ÙƒÙˆÙ†Ø§Øª
             var countBadge = new Border
             {
                 Background = B("#19152f"),
@@ -171,7 +172,7 @@ namespace PizzaPOS.Views
             };
             countBadge.Child = new TextBlock
             {
-                Text = "📋 وصفة المنتج",
+                Text = "ðŸ“‹ ÙˆØµÙØ© Ø§Ù„Ù…Ù†ØªØ¬",
                 FontSize = 12,
                 FontWeight = FontWeights.Black,
                 Foreground = B("#a78bfa")
@@ -184,9 +185,9 @@ namespace PizzaPOS.Views
             Grid.SetRow(header, 0);
             root.Children.Add(header);
 
-            // ══════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             //  ADD / EDIT INGREDIENT BAR
-            // ══════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             var addBar = new Border
             {
                 Background = B("#10182b"),
@@ -199,7 +200,7 @@ namespace PizzaPOS.Views
 
             var addBarStack = new StackPanel();
 
-            // ── شارة وضع التعديل (تظهر بس وقت التعديل) ──
+            // â”€â”€ Ø´Ø§Ø±Ø© ÙˆØ¶Ø¹ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ (ØªØ¸Ù‡Ø± Ø¨Ø³ ÙˆÙ‚Øª Ø§Ù„ØªØ¹Ø¯ÙŠÙ„) â”€â”€
             var editBadgeRow = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
@@ -207,7 +208,7 @@ namespace PizzaPOS.Views
             };
             _editBadge = new TextBlock
             {
-                Text = "✏️  وضع التعديل — بتعدّل كمية مادة موجودة بالفعل",
+                Text = "âœï¸  ÙˆØ¶Ø¹ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„ â€” Ø¨ØªØ¹Ø¯Ù‘Ù„ ÙƒÙ…ÙŠØ© Ù…Ø§Ø¯Ø© Ù…ÙˆØ¬ÙˆØ¯Ø© Ø¨Ø§Ù„ÙØ¹Ù„",
                 FontSize = 11,
                 FontWeight = FontWeights.Bold,
                 Foreground = B("#ffd166"),
@@ -215,7 +216,7 @@ namespace PizzaPOS.Views
             };
             var cancelEditLink = new TextBlock
             {
-                Text = "  (إلغاء التعديل)",
+                Text = "  (Ø¥Ù„ØºØ§Ø¡ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„)",
                 FontSize = 11,
                 FontWeight = FontWeights.Bold,
                 Foreground = B("#E63946"),
@@ -236,11 +237,11 @@ namespace PizzaPOS.Views
             addGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(14) });
             addGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            // ══ Dark ComboBox ══
+            // â•â• Dark ComboBox â•â•
             _ingCombo = BuildDarkComboBox();
             _ingCombo.DisplayMemberPath = "Name";
 
-            // TextBox للكمية
+            // TextBox Ù„Ù„ÙƒÙ…ÙŠØ©
             _qtyBox = UiHelper.MakeTB("1.00");
             _qtyBox.Width = 155;
             _qtyBox.TextAlignment = TextAlignment.Center;
@@ -271,7 +272,7 @@ namespace PizzaPOS.Views
             };
             qtyUnit.Child = new TextBlock
             {
-                Text = "الكمية",
+                Text = "Ø§Ù„ÙƒÙ…ÙŠØ©",
                 FontSize = 11,
                 FontWeight = FontWeights.Bold,
                 Foreground = B("#4a6080"),
@@ -279,8 +280,8 @@ namespace PizzaPOS.Views
                 HorizontalAlignment = HorizontalAlignment.Center
             };
 
-            // زر الإضافة / التحديث
-            _addBtn = UiHelper.MakeBtn("➕  إضافة مادة", "#06d6a0", B("#020f0a"), () => AddIngredient(),
+            // Ø²Ø± Ø§Ù„Ø¥Ø¶Ø§ÙØ© / Ø§Ù„ØªØ­Ø¯ÙŠØ«
+            _addBtn = UiHelper.MakeBtn("âž•  Ø¥Ø¶Ø§ÙØ© Ù…Ø§Ø¯Ø©", "#06d6a0", B("#020f0a"), () => AddIngredient(),
                 paddingV: 13, fontSize: 13);
             _addBtn.MinHeight = 44;
             _addBtn.MinWidth = 145;
@@ -307,9 +308,9 @@ namespace PizzaPOS.Views
             Grid.SetRow(addBar, 1);
             root.Children.Add(addBar);
 
-            // ══════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             //  DATAGRID
-            // ══════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             _dg = UiHelper.BuildGrid(
                 rowBg: "#0b1020",
                 altBg: "#080d1a",
@@ -324,12 +325,12 @@ namespace PizzaPOS.Views
             );
             _dg.IsReadOnly = true;
             _dg.SelectionMode = DataGridSelectionMode.Single;
-            _dg.MouseDoubleClick += (_, _) => LoadForEdit(); // ← دبل كليك للتعديل
+            _dg.MouseDoubleClick += (_, _) => LoadForEdit(); // â† Ø¯Ø¨Ù„ ÙƒÙ„ÙŠÙƒ Ù„Ù„ØªØ¹Ø¯ÙŠÙ„
 
-            // المادة (Ingredient Name)
+            // Ø§Ù„Ù…Ø§Ø¯Ø© (Ingredient Name)
             _dg.Columns.Add(new DataGridTextColumn
             {
-                Header = "المادة",
+                Header = "Ø§Ù„Ù…Ø§Ø¯Ø©",
                 Binding = new Binding("IngredientName"),
                 Width = new DataGridLength(1, DataGridLengthUnitType.Star),
                 ElementStyle = new Style(typeof(TextBlock))
@@ -343,10 +344,10 @@ namespace PizzaPOS.Views
                 }
             });
 
-            // الوحدة (Unit)
+            // Ø§Ù„ÙˆØ­Ø¯Ø© (Unit)
             _dg.Columns.Add(new DataGridTextColumn
             {
-                Header = "الوحدة",
+                Header = "Ø§Ù„ÙˆØ­Ø¯Ø©",
                 Binding = new Binding("IngredientUnit"),
                 Width = 90,
                 ElementStyle = new Style(typeof(TextBlock))
@@ -361,14 +362,14 @@ namespace PizzaPOS.Views
                 }
             });
 
-            // الكمية المطلوبة (Qty Used)
-            _dg.Columns.Add(UiHelper.ColNum("الكمية المطلوبة", "QtyUsed", 120, "#ffd166"));
+            // Ø§Ù„ÙƒÙ…ÙŠØ© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø© (Qty Used)
+            _dg.Columns.Add(UiHelper.ColNum("Ø§Ù„ÙƒÙ…ÙŠØ© Ø§Ù„Ù…Ø·Ù„ÙˆØ¨Ø©", "QtyUsed", 120, "#ffd166"));
 
-            // التكلفة/وحدة (Cost/Unit)
-            _dg.Columns.Add(UiHelper.ColNum("التكلفة/وحدة", "CostPerUnit", 120, "#a78bfa"));
+            // Ø§Ù„ØªÙƒÙ„ÙØ©/ÙˆØ­Ø¯Ø© (Cost/Unit)
+            _dg.Columns.Add(UiHelper.ColNum("Ø§Ù„ØªÙƒÙ„ÙØ©/ÙˆØ­Ø¯Ø©", "CostPerUnit", 120, "#a78bfa"));
 
-            // التكلفة الإجمالية (Total Cost)
-            _dg.Columns.Add(UiHelper.ColNum("التكلفة الإجمالية", "TotalCost", 130, "#06d6a0"));
+            // Ø§Ù„ØªÙƒÙ„ÙØ© Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠØ© (Total Cost)
+            _dg.Columns.Add(UiHelper.ColNum("Ø§Ù„ØªÙƒÙ„ÙØ© Ø§Ù„Ø¥Ø¬Ù…Ø§Ù„ÙŠØ©", "TotalCost", 130, "#06d6a0"));
 
             _dg.ItemsSource = _items;
 
@@ -397,9 +398,9 @@ namespace PizzaPOS.Views
             Grid.SetRow(dgWrap, 2);
             root.Children.Add(dgWrap);
 
-            // ══════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             //  TOTALS BAR
-            // ══════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             var totalsBar = new Border
             {
                 Background = Grad("#101b30", "#0b1221"),
@@ -414,11 +415,11 @@ namespace PizzaPOS.Views
             totalsGrid.ColumnDefinitions.Add(new ColumnDefinition());
             totalsGrid.ColumnDefinitions.Add(new ColumnDefinition());
 
-            // إجمالي التكلفة
+            // Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„ØªÙƒÙ„ÙØ©
             var totalStat = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             totalStat.Children.Add(new TextBlock
             {
-                Text = "إجمالي التكلفة",
+                Text = "Ø¥Ø¬Ù…Ø§Ù„ÙŠ Ø§Ù„ØªÙƒÙ„ÙØ©",
                 FontSize = 10,
                 FontWeight = FontWeights.Bold,
                 Foreground = B("#4a6080"),
@@ -426,7 +427,7 @@ namespace PizzaPOS.Views
             });
             _totalCostTxt = new TextBlock
             {
-                Text = "0.00 ج",
+                Text = "0.00 Ø¬",
                 FontSize = 20,
                 FontWeight = FontWeights.Black,
                 Foreground = B("#06d6a0"),
@@ -441,11 +442,11 @@ namespace PizzaPOS.Views
             };
             totalStat.Children.Add(_totalCostTxt);
 
-            // السعر المقترح 50%
+            // Ø§Ù„Ø³Ø¹Ø± Ø§Ù„Ù…Ù‚ØªØ±Ø­ 50%
             var price50Stat = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             price50Stat.Children.Add(new TextBlock
             {
-                Text = "السعر المقترح (هامش 50%)",
+                Text = "Ø§Ù„Ø³Ø¹Ø± Ø§Ù„Ù…Ù‚ØªØ±Ø­ (Ù‡Ø§Ù…Ø´ 50%)",
                 FontSize = 10,
                 FontWeight = FontWeights.Bold,
                 Foreground = B("#4a6080"),
@@ -453,7 +454,7 @@ namespace PizzaPOS.Views
             });
             _price50Txt = new TextBlock
             {
-                Text = "0.00 ج",
+                Text = "0.00 Ø¬",
                 FontSize = 20,
                 FontWeight = FontWeights.Black,
                 Foreground = B("#ffd166"),
@@ -468,11 +469,11 @@ namespace PizzaPOS.Views
             };
             price50Stat.Children.Add(_price50Txt);
 
-            // السعر المقترح 100%
+            // Ø§Ù„Ø³Ø¹Ø± Ø§Ù„Ù…Ù‚ØªØ±Ø­ 100%
             var price100Stat = new StackPanel { VerticalAlignment = VerticalAlignment.Center };
             price100Stat.Children.Add(new TextBlock
             {
-                Text = "السعر المقترح (هامش 100%)",
+                Text = "Ø§Ù„Ø³Ø¹Ø± Ø§Ù„Ù…Ù‚ØªØ±Ø­ (Ù‡Ø§Ù…Ø´ 100%)",
                 FontSize = 10,
                 FontWeight = FontWeights.Bold,
                 Foreground = B("#4a6080"),
@@ -480,7 +481,7 @@ namespace PizzaPOS.Views
             });
             _price100Txt = new TextBlock
             {
-                Text = "0.00 ج",
+                Text = "0.00 Ø¬",
                 FontSize = 20,
                 FontWeight = FontWeights.Black,
                 Foreground = B("#a78bfa"),
@@ -502,9 +503,9 @@ namespace PizzaPOS.Views
             Grid.SetRow(totalsBar, 3);
             root.Children.Add(totalsBar);
 
-            // ══════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             //  BUTTONS BAR
-            // ══════════════════════════════════════
+            // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
             var btnBar = new Border
             {
                 Background = B("#10182b"),
@@ -521,24 +522,24 @@ namespace PizzaPOS.Views
             btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
             btnGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
-            // زر حذف المادة المحددة
-            var deleteBtn = UiHelper.MakeBtn("🗑  حذف المادة المحددة", "#1a080a", B("#E63946"), () => DeleteIngredient(),
+            // Ø²Ø± Ø­Ø°Ù Ø§Ù„Ù…Ø§Ø¯Ø© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø©
+            var deleteBtn = UiHelper.MakeBtn("ðŸ—‘  Ø­Ø°Ù Ø§Ù„Ù…Ø§Ø¯Ø© Ø§Ù„Ù…Ø­Ø¯Ø¯Ø©", "#1a080a", B("#E63946"), () => DeleteIngredient(),
                 paddingV: 13, fontSize: 13);
             deleteBtn.MinHeight = 44;
             deleteBtn.MinWidth = 150;
             deleteBtn.BorderBrush = B("#E63946");
             deleteBtn.BorderThickness = new Thickness(1);
 
-            // زر الإلغاء
-            var cancelBtn = UiHelper.MakeBtn("✕  إلغاء", "#12192e", B("#8892a4"), () => { DialogResult = false; Close(); },
+            // Ø²Ø± Ø§Ù„Ø¥Ù„ØºØ§Ø¡
+            var cancelBtn = UiHelper.MakeBtn("âœ•  Ø¥Ù„ØºØ§Ø¡", "#12192e", B("#8892a4"), () => { DialogResult = false; Close(); },
                 paddingV: 13, fontSize: 13);
             cancelBtn.MinHeight = 44;
             cancelBtn.MinWidth = 105;
             cancelBtn.BorderBrush = B("#1e2d4a");
             cancelBtn.BorderThickness = new Thickness(1);
 
-            // زر الحفظ
-            var saveBtn = UiHelper.MakeBtn("💾  حفظ الوصفة", "#a78bfa", B("#0a0800"), () => SaveAll(),
+            // Ø²Ø± Ø§Ù„Ø­ÙØ¸
+            var saveBtn = UiHelper.MakeBtn("ðŸ’¾  Ø­ÙØ¸ Ø§Ù„ÙˆØµÙØ©", "#a78bfa", B("#0a0800"), () => SaveAll(),
                 paddingV: 13, fontSize: 13);
             saveBtn.MinHeight = 44;
             saveBtn.MinWidth = 140;
@@ -560,16 +561,16 @@ namespace PizzaPOS.Views
             Content = root;
         }
 
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  LOAD DATA
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         void LoadData()
         {
             _items.Clear();
             foreach (var item in _db.GetProductIngredients(_productId))
                 _items.Add(item);
 
-            // تحميل كل المكونات المتاحة في الـ ComboBox
+            // ØªØ­Ù…ÙŠÙ„ ÙƒÙ„ Ø§Ù„Ù…ÙƒÙˆÙ†Ø§Øª Ø§Ù„Ù…ØªØ§Ø­Ø© ÙÙŠ Ø§Ù„Ù€ ComboBox
             _ingCombo.Items.Clear();
             var ings = new List<Ingredient>();
             using var c = DatabaseHelper.Open();
@@ -601,14 +602,14 @@ namespace PizzaPOS.Views
             UpdateTotals();
         }
 
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  ADD / UPDATE INGREDIENT
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         void AddIngredient()
         {
             if (_ingCombo.SelectedItem is not Ingredient ing)
             {
-                MessageBox.Show("اختر مادة أولاً", "تنبيه", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Ø§Ø®ØªØ± Ù…Ø§Ø¯Ø© Ø£ÙˆÙ„Ø§Ù‹", "ØªÙ†Ø¨ÙŠÙ‡", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
@@ -618,11 +619,19 @@ namespace PizzaPOS.Views
                 System.Globalization.CultureInfo.InvariantCulture,
                 out double qty) || qty <= 0)
             {
-                MessageBox.Show("أدخل كمية صحيحة أكبر من صفر", "تنبيه", MessageBoxButton.OK, MessageBoxImage.Warning);
+                MessageBox.Show("Ø£Ø¯Ø®Ù„ ÙƒÙ…ÙŠØ© ØµØ­ÙŠØ­Ø© Ø£ÙƒØ¨Ø± Ù…Ù† ØµÙØ±", "ØªÙ†Ø¨ÙŠÙ‡", MessageBoxButton.OK, MessageBoxImage.Warning);
                 return;
             }
 
-            _db.SaveProductIngredient(_productId, ing.Id, qty);
+            try
+            {
+                _db.SaveProductIngredient(_productId, ing.Id, qty);
+            }
+            catch (Exception ex)
+            {
+                DbErrors.Report(ex, "إضافة مادة للوصفة");
+                return;
+            }
 
             _editingIngredientId = null;
             SetEditModeVisual(false);
@@ -631,14 +640,14 @@ namespace PizzaPOS.Views
             _qtyBox.Text = "1.00";
         }
 
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  LOAD ROW FOR EDIT (double-click)
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         void LoadForEdit()
         {
             if (_dg.SelectedItem is not ProductIngredient sel) return;
 
-            // المادة دي متشالة من الكومبو لأنها مرتبطة بالفعل — هنضيفها مؤقتًا
+            // Ø§Ù„Ù…Ø§Ø¯Ø© Ø¯ÙŠ Ù…ØªØ´Ø§Ù„Ø© Ù…Ù† Ø§Ù„ÙƒÙˆÙ…Ø¨Ùˆ Ù„Ø£Ù†Ù‡Ø§ Ù…Ø±ØªØ¨Ø·Ø© Ø¨Ø§Ù„ÙØ¹Ù„ â€” Ù‡Ù†Ø¶ÙŠÙÙ‡Ø§ Ù…Ø¤Ù‚ØªÙ‹Ø§
             var existing = FindIngredientById(sel.IngredientId);
             if (existing == null) return;
 
@@ -669,13 +678,13 @@ namespace PizzaPOS.Views
             _editingIngredientId = null;
             SetEditModeVisual(false);
             _qtyBox.Text = "1.00";
-            LoadData(); // يرجّع الكومبو للحالة الطبيعية (من غير المادة المضافة مؤقتًا)
+            LoadData(); // ÙŠØ±Ø¬Ù‘Ø¹ Ø§Ù„ÙƒÙˆÙ…Ø¨Ùˆ Ù„Ù„Ø­Ø§Ù„Ø© Ø§Ù„Ø·Ø¨ÙŠØ¹ÙŠØ© (Ù…Ù† ØºÙŠØ± Ø§Ù„Ù…Ø§Ø¯Ø© Ø§Ù„Ù…Ø¶Ø§ÙØ© Ù…Ø¤Ù‚ØªÙ‹Ø§)
         }
 
         void SetEditModeVisual(bool editing)
         {
             _editBadgeRow.Visibility = editing ? Visibility.Visible : Visibility.Collapsed;
-            _addBtn.Content = editing ? "💾  تحديث الكمية" : "➕  إضافة مادة";
+            _addBtn.Content = editing ? "ðŸ’¾  ØªØ­Ø¯ÙŠØ« Ø§Ù„ÙƒÙ…ÙŠØ©" : "âž•  Ø¥Ø¶Ø§ÙØ© Ù…Ø§Ø¯Ø©";
             _addBtn.Background = B(editing ? "#ffd166" : "#06d6a0");
             _addBtn.Foreground = B(editing ? "#241800" : "#020f0a");
         }
@@ -698,19 +707,19 @@ namespace PizzaPOS.Views
             return null;
         }
 
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  DELETE INGREDIENT
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         void DeleteIngredient()
         {
             if (_dg.SelectedItem is not ProductIngredient sel)
             {
-                MessageBox.Show("اختر مادة أولاً", "تنبيه", MessageBoxButton.OK, MessageBoxImage.Information);
+                MessageBox.Show("Ø§Ø®ØªØ± Ù…Ø§Ø¯Ø© Ø£ÙˆÙ„Ø§Ù‹", "ØªÙ†Ø¨ÙŠÙ‡", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
             }
             if (MessageBox.Show(
-                $"حذف مادة \"{sel.IngredientName}\" من وصفة المنتج؟",
-                "تأكيد الحذف",
+                $"Ø­Ø°Ù Ù…Ø§Ø¯Ø© \"{sel.IngredientName}\" Ù…Ù† ÙˆØµÙØ© Ø§Ù„Ù…Ù†ØªØ¬ØŸ",
+                "ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø­Ø°Ù",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
 
@@ -720,16 +729,17 @@ namespace PizzaPOS.Views
                 SetEditModeVisual(false);
             }
 
-            _db.DeleteProductIngredient(_productId, sel.IngredientId);
+            try { _db.DeleteProductIngredient(_productId, sel.IngredientId); }
+            catch (Exception ex) { DbErrors.Report(ex, "Ø­Ø°Ù Ù…Ø§Ø¯Ø© Ù…Ù† Ø§Ù„ÙˆØµÙØ©"); return; }
             LoadData();
         }
 
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  SAVE ALL
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         void SaveAll()
         {
-            // تحديث Product.Cost في قاعدة البيانات
+            // ØªØ­Ø¯ÙŠØ« Product.Cost ÙÙŠ Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª
             double totalCost = _db.CalculateProductCost(_productId);
             using var c = DatabaseHelper.Open();
             var cmd = c.CreateCommand();
@@ -739,8 +749,8 @@ namespace PizzaPOS.Views
             cmd.ExecuteNonQuery();
 
             MessageBox.Show(
-                $"تم حفظ وصفة \"{_productName}\" بنجاح\nتكلفة الوصفة: {totalCost:F2} ج",
-                "تم الحفظ",
+                $"ØªÙ… Ø­ÙØ¸ ÙˆØµÙØ© \"{_productName}\" Ø¨Ù†Ø¬Ø§Ø­\nØªÙƒÙ„ÙØ© Ø§Ù„ÙˆØµÙØ©: {totalCost:F2} Ø¬",
+                "ØªÙ… Ø§Ù„Ø­ÙØ¸",
                 MessageBoxButton.OK,
                 MessageBoxImage.Information);
 
@@ -748,25 +758,25 @@ namespace PizzaPOS.Views
             Close();
         }
 
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  UPDATE TOTALS (live)
-        // ══════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         void UpdateTotals()
         {
             double totalCost = 0;
             foreach (var item in _items)
                 totalCost += item.TotalCost;
 
-            _totalCostTxt.Text = $"{totalCost:F2} ج";
-            _price50Txt.Text = $"{totalCost * 1.5:F2} ج";
-            _price100Txt.Text = $"{totalCost * 2.0:F2} ج";
-            _headerCostTxt.Text = $"التكلفة الحالية: {totalCost:F2} ج";
-            _countTxt.Text = $"عدد المكونات: {_items.Count}";
+            _totalCostTxt.Text = $"{totalCost:F2} Ø¬";
+            _price50Txt.Text = $"{totalCost * 1.5:F2} Ø¬";
+            _price100Txt.Text = $"{totalCost * 2.0:F2} Ø¬";
+            _headerCostTxt.Text = $"Ø§Ù„ØªÙƒÙ„ÙØ© Ø§Ù„Ø­Ø§Ù„ÙŠØ©: {totalCost:F2} Ø¬";
+            _countTxt.Text = $"Ø¹Ø¯Ø¯ Ø§Ù„Ù…ÙƒÙˆÙ†Ø§Øª: {_items.Count}";
         }
 
-        // ══════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         //  DARK COMBOBOX BUILDER
-        // ══════════════════════════════════════════════
+        // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
         ComboBox BuildDarkComboBox()
         {
             var itemBorderFactory = new FrameworkElementFactory(typeof(Border));
@@ -830,7 +840,7 @@ namespace PizzaPOS.Views
             toggleBtn.SetValue(ToggleButton.TemplateProperty,
                 new ControlTemplate(typeof(ToggleButton)) { VisualTree = toggleBorder });
 
-            // ── صندوق الاختيار المغلق: template صريح بيقرا Name مباشرة ──
+            // â”€â”€ ØµÙ†Ø¯ÙˆÙ‚ Ø§Ù„Ø§Ø®ØªÙŠØ§Ø± Ø§Ù„Ù…ØºÙ„Ù‚: template ØµØ±ÙŠØ­ Ø¨ÙŠÙ‚Ø±Ø§ Name Ù…Ø¨Ø§Ø´Ø±Ø© â”€â”€
             var selTextFactory = new FrameworkElementFactory(typeof(TextBlock));
             selTextFactory.SetBinding(TextBlock.TextProperty, new Binding("Name"));
             var selTemplate = new DataTemplate { VisualTree = selTextFactory };

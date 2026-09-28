@@ -1,4 +1,4 @@
-﻿// Views/ProductsWindow.cs
+// Views/ProductsWindow.cs
 using PizzaPOS.Data;
 using PizzaPOS.Models;
 using System;
@@ -10,6 +10,7 @@ using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
 using PizzaPOS.Helpers;
+using PizzaPOS.Services;
 
 namespace PizzaPOS.Views
 {
@@ -433,7 +434,15 @@ namespace PizzaPOS.Views
             { Notify("اختر منتج أولاً"); return; }
             if (MessageBox.Show($"هل تريد حذف \"{sel.Name}\"؟", "تأكيد الحذف",
                 MessageBoxButton.YesNo, MessageBoxImage.Warning) != MessageBoxResult.Yes) return;
-            _db.DeleteProduct(sel.Id);
+            try
+            {
+                _db.DeleteProduct(sel.Id);
+            }
+            catch (Exception ex)
+            {
+                DbErrors.Report(ex, "حذف المنتج");
+                return;   // متحملش LoadProducts: لسه موجود
+            }
             LoadProducts();
         }
 

@@ -1,4 +1,4 @@
-﻿// Views/CategoriesWindow.cs
+// Views/CategoriesWindow.cs
 using PizzaPOS.Data;
 using PizzaPOS.Helpers;
 using PizzaPOS.Models;
@@ -10,6 +10,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Data;
 using System.Windows.Media;
 using System.Windows.Media.Effects;
+using PizzaPOS.Services;
 
 namespace PizzaPOS.Views
 {
@@ -312,7 +313,15 @@ namespace PizzaPOS.Views
                     MessageBoxImage.Question) != MessageBoxResult.Yes) return;
             }
 
-            _db.DeleteCategory(cat.Id);
+            try
+            {
+                _db.DeleteCategory(cat.Id);
+            }
+            catch (Exception ex)
+            {
+                DbErrors.Report(ex, "حذف الفئة");
+                return;
+            }
             Load();
         }
 

@@ -512,7 +512,14 @@ namespace PizzaPOS.Views
                 cmd.CommandText = "SELECT COUNT(*) FROM IngredientCategories";
                 catCount = Convert.ToInt32(cmd.ExecuteScalar());
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // العرض صفر الوهمي: كأن مفيش فئات خالص، وده مضلّل
+                // في تقرير جرد. سجّل واعرض شرطة بدل رقم مخترع.
+                AppLogger.Warn($"Category count unavailable in warehouse summary: {ex.Message}");
+                _categoriesTxt.Text = "—";
+                return;
+            }
             _categoriesTxt.Text = catCount.ToString();
         }
 
@@ -1654,7 +1661,12 @@ namespace PizzaPOS.Views
                         _cbCategory.SelectedItem = item;
                 }
             }
-            catch { }
+            catch (Exception ex)
+            {
+                // الـ combo هيبقى فاضي. قبل الـ catch الفاضي ده كان صامت
+                // وأي حفظ بعدها بيحفظ category = 0. دلوقتي فيه أثر في اللوج.
+                AppLogger.Warn($"Category combo failed to load in warehouse: {ex.Message}");
+            }
             if (_cbCategory.SelectedItem == null && _cbCategory.Items.Count > 0)
                 _cbCategory.SelectedIndex = 0;
         }

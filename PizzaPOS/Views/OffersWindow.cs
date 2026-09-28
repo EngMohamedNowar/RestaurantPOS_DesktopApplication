@@ -426,7 +426,15 @@ namespace PizzaPOS.Views
             if (MessageBox.Show($"هل أنت متأكد من حذف \"{sel.Title}\"?", "تأكيد الحذف",
                 MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
-                _db.DeleteOffer(sel.Id);
+                try
+                {
+                    _db.DeleteOffer(sel.Id);
+                }
+                catch (Exception ex)
+                {
+                    DbErrors.Report(ex, "حذف العرض");
+                    return;
+                }
                 LoadItems();
             }
         }

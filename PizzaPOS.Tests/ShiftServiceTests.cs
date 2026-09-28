@@ -293,6 +293,75 @@ namespace PizzaPOS.Tests
         }
 
         [Fact]
+        public void DatabaseIndex_BlocksSecondOpenShiftEvenBypassingTheCheck()
+        {
+            // الـ guard في الخدمة check-then-act، يعني فيه نافذة بين
+            // القراءة والكتابة. الـ UX_Shifts_OneOpenPerUser partial index
+            // هو اللي بيقفل النافذة دي على مستوى الـ DB نفسه.
+            // لو الـ index اتشال، الاختبار ده هيفشل.
+            using (var c = new SqliteConnection(_cs))
+            {
+                c.Open();
+                Exec(c, @"CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_OneOpenPerUser
+                    ON Shifts(UserId) WHERE Status='open';");
+            }
+
+            _svc.OpenShift(1, 100);
+
+            // نحاكي الـ race: نتجاوز guard الخدمة ونتعامل مع الـ DB مباشرة
+            var ex = Record.Exception(() =>
+            {
+                using var c = new SqliteConnection(_cs);
+                c.Open();
+                Exec(c, "INSERT INTO Shifts(UserId,OpeningCash,Status) VALUES(1,500,'open');");
+            });
+
+            Assert.NotNull(ex);
+            Assert.Contains("UNIQUE", ex.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void DatabaseIndex_AllowsOneOpenShiftPerDifferentUser()
+        {
+            using (var c = new SqliteConnection(_cs))
+            {
+                c.Open();
+                Exec(c, @"CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_OneOpenPerUser
+                    ON Shifts(UserId) WHERE Status='open';");
+                Exec(c, "INSERT INTO Users(Id,Username,FullName,Role) VALUES(2,'c2','كاشير','cashier');");
+                Exec(c, "INSERT INTO Users(Id,Username,FullName,Role) VALUES(3,'c3','كاشير','cashier');");
+            }
+
+            // لازم يعدّي: القيد على اليوزر، مش على المطعم كله
+            _svc.OpenShift(1, 100);
+            _svc.OpenShift(2, 50);
+            _svc.OpenShift(3, 25);
+
+            Assert.Equal(3, _svc.GetHistory().Count(x => x.Status == "open"));
+        }
+
+        [Fact]
+        public void DatabaseIndex_AllowsManyClosedShiftsForSameUser()
+        {
+            // الـ index partial على Status='open' بس — الورديات المغلقة
+            // history لازم تفضل able تتسجل بلا حد.
+            using (var c = new SqliteConnection(_cs))
+            {
+                c.Open();
+                Exec(c, @"CREATE UNIQUE INDEX IF NOT EXISTS UX_Shifts_OneOpenPerUser
+                    ON Shifts(UserId) WHERE Status='open';");
+            }
+
+            for (int i = 0; i < 5; i++)
+            {
+                var s = _svc.OpenShift(1, 100);
+                _svc.CloseShift(s.Id, 100);
+            }
+
+            Assert.Equal(5, _svc.GetHistory().Count);
+        }
+
+        [Fact]
         public void CanReopenAfterClosing()
         {
             var first = _svc.OpenShift(1, 100);
@@ -321,6 +390,36 @@ namespace PizzaPOS.Tests
         }
 
         // ── السجل ──────────────────────────────────
+
+        [Fact]
+        public void History_WithAnOpenShift_DoesNotThrow()
+        {
+            // التاريخ بيعرض الورديات المفتوحة كمان، و ExpectedCash/
+            // Difference بيتحسبوا وقت الإقفال بس ⇒ NULL للوردية المفتوحة.
+            // GetDouble على NULL كان بيرمي استثناء.
+            var open = _svc.OpenShift(1, 300);
+            AddOrder(open.Id, 150, Cash, "new");
+
+            using (var c = new SqliteConnection(_cs))
+            {
+                c.Open();
+                Exec(c, "INSERT INTO Users(Id,Username,FullName,Role) VALUES(2,'c2','كاشير','cashier');");
+            }
+            var done = _svc.OpenShift(2, 100);
+            _svc.CloseShift(done.Id, 100);
+
+            var history = _svc.GetHistory();
+            Assert.Equal(2, history.Count);
+
+            var openRow = history.Single(x => x.Id == open.Id);
+            Assert.Equal(300, openRow.OpeningCash);
+            Assert.Equal(150, openRow.TotalSales);
+            Assert.Equal(0, openRow.ExpectedCash);   // لسه متحسبش
+            Assert.Equal(0, openRow.Difference);
+            Assert.Null(openRow.ClosingCash);
+            Assert.Null(openRow.ClosedAt);
+            Assert.Equal("open", openRow.Status);
+        }
 
         [Fact]
         public void History_MatchesTheCloseNumbers()

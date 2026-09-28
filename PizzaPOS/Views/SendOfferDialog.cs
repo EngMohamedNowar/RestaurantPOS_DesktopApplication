@@ -387,10 +387,12 @@ namespace PizzaPOS.Views
             string encoded = Uri.EscapeDataString(message);
 
             int opened = 0;
+            var failed = new List<string>();
             foreach (var c in selected)
             {
                 if (string.IsNullOrWhiteSpace(c.Phone)) continue;
                 string phone = c.Phone.Replace(" ", "").Replace("-", "").Replace("+", "");
+
                 if (phone.StartsWith("0"))
                     phone = "20" + phone.Substring(1);
 
@@ -400,13 +402,34 @@ namespace PizzaPOS.Views
                     Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
                     opened++;
                 }
-                catch { }
+                catch (Exception ex)
+                {
+                    // الرقم قد يكون غلط أو واتساب مش مثبّت. الكود القديم كان
+                    // ببلع الخطأ وبيقول للمستخدم "تم فتح واتساب لـ N زبون"
+                    // وهوفي الحقيقة فاتح لـ أقل — فبنحسبها ونبلّغ.
+                    AppLogger.Warn($"WhatsApp open failed for {c.Phone}: {ex.Message}");
+                    failed.Add(c.Phone);
+                }
             }
 
-            MessageBox.Show(
-                $"تم فتح واتساب لـ {opened} زبون!\n\nلو عندك واتساب مثبت على الجهاز، هيفتح لكل زبون مع الرسالة جاهزة.",
-                "تم", MessageBoxButton.OK, MessageBoxImage.Information);
-            DialogResult = true;
+            if (failed.Count > 0)
+            {
+                MessageBox.Show(
+                    $"مقدرناش نفتح واتساب لـ {failed.Count} زبون.\n\n"
+                    + "الأرقام دي مش مظبوطة أو واتساب مش مثبّت على الجهاز:\n"
+                    + string.Join("\n", failed.Take(10))
+                    + (failed.Count > 10 ? $"\n... و{failed.Count - 10} تاني" : ""),
+                    "مش كله اتفتح", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
+
+            if (opened > 0)
+            {
+                MessageBox.Show(
+                    $"تم فتح واتساب لـ {opened} زبون!\n\nلو عندك واتساب مثبت على الجهاز، هيفتح لكل زبون مع الرسالة جاهزة.",
+                    "تم", MessageBoxButton.OK, MessageBoxImage.Information);
+            }
+
+            DialogResult = failed.Count == 0;
             Close();
         }
     }

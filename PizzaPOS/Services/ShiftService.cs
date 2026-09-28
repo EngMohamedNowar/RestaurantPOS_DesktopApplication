@@ -56,6 +56,17 @@ namespace PizzaPOS.Services
         /// </summary>
         static string Text(SqliteDataReader r, int i) => r.IsDBNull(i) ? "" : r.GetString(i);
 
+        /// <summary>رقم عادي مع fallback صفر (Amount في الـ model غير nullable).</summary>
+        static double Real(SqliteDataReader r, int i) => r.IsDBNull(i) ? 0d : r.GetDouble(i);
+
+        /// <summary>رقم ممكن يكون NULL (ClosingCash بتتملي وقت الإقفال بس).</summary>
+        static double? Num(SqliteDataReader r, int i) => r.IsDBNull(i) ? null : r.GetDouble(i);
+
+        /// <summary>تاريخ اختياري — ClosedAt بيفضل NULL طول ما الوردية مفتوحة،
+        /// وده معناه "لسه متقفلتش". من غيرها بنرجّع "" والـ UI مبيقدرش
+        /// يفرق بين "لسه مفتوحة" و"قفلت من غير وقت".</summary>
+        static string? Maybe(SqliteDataReader r, int i) => r.IsDBNull(i) ? null : r.GetString(i);
+
         public Shift? GetOpenShift(int userId)
         {
             using var c = Open(); var cmd = c.CreateCommand();
@@ -83,7 +94,19 @@ namespace PizzaPOS.Services
             using var c = Open(); var cmd = c.CreateCommand();
             cmd.CommandText = "INSERT INTO Shifts(UserId,OpeningCash) VALUES(@u,@oc); SELECT last_insert_rowid()";
             cmd.Parameters.AddWithValue("@u", userId); cmd.Parameters.AddWithValue("@oc", openingCash);
-            long id = (long)cmd.ExecuteScalar()!;
+            long id;
+            try
+            {
+                id = (long)cmd.ExecuteScalar()!;
+            }
+            catch (SqliteException ex) when (ex.SqliteExtendedErrorCode == 1555)
+            {
+                // 1555 = SQLITE_CONSTRAINT_PRIMARYKEY على UX_Shifts_OneOpenPerUser.
+                // الـ check في فوق مرّ، بس الـ index رفض — يعني حاجة تانية
+                // فتحت وردية في الفترة دي. الـ DB هو مصدر الحقيقة هنا.
+                throw new InvalidOperationException(
+                    "فيه وردية مفتوحة بالفعل لهذا المستخدم. اقفلها الأول.", ex);
+            }
             return new Shift { Id = (int)id, UserId = userId, OpeningCash = openingCash, OpenedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm"), Status = "open" };
         }
 
@@ -115,7 +138,11 @@ namespace PizzaPOS.Services
                 GROUP BY s.Id ORDER BY s.Id DESC LIMIT 30";
             var list = new List<Shift>();
             using var r = cmd.ExecuteReader();
-            while (r.Read()) list.Add(new Shift { Id = r.GetInt32(0), UserId = r.GetInt32(1), UserName = Text(r, 2), OpeningCash = r.GetDouble(3), ClosingCash = r.IsDBNull(4) ? null : r.GetDouble(4), ExpectedCash = r.GetDouble(5), Difference = r.GetDouble(6), OpenedAt = Text(r, 7), ClosedAt = r.IsDBNull(8) ? null : r.GetString(8), Status = Text(r, 9), TotalSales = r.GetDouble(10), OrderCount = r.GetInt32(11) });
+            // Real()/Num(): زي Text() بس للأرقام. التاريخ ده بيفتح لحد صف عادي
+            // — ExpectedCash و Difference بيتحسبوا وقت الإقفال بس، فالوردية
+            // اللي لسه مفتوحة بتطلع لهم NULL. GetDouble على NULL بيرمي
+            // "data is NULL at ordinal 5" ونفس الحكاية بتاعت GetOpenShift.
+            while (r.Read()) list.Add(new Shift { Id = r.GetInt32(0), UserId = r.GetInt32(1), UserName = Text(r, 2), OpeningCash = Real(r, 3), ClosingCash = Num(r, 4), ExpectedCash = Real(r, 5), Difference = Real(r, 6), OpenedAt = Text(r, 7), ClosedAt = Maybe(r, 8), Status = Text(r, 9), TotalSales = Real(r, 10), OrderCount = r.GetInt32(11) });
             return list;
         }
     }

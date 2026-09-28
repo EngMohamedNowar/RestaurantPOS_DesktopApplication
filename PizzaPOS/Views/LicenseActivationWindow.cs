@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 using PizzaPOS.Helpers;
@@ -20,8 +21,8 @@ namespace PizzaPOS.Views
         public LicenseActivationWindow()
         {
             Title = "تفعيل الترخيص";
-            Width = 520;
-            Height = 460;
+            Width = 620;
+            Height = 560;
             WindowStartupLocation = WindowStartupLocation.CenterScreen;
             WindowStyle = WindowStyle.None;
             AllowsTransparency = true;
@@ -53,7 +54,7 @@ namespace PizzaPOS.Views
 
             var subtitle = new TextBlock
             {
-                Text = "البرنامج مقفل. أدخل مفتاح التفعيل للاستمرار.",
+                Text = "البرنامج مقفل. انسخ مفتاح التفعيل من المورّد والصقه هنا.",
                 FontSize = 13,
                 Foreground = UiHelper.B("#B0B0B0"),
                 TextAlignment = TextAlignment.Center,
@@ -92,44 +93,53 @@ namespace PizzaPOS.Views
             hwidRow.Children.Add(_txtHwid);
             stack.Children.Add(hwidRow);
 
-            stack.Children.Add(UiHelper.FieldLabel("مفتاح التفعيل:"));
+            stack.Children.Add(UiHelper.FieldLabel("مفتاح التفعيل (الصقه كامل):"));
+
+            // المفتاح بقى ~395 محرف (توقيع RSA-2048)، فالتنسيق التلقائي
+            // القديم كان بيقصّه على 16 محرف. بقى Box متعدّد الأسطر
+            // بيقبل اللصق وبيعمل wrap — والمستخدم بينسخ بينسخ.
             _txtKey = new TextBox
             {
-                FontSize = 18,
+                FontSize = 11,
                 FontFamily = new FontFamily("Consolas"),
-                FontWeight = FontWeights.Bold,
                 Foreground = Brushes.White,
                 Background = UiHelper.B("#2A2A3C"),
                 BorderBrush = UiHelper.B("#444466"),
                 BorderThickness = new Thickness(1),
-                Padding = new Thickness(12, 10, 12, 10),
-                MaxLength = 19,
-                HorizontalContentAlignment = HorizontalAlignment.Center,
-                Margin = new Thickness(0, 0, 0, 15),
-                CharacterCasing = CharacterCasing.Upper,
+                Padding = new Thickness(10, 8, 10, 8),
+                MaxLength = 600,
+                MinHeight = 80,
+                MaxHeight = 110,
+                AcceptsReturn = true,
+                TextWrapping = TextWrapping.Wrap,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                HorizontalContentAlignment = HorizontalAlignment.Left,
+                VerticalContentAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, 0, 0, 10),
                 FlowDirection = FlowDirection.LeftToRight
             };
-            _txtKey.KeyDown += (_, e) => { if (e.Key == System.Windows.Input.Key.Enter) Activate_Click(); };
-            _txtKey.TextChanged += (_, __) =>
+            _txtKey.KeyDown += (_, e) =>
             {
-                string raw = _txtKey.Text.Replace("-", "").Replace(" ", "");
-                if (raw.Length > 16) raw = raw.Substring(0, 16);
-
-                string formatted = "";
-                for (int i = 0; i < raw.Length && i < 16; i++)
+                // Enter يفعّل،Shift+Enter لسطر جديد (الـ Box متعدد الأسطر)
+                bool shift = (Keyboard.Modifiers & ModifierKeys.Shift) == ModifierKeys.Shift;
+                if (e.Key == System.Windows.Input.Key.Enter && !shift)
                 {
-                    if (i > 0 && i % 4 == 0) formatted += "-";
-                    formatted += raw[i];
-                }
-
-                if (_txtKey.Text != formatted)
-                {
-                    int pos = _txtKey.SelectionStart;
-                    _txtKey.Text = formatted;
-                    _txtKey.SelectionStart = Math.Min(pos, formatted.Length);
+                    e.Handled = true;
+                    Activate_Click();
                 }
             };
             stack.Children.Add(_txtKey);
+
+            var hint = new TextBlock
+            {
+                Text = "المفتاح طويل ويتبعت بالنسخ/اللصق — مفيش داعي تكتبه بإيدك.",
+                FontSize = 11,
+                Foreground = UiHelper.B("#888888"),
+                TextAlignment = TextAlignment.Center,
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 12)
+            };
+            stack.Children.Add(hint);
 
             var btnActivate = UiHelper.MakeBtn("تفعيل", "#E63946", Brushes.White, () => Activate_Click(), 14);
             btnActivate.Width = 200;
@@ -189,21 +199,24 @@ namespace PizzaPOS.Views
 
         void Activate_Click()
         {
-            string key = _txtKey.Text.Trim().Replace("-", "").Replace(" ", "");
+            // اللصق بيجيب مسافات وسطور جديدة — التطبيع جوه
+            // LicenseSignature.TrySplitKey/Ungroup بيتعامل معاها.
+            string key = _txtKey.Text.Trim();
 
-            if (key.Length != 16)
+            if (key.Length == 0)
             {
-                _txtStatus.Text = "Invalid key!";
+                _txtStatus.Text = "الصق مفتاح التفعيل الأول.";
                 _txtStatus.Foreground = UiHelper.B("#E63946");
                 return;
             }
 
-            string formatted = $"{key.Substring(0, 4)}-{key.Substring(4, 4)}-{key.Substring(8, 4)}-{key.Substring(12, 4)}";
-
-            if (LicenseManager.Activate(formatted, 30))
+            // الـ expiry جوه المفتاح الموقّع — البرنامج ما بيقدرش يقرّر
+            // المدة. النداء القديم كان Activate(formatted, 30) يعني
+            // "30 يوم من هنا" والبرنامج هو اللي كتبها، فكانت قابلة للتزوير.
+            if (LicenseManager.Activate(key))
             {
                 _shutdownTimer.Stop();
-                _txtStatus.Text = "Activated successfully!";
+                _txtStatus.Text = "تم التفعيل بنجاح!";
                 _txtStatus.Foreground = UiHelper.B("#4CAF50");
 
                 var timer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
@@ -217,9 +230,8 @@ namespace PizzaPOS.Views
             }
             else
             {
-                _txtStatus.Text = "Invalid key or doesn't match this device!";
+                _txtStatus.Text = "مفتاح غير صالح، أو مش مخصوص للجهاز ده.";
                 _txtStatus.Foreground = UiHelper.B("#E63946");
-                _txtKey.SelectAll();
                 _txtKey.Focus();
             }
         }

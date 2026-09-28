@@ -1,4 +1,4 @@
-﻿// Views/OrderTrackingWindow.cs
+// Views/OrderTrackingWindow.cs
 using PizzaPOS.Data;
 using PizzaPOS.Models;
 using PizzaPOS.Services;
@@ -887,26 +887,18 @@ namespace PizzaPOS.Views
 
         void Recalc()
         {
-            double sub = _items.Sum(i => i.Price * i.Qty);
-            double disc = double.TryParse(_tbDiscount?.Text, out var d) ? d : 0;
-            disc = Math.Min(disc, sub);
+            // نفس OrderCalculator — الكود القديم هنا كان نسخة ثالثة من
+            // نفس الحساب، وكل نسخة بتعمل rounding مختلف.
+            var totals = OrderCalculator.Calculate(
+                _items.Select(i => OrderCalculator.Money(i.Price * i.Qty)),
+                _tbDiscount?.Text, false,
+                _db.GetSetting("TaxRate", "0.14"),
+                _db.GetSetting("ServiceRate", "0"));
 
-            string taxStr = _db.GetSetting("TaxRate", "14");
-            string srvStr = _db.GetSetting("ServiceRate", "0");
-            double taxPct = double.TryParse(taxStr, out var t) ? t : 14;
-            double srvPct = double.TryParse(srvStr, out var sr) ? sr : 0;
-            if (taxPct < 1) taxPct *= 100;
-            if (srvPct is > 0 and < 1) srvPct *= 100;
-
-            double after = sub - disc;
-            double tax = after * (taxPct / 100);
-            double srv = after * (srvPct / 100);
-            double total = after + tax + srv;
-
-            if (_subtotalTxt != null) _subtotalTxt.Text = $"المجموع: {sub:F2} ج";
-            if (_discTxt != null) _discTxt.Text = disc > 0 ? $"خصم: -{disc:F2} ج" : "";
-            if (_taxTxt != null) _taxTxt.Text = $"ضريبة ({taxPct:0.##}%): {tax:F2} ج";
-            if (_totalTxt != null) _totalTxt.Text = $"الإجمالي: {total:F2} ج";
+            if (_subtotalTxt != null) _subtotalTxt.Text = $"المجموع: {totals.Subtotal:F2} ج";
+            if (_discTxt != null) _discTxt.Text = totals.Discount > 0 ? $"خصم: -{totals.Discount:F2} ج" : "";
+            if (_taxTxt != null) _taxTxt.Text = $"ضريبة ({totals.TaxRate:0.##}%): {totals.Tax:F2} ج";
+            if (_totalTxt != null) _totalTxt.Text = $"الإجمالي: {totals.Total:F2} ج";
         }
 
         void RebuildItemsPanel()
@@ -1013,17 +1005,14 @@ namespace PizzaPOS.Views
                 return false;
             }
 
-            double sub = _items.Sum(i => i.Price * i.Qty);
-            double disc = double.TryParse(_tbDiscount.Text, out var d) ? Math.Min(d, sub) : 0;
-            string taxStr = _db.GetSetting("TaxRate", "14");
-            string srvStr = _db.GetSetting("ServiceRate", "0");
-            double taxPct = double.TryParse(taxStr, out var t) ? t : 14;
-            double srvPct = double.TryParse(srvStr, out var sr) ? sr : 0;
-            if (taxPct < 1) taxPct *= 100;
-            if (srvPct is > 0 and < 1) srvPct *= 100;
-            double after = sub - disc;
-            double tax = after * (taxPct / 100);
-            double srv = after * (srvPct / 100);
+            // نفس الـ calculator اللي بيعرض الأرقام في Recalc(). قبل كده
+            // العرض والحفظ كانوا بنسختين من نفس الحساب، فلو اتغيرت
+            // واحدة والتانية لأ — العميل بيدفع رقم والـ DB بيخزن رقم تاني.
+            var totals = OrderCalculator.Calculate(
+                _items.Select(i => OrderCalculator.Money(i.Price * i.Qty)),
+                _tbDiscount?.Text, false,
+                _db.GetSetting("TaxRate", "0.14"),
+                _db.GetSetting("ServiceRate", "0"));
 
             var pm = (_cbPayMethod.SelectedItem as ComboBoxItem)?.Tag?.ToString()
                      ?? _order.PayMethod;
@@ -1037,11 +1026,12 @@ namespace PizzaPOS.Views
             }
 
             _order.Items = _items.ToList();
-            _order.Subtotal = sub;
-            _order.Discount = disc;
-            _order.Tax = tax;
-            _order.ServiceCharge = srv;
-            _order.Total = after + tax + srv + _order.DeliveryFee;
+            _order.Subtotal = (double)totals.Subtotal;
+            _order.Discount = (double)totals.Discount;
+            _order.Tax = (double)totals.Tax;
+            _order.ServiceCharge = (double)totals.ServiceCharge;
+            // رسوم التوصيل بتتحسب بعد الـ tax زي ما هي (نفس السلوك القديم)
+            _order.Total = (double)totals.Total + _order.DeliveryFee;
             _order.PayMethod = pm;
             _order.Notes = _tbNotes.Text.Trim();
             _order.CustomerName = _tbCustName?.Text.Trim() ?? _order.CustomerName;

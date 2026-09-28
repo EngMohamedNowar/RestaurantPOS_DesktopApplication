@@ -2,6 +2,7 @@
 using PizzaPOS.Data;
 using PizzaPOS.Helpers;
 using PizzaPOS.Models;
+using PizzaPOS.Services;
 using System;
 using System.Collections.ObjectModel;
 using System.Windows;
@@ -581,28 +582,16 @@ namespace PizzaPOS.Views
                     MessageBoxButton.OK, MessageBoxImage.Warning);
                 _tbFullName.Focus(); return;
             }
-            // PIN مطلوب للمستخدم الجديد
-            if (_editing == null && _tbPin.Text.Length != 4)
+            // PIN مطلوب ومقيّد للمستخدم الجديد، ومُتحقَّق منه في وضع التعديل كمان
+            if (_editing == null || !string.IsNullOrEmpty(_tbPin.Text))
             {
-                MessageBox.Show("PIN يجب أن يكون 4 أرقام بالظبط", "تنبيه",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                _tbPin.Focus(); return;
-            }
-            // لو كتب PIN في التعديل لازم يكون 4 أرقام
-            if (_editing != null && !string.IsNullOrEmpty(_tbPin.Text)
-                && _tbPin.Text.Length != 4)
-            {
-                MessageBox.Show("PIN يجب أن يكون 4 أرقام بالظبط", "تنبيه",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                _tbPin.Focus(); return;
-            }
-            // تأكد إن PIN أرقام فقط
-            if (!string.IsNullOrEmpty(_tbPin.Text) &&
-                !_tbPin.Text.All(char.IsDigit))
-            {
-                MessageBox.Show("PIN يجب أن يحتوي على أرقام فقط", "تنبيه",
-                    MessageBoxButton.OK, MessageBoxImage.Warning);
-                _tbPin.Focus(); return;
+                string? pinError = UserService.ValidateNewPin(_tbPin.Text);
+                if (pinError != null)
+                {
+                    MessageBox.Show(pinError, "تنبيه",
+                        MessageBoxButton.OK, MessageBoxImage.Warning);
+                    _tbPin.Focus(); return;
+                }
             }
 
             var role = (_cbRole.SelectedItem as ComboBoxItem)?.Tag?.ToString() ?? "cashier";
@@ -727,9 +716,10 @@ namespace PizzaPOS.Views
             };
             saveBtn.Click += (_, _) =>
             {
-                if (_tbPin.Text.Length != 4 || !_tbPin.Text.All(char.IsDigit))
+                string? pinError = UserService.ValidateNewPin(_tbPin.Text);
+                if (pinError != null)
                 {
-                    MessageBox.Show("PIN يجب أن يكون 4 أرقام بالظبط", "تنبيه",
+                    MessageBox.Show(pinError, "تنبيه",
                         MessageBoxButton.OK, MessageBoxImage.Warning);
                     return;
                 }

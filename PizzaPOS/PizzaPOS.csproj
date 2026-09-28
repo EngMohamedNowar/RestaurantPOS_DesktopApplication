@@ -18,4 +18,12 @@
 	<ItemGroup>
 		<Resource Include="pizza.ico" />
 	</ItemGroup>
+	<ItemGroup>
+		<!--
+			اختبارات الترخيص محتاجة تقرا/تكتب license.dat مؤقتة. من غير ده
+			هتكتب على الترخيص الحقيقي في %AppData% وتمسحه.
+			الـ override كله internal، فمش بيفتح باب جديد في production.
+		-->
+		<InternalsVisibleTo Include="PizzaPOS.Tests" />
+	</ItemGroup>
 </Project>

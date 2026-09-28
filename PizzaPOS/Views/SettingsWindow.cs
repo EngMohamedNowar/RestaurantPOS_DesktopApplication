@@ -2,6 +2,8 @@
 using PizzaPOS.Helpers;
 using PizzaPOS.Services;
 using System;
+using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -151,8 +153,10 @@ namespace PizzaPOS.Views
             var taxPanel = new StackPanel();
             taxPanel.Children.Add(Lbl("الضريبة %"));
             _tbTax = UiHelper.MakeTB(
-                (double.TryParse(_db.GetSetting("TaxRate", "0.14"), out var t)
-                    ? (t < 1 ? t * 100 : t) : 14).ToString("F0"), "#FF6B35");
+                OrderCalculator.NormalizeRate(
+                    OrderCalculator.ParseRate(_db.GetSetting("TaxRate", "0.14"),
+                        OrderCalculator.DefaultTaxRate)).ToString("F0", CultureInfo.InvariantCulture),
+                "#FF6B35");
             _tbTax.Margin = new Thickness(0, 4, 0, 14);
             taxPanel.Children.Add(_tbTax);
             Grid.SetColumn(taxPanel, 0);
@@ -161,8 +165,10 @@ namespace PizzaPOS.Views
             var srvPanel = new StackPanel();
             srvPanel.Children.Add(Lbl("رسوم الخدمة %"));
             _tbService = UiHelper.MakeTB(
-                (double.TryParse(_db.GetSetting("ServiceRate", "0"), out var sr)
-                    ? (sr < 1 ? sr * 100 : sr) : 0).ToString("F0"), "#FF6B35");
+                OrderCalculator.NormalizeRate(
+                    OrderCalculator.ParseRate(_db.GetSetting("ServiceRate", "0"),
+                        OrderCalculator.DefaultServiceRate)).ToString("F0", CultureInfo.InvariantCulture),
+                "#FF6B35");
             _tbService.Margin = new Thickness(0, 4, 0, 14);
             srvPanel.Children.Add(_tbService);
             Grid.SetColumn(srvPanel, 2);
@@ -172,8 +178,8 @@ namespace PizzaPOS.Views
 
             sp.Children.Add(Lbl("خصم افتراضي % (0 = تعطيل)"));
             _tbDiscount = UiHelper.MakeTB(
-                (double.TryParse(_db.GetSetting("DefaultDiscount", "0"), out var dd)
-                    ? dd : 0).ToString("F0"), "#FF6B35");
+                OrderCalculator.ParseRate(_db.GetSetting("DefaultDiscount", "0"), 0m)
+                    .ToString("F0", CultureInfo.InvariantCulture), "#FF6B35");
             _tbDiscount.Margin = new Thickness(0, 4, 0, 6);
             sp.Children.Add(_tbDiscount);
             sp.Children.Add(new TextBlock
@@ -288,6 +294,9 @@ namespace PizzaPOS.Views
                 TextWrapping = TextWrapping.Wrap
             });
 
+            sp.Children.Add(SectionHeader("النسخ الاحتياطي", "💾"));
+            sp.Children.Add(BuildBackupPanel());
+
             scroll.Content = sp;
             Grid.SetRow(scroll, 1);
             outer.Children.Add(scroll);
@@ -369,9 +378,13 @@ namespace PizzaPOS.Views
             // مسح أي أرقام قديمة أكتر من العدد الحالي
             for (int i = _extraPhones.Count + 2; i <= 10; i++)
                 _db.SetSetting($"Phone{i}", "");
-            _db.SetSetting("TaxRate", (taxPct / 100).ToString("F4"));
-            _db.SetSetting("ServiceRate", (srvPct / 100).ToString("F4"));
-            _db.SetSetting("DefaultDiscount", discPct.ToString("F2"));
+            // الأرقام بتتخزّن كنص في جدول Settings وبتتشرك بين أجهزة.
+            // لو كنا نكتبها بـ culture الجهاز، على جهاز فاصله-decimal
+            // الـ value هتطلع "0,1400"، والقراءة بعدين بـ parser تاني
+            // ممكن تدي 1400. الحفظ والقراءة لازم يكونوا Invariant.
+            _db.SetSetting("TaxRate", (taxPct / 100).ToString("F4", CultureInfo.InvariantCulture));
+            _db.SetSetting("ServiceRate", (srvPct / 100).ToString("F4", CultureInfo.InvariantCulture));
+            _db.SetSetting("DefaultDiscount", discPct.ToString("F2", CultureInfo.InvariantCulture));
             _db.SetSetting("DefaultDeliveryFee", _tbDeliveryFee.Text.Trim());
             _db.SetSetting("ReceiptFooter", _tbFooter.Text.Trim());
             _db.SetSetting("PrinterName", _tbPrinter.Text.Trim());
@@ -384,6 +397,126 @@ namespace PizzaPOS.Views
                 MessageBoxButton.OK, MessageBoxImage.Information);
             DialogResult = true;
             Close();
+        }
+
+        // ── Backup panel ──────────────────────────────
+        StackPanel BuildBackupPanel()
+        {
+            var panel = new StackPanel();
+            var status = new TextBlock
+            {
+                FontSize = 11,
+                Foreground = UiHelper.B("#5a6a80"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 0, 0, 10)
+            };
+
+            var list = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
+
+            void Refresh()
+            {
+                status.Text = BackupService.GetBackupCount() == 0
+                    ? "مفيش نسخ محفوظة لسه."
+                    : $"{BackupService.GetBackupCount()} نسخة محفوظة (بيتمسح الأقدم من 10).";
+
+                list.Children.Clear();
+                foreach (var b in BackupService.ListBackups())
+                {
+                    var info = b;
+                    var row = new Border
+                    {
+                        Background = UiHelper.B("#0f1a2e"),
+                        BorderBrush = UiHelper.B("#1e2d4a"),
+                        BorderThickness = new Thickness(1),
+                        CornerRadius = new CornerRadius(8),
+                        Padding = new Thickness(12, 8, 12, 8),
+                        Margin = new Thickness(0, 0, 0, 6)
+                    };
+
+                    var rowGrid = new Grid();
+                    rowGrid.ColumnDefinitions.Add(new ColumnDefinition());
+                    rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+
+                    var labels = new StackPanel();
+                    labels.Children.Add(new TextBlock
+                    {
+                        Text = $"{info.CreatedAt:yyyy-MM-dd  HH:mm:ss}   •   {info.SizeDisplay}",
+                        FontSize = 12,
+                        FontWeight = FontWeights.Bold,
+                        Foreground = UiHelper.B("#eef0f2")
+                    });
+                    labels.Children.Add(new TextBlock
+                    {
+                        Text = info.FileName,
+                        FontSize = 10,
+                        Foreground = UiHelper.B("#5a6a80")
+                    });
+                    Grid.SetColumn(labels, 0);
+                    rowGrid.Children.Add(labels);
+
+                    var restoreBtn = UiHelper.MakeBtn("استعادة", "#2a1a1a", UiHelper.B("#ffd166"),
+                        () => ConfirmRestore(info), 6, 11, 0, "8");
+                    restoreBtn.MinWidth = 80;
+                    Grid.SetColumn(restoreBtn, 1);
+                    rowGrid.Children.Add(restoreBtn);
+
+                    row.Child = rowGrid;
+                    list.Children.Add(row);
+                }
+            }
+
+            void ConfirmRestore(BackupInfo info)
+            {
+                if (MessageBox.Show(
+                        $"استعادة النسخة دي؟\n\n{info.CreatedAt:yyyy-MM-dd HH:mm}  •  {info.SizeDisplay}\n\n"
+                        + "⚠️ كل البيانات اللي اتسجّلت بعد النسخة دي هتضيع.\n"
+                        + "هنحفظ نسخة أمان من الحالة الحالية قبل الاستبدال.",
+                        "تأكيد الاستعادة", MessageBoxButton.OKCancel,
+                        MessageBoxImage.Warning) != MessageBoxResult.OK)
+                    return;
+
+                var result = BackupService.RestoreBackup(info.Path);
+                MessageBox.Show(result.Message,
+                    result.Success ? "تم" : "فشل",
+                    MessageBoxButton.OK,
+                    result.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
+
+                if (result.Success) Refresh();
+            }
+
+            var nowBtn = UiHelper.MakeBtn("إنشاء نسخة الآن", "#1a3a5f", UiHelper.B("#7ab8f5"),
+                () =>
+                {
+                    var path = BackupService.CreateBackup();
+                    Refresh();
+                    MessageBox.Show(
+                        path == null
+                            ? "مقدرناش نعمل نسخة — شوف ملف الـ log في %AppData%\\PizzaPOS\\logs"
+                            : $"تم إنشاء النسخة:\n{Path.GetFileName(path)}",
+                        path == null ? "فشل" : "تم",
+                        MessageBoxButton.OK,
+                        path == null ? MessageBoxImage.Error : MessageBoxImage.Information);
+                }, 10, 13);
+            nowBtn.MinWidth = 180;
+            nowBtn.HorizontalAlignment = HorizontalAlignment.Left;
+            nowBtn.Margin = new Thickness(0, 0, 0, 8);
+            panel.Children.Add(nowBtn);
+
+            panel.Children.Add(status);
+            Refresh();
+            panel.Children.Add(list);
+
+            panel.Children.Add(new TextBlock
+            {
+                Text = "💡 النسخة بتتم تلقائياً مرة واحدة عند كل تشغيل، وبتاخد لقطة متسقة " +
+                       "من كل المعاملات المحفوظة (مش مجرد نسخ للملف).",
+                FontSize = 10,
+                Foreground = UiHelper.B("#3a4a60"),
+                TextWrapping = TextWrapping.Wrap,
+                Margin = new Thickness(0, 12, 0, 0)
+            });
+
+            return panel;
         }
 
         // ── Helpers ──────────────────────────────────

@@ -1,10 +1,25 @@
 using System;
 using System.IO;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace PizzaPOS.Services
 {
+    /// <summary>
+    /// إدارة الترخيص في جانب العميل — **تحقّق فقط**.
+    ///
+    /// مفيش أي مفتاح سري هنا عن قصد: البرنامج ما بيقدرش يوقّع ترخيص،
+    /// بيقدرش يتحقق غير بتوقيعات الأداة بس.
+    ///
+    /// الملف license.dat في %AppData%\PizzaPOS، 3 أسطر:
+    ///   0) HWID الجهاز
+    ///   1) المفتاح = تاريخ الانتهاء + التوقيع   ← المصدر الوحيد للحقيقة
+    ///   2) تاريخ الإصدار (معلوماتي، ماله أي أثر على الصلاحية)
+    ///
+    /// مفيش سطر "تاريخ الانتهاء" منفصل عن قصد. في النظام القديم كان
+    /// موجود سطر مستقل، والبرنامج كان بيثق فيه — يعني أي حد يفتح الملف
+    /// ويكتب PERMANENT وخلاص. دلوقتي التاريخ **جوه المفتاح الموقّع**،
+    /// فمافيش سطر عدله في الملف أصلاً: تغيّره معناه إنك ما عندكش توقيع
+    /// أصلاً. أي تعديل على السطر 1 بيكسر التحقق فوراً.
+    /// </summary>
     public static class LicenseManager
     {
         static readonly string LicenseDir = Path.Combine(
@@ -13,118 +28,175 @@ namespace PizzaPOS.Services
 
         static readonly string LicenseFile = Path.Combine(LicenseDir, "license.dat");
 
-        static readonly byte[] SecretSalt = Encoding.UTF8.GetBytes("NAPOLI-PIZZA-2025-SECRET-KEY!!");
+        /// <summary>
+        /// مسار بديل للاختبارات بس (internal). بدون ده اختبارات الترخيص
+        /// هتكتب على license.dat الحقيقي في %AppData% وتمسح ترخيص المستخدم.
+        /// </summary>
+        static string? _pathOverride;
 
-        public static string GenerateKey(string hwid)
+        internal static string LicenseFilePath => _pathOverride ?? LicenseFile;
+
+        internal static IDisposable OverridePath(string path)
         {
-            using var hmac = new HMACSHA256(SecretSalt);
-            byte[] hash = hmac.ComputeHash(Encoding.UTF8.GetBytes(hwid));
-
-            string s1 = Convert.ToHexString(hash, 0, 2).ToUpperInvariant();
-            string s2 = Convert.ToHexString(hash, 2, 2).ToUpperInvariant();
-            string s3 = Convert.ToHexString(hash, 4, 2).ToUpperInvariant();
-            string s4 = Convert.ToHexString(hash, 6, 2).ToUpperInvariant();
-
-            return $"{s1}-{s2}-{s3}-{s4}";
+            string? previous = _pathOverride;
+            _pathOverride = path;
+            return new PathScope(() => _pathOverride = previous);
         }
 
-        public static bool Validate(string hwid, string key)
+        sealed class PathScope : IDisposable
         {
-            string expected = GenerateKey(hwid);
-            return string.Equals(expected, key, StringComparison.OrdinalIgnoreCase);
-        }
-
-        public static bool IsActivated()
-        {
-            try
+            readonly Action _restore;
+            bool _done;
+            public PathScope(Action restore) => _restore = restore;
+            public void Dispose()
             {
-                if (!File.Exists(LicenseFile)) return false;
-
-                string[] lines = File.ReadAllLines(LicenseFile);
-                if (lines.Length < 4) return false;
-
-                string storedHwid = lines[0].Trim();
-                string storedKey = lines[1].Trim();
-                string expiryStr = lines[3].Trim();
-
-                string currentHwid = HardwareId.GetShortId();
-                if (storedHwid != currentHwid) return false;
-
-                if (!Validate(currentHwid, storedKey)) return false;
-
-                if (expiryStr != "PERMANENT")
-                {
-                    if (DateTime.TryParse(expiryStr, out DateTime expiry))
-                    {
-                        if (DateTime.Now > expiry) return false;
-                    }
-                }
-
-                return true;
+                if (_done) return;
+                _done = true;
+                _restore();
             }
-            catch { return false; }
         }
 
-        public static bool Activate(string key, int? days = null)
+        public static string GetHwid() => HardwareId.GetShortId();
+
+        /// <summary>يقرأ الملف ويرجّع (متحقق، سبب الرفض).</summary>
+        public static bool IsActivated() => TryCheck(out _);
+
+        public static bool TryCheck(out string reason)
         {
+            reason = "";
+
+            string[] lines;
             try
             {
-                string hwid = HardwareId.GetShortId();
+                if (!File.Exists(LicenseFilePath)) { reason = "NO_LICENSE_FILE"; return false; }
+                lines = File.ReadAllLines(LicenseFilePath);
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Warn($"License: cannot read file: {ex.Message}");
+                reason = "READ_ERROR";
+                return false;
+            }
 
-                if (!Validate(hwid, key)) return false;
+            if (lines.Length < 3) { reason = "MALFORMED_FILE"; return false; }
 
-                string expiryLine = "PERMANENT";
-                if (days.HasValue && days.Value > 0)
+            string storedHwid = lines[0].Trim();
+            string key = lines[1].Trim();
+
+            if (!LicenseSignature.TrySplitKey(key, out string expiryCode, out string signature))
+            {
+                AppLogger.Warn("License: key is not in the expected format");
+                reason = "BAD_KEY_FORMAT";
+                return false;
+            }
+
+            // (1) التوقيع — أهم خطوة. لو التاريخ اتغيّر أو الـ HWID اتغيّر
+            //     أو حد عمل mint مفتاح بنفسه، هتفشل هنا قبل أي تاني.
+            if (!LicenseSignature.Verify(storedHwid, expiryCode, signature))
+            {
+                AppLogger.Warn("License: signature verification FAILED — forged or tampered file");
+                reason = "BAD_SIGNATURE";
+                return false;
+            }
+
+            // (2) الترخيص لجهاز واحد بس
+            string currentHwid = GetHwid();
+            if (!string.Equals(storedHwid, currentHwid, StringComparison.OrdinalIgnoreCase))
+            {
+                reason = "WRONG_DEVICE";
+                return false;
+            }
+
+            // (3) الصلاحية — التاريخ ده جاي من جوه المفتاح الموقّع، فمش
+            //     حد يقدر يعدّله من غير ما التوقيع يفشل في الخطوة (1)
+            if (!expiryCode.Equals(LicenseSignature.Permanent, StringComparison.OrdinalIgnoreCase))
+            {
+                if (!DateTime.TryParseExact(expiryCode, "yyyyMMdd", null,
+                        System.Globalization.DateTimeStyles.None, out DateTime expiry))
                 {
-                    expiryLine = DateTime.Now.AddDays(days.Value).ToString("yyyy-MM-dd");
+                    reason = "BAD_EXPIRY";
+                    return false;
                 }
+                if (DateTime.Today > expiry)
+                {
+                    reason = "EXPIRED";
+                    return false;
+                }
+            }
 
+            return true;
+        }
+
+        /// <summary>
+        /// تفعيل: بيحفظ المفتاح الموقّع اللي المستخدم لصقه. ما بيحددش مدة —
+        /// المدة جوه التوقيع، ومين يوقّع هو الأداة بس.
+        /// </summary>
+        public static bool Activate(string key)
+        {
+            if (!LicenseSignature.TrySplitKey(key, out string expiryCode, out string signature))
+                return false;
+
+            if (!LicenseSignature.Verify(GetHwid(), expiryCode, signature))
+            {
+                AppLogger.Warn("License: activate rejected — signature invalid for this device");
+                return false;
+            }
+
+            if (!expiryCode.Equals(LicenseSignature.Permanent, StringComparison.OrdinalIgnoreCase)
+                && !DateTime.TryParseExact(expiryCode, "yyyyMMdd", null,
+                    System.Globalization.DateTimeStyles.None, out _))
+                return false;
+
+            try
+            {
                 Directory.CreateDirectory(LicenseDir);
-                File.WriteAllLines(LicenseFile, new[]
+                File.WriteAllLines(LicenseFilePath, new[]
                 {
-                    hwid,
-                    key,
-                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    expiryLine
+                    GetHwid(),
+                    expiryCode + LicenseSignature.ExpirySeparator + signature,
+                    DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")
                 });
+                AppLogger.Info($"License activated ({LicenseSignature.FormatExpiryForDisplay(expiryCode)})");
                 return true;
             }
-            catch { return false; }
+            catch (Exception ex)
+            {
+                AppLogger.Warn($"License: cannot write file: {ex.Message}");
+                return false;
+            }
         }
 
+        /// <summary>معلومات الصلاحية للعرض (لا تؤثر على القرار).</summary>
         public static string GetExpiryInfo()
         {
             try
             {
-                if (!File.Exists(LicenseFile)) return "NO_LICENSE";
+                if (!File.Exists(LicenseFilePath)) return "NO_LICENSE";
 
-                string[] lines = File.ReadAllLines(LicenseFile);
-                if (lines.Length < 4) return "NO_LICENSE";
+                string[] lines = File.ReadAllLines(LicenseFilePath);
+                if (lines.Length < 3 || !LicenseSignature.TrySplitKey(lines[1], out string code, out _))
+                    return "NO_LICENSE";
 
-                string expiryStr = lines[3].Trim();
+                if (code.Equals(LicenseSignature.Permanent, StringComparison.OrdinalIgnoreCase))
+                    return "PERMANENT";
 
-                if (expiryStr == "PERMANENT") return "PERMANENT";
+                if (!DateTime.TryParseExact(code, "yyyyMMdd", null,
+                        System.Globalization.DateTimeStyles.None, out DateTime expiry))
+                    return "INVALID";
 
-                if (DateTime.TryParse(expiryStr, out DateTime expiry))
-                {
-                    TimeSpan remaining = expiry - DateTime.Now;
-                    if (remaining.TotalDays <= 0) return "EXPIRED";
-                    if (remaining.TotalDays <= 7)
-                        return $" expiresIn {remaining.Days}d {remaining.Hours}h";
-                    return $" expiresIn {remaining.Days} days";
-                }
-
-                return "UNKNOWN";
+                TimeSpan remaining = expiry.Date.AddDays(1) - DateTime.Now;
+                if (remaining.TotalDays <= 0) return "EXPIRED";
+                if (remaining.TotalDays <= 7)
+                    return $"expiresIn {remaining.Days}d {remaining.Hours}h";
+                return $"expiresIn {remaining.Days} days";
             }
             catch { return "ERROR"; }
         }
 
         public static void Deactivate()
         {
-            try { if (File.Exists(LicenseFile)) File.Delete(LicenseFile); }
+            try { if (File.Exists(LicenseFilePath)) File.Delete(LicenseFilePath); }
             catch { }
         }
-
-        public static string GetHwid() => HardwareId.GetShortId();
     }
 }

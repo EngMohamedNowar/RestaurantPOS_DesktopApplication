@@ -15,6 +15,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using PizzaPOS.Data;
 using PizzaPOS.Models;
+using PizzaPOS.Services;
 
 namespace PizzaPOS.Services
 {
@@ -685,9 +686,25 @@ namespace PizzaPOS.Services
             doc.Blocks.Add(Para($"المجموع: {order.Subtotal:F2} ج"));
             if (order.Discount > 0)
                 doc.Blocks.Add(Para($"خصم: -{order.Discount:F2} ج"));
-            doc.Blocks.Add(Para($"ضريبة (14%): {order.Tax:F2} ج"));
+
+            // النسبة بتستنتج من أرقام الأوردر نفسه، مش من الـ Settings.
+            // قبل كده كانت مكتوبة hardcode "14%" — يعني لو المحل غيّر
+            // الضريبة لـ 20%، الإيصال كان بيطبع رقم الضريبة الصح
+            // وجنبه 14%. وكمان لو النسبة اتغيرت بعد ما الأوردر اتعمل،
+            // قراءة الـ Settings كانت هتدي رقم غلط تاني.
+            decimal sub = OrderCalculator.Money(order.Subtotal);
+            decimal disc = OrderCalculator.Money(order.Discount);
+
+            decimal taxRate = OrderCalculator.RateFromAmount(
+                OrderCalculator.Money(order.Tax), sub, disc);
+            doc.Blocks.Add(Para($"ضريبة ({taxRate:0.##}%): {order.Tax:F2} ج"));
+
             if (order.ServiceCharge > 0)
-                doc.Blocks.Add(Para($"خدمة: {order.ServiceCharge:F2} ج"));
+            {
+                decimal srvRate = OrderCalculator.RateFromAmount(
+                    OrderCalculator.Money(order.ServiceCharge), sub, disc);
+                doc.Blocks.Add(Para($"خدمة ({srvRate:0.##}%): {order.ServiceCharge:F2} ج"));
+            }
             if (order.DeliveryFee > 0)
                 doc.Blocks.Add(Para($"رسوم توصيل: {order.DeliveryFee:F2} ج"));
 

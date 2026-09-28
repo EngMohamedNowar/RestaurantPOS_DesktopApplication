@@ -15,6 +15,9 @@ namespace PizzaPOS.Models
         public double Stock { get; set; }
         public double MinStock { get; set; }
         public double CostPerUnit { get; set; }
+        /// <summary>false = مادة محذوفة (soft delete). الصف بيفضل موجود عشان تاريخ
+        /// StockMovements يفضل مقروء، بس بيختفي من كل قوائم الاختيار والتقارير.</summary>
+        public bool IsActive { get; set; } = true;
         public bool IsLow => Stock <= MinStock;
         public string StockStatus => IsLow ? "⚠ منخفض" : "✅ كافي";
 

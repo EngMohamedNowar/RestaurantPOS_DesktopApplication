@@ -574,7 +574,7 @@ namespace PizzaPOS.Views
             var ings = new List<Ingredient>();
             using var c = DatabaseHelper.Open();
             var cmd = c.CreateCommand();
-            cmd.CommandText = "SELECT Id,Name,Unit,CostPerUnit FROM Ingredients ORDER BY Name";
+            cmd.CommandText = "SELECT Id,Name,Unit,CostPerUnit FROM Ingredients WHERE IsActive=1 ORDER BY Name";
             using var r = cmd.ExecuteReader();
             while (r.Read()) ings.Add(new Ingredient
             {
@@ -684,7 +684,7 @@ namespace PizzaPOS.Views
         {
             using var c = DatabaseHelper.Open();
             var cmd = c.CreateCommand();
-            cmd.CommandText = "SELECT Id,Name,Unit,CostPerUnit FROM Ingredients WHERE Id=@id";
+            cmd.CommandText = "SELECT Id,Name,Unit,CostPerUnit FROM Ingredients WHERE Id=@id AND IsActive=1";
             cmd.Parameters.AddWithValue("@id", id);
             using var r = cmd.ExecuteReader();
             if (r.Read())

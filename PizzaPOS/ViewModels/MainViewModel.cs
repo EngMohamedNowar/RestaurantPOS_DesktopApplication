@@ -1,7 +1,8 @@
-﻿// ViewModels/MainViewModel.cs
+// ViewModels/MainViewModel.cs
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Windows;
@@ -242,27 +243,44 @@ namespace PizzaPOS.ViewModels
         // ── Recalc ───────────────────────────────────
         void Recalc()
         {
-            double sub = OrderItems.Sum(i => i.Subtotal);
-            double dv = double.TryParse(_discInput, out var d) ? d : 0;
-            double disc = _discPct ? sub * (dv / 100) : Math.Min(dv, sub);
-            double after = sub - disc;
+            // نسب الضريبة/الخدمة من الـ Settings. قبل كده كان بيتقرا
+            // مع كل Recalc، وRecalc بيتنادى مع كل حرف في خانة الخصم —
+            // يعني استعلامين في الـ DB لكل ضغطة مفتاح. دلوقتي بنقراهم
+            // مرة واحدة ونخزنهم، ونحدّثهم لما الـ settings تتغير.
+            EnsureRatesLoaded();
 
-            string taxStr = _db.GetSetting("TaxRate", "14");
-            string srvStr = _db.GetSetting("ServiceRate", "0");
+            var totals = OrderCalculator.Calculate(
+                OrderItems.Select(i => OrderCalculator.Money(i.Subtotal)),
+                _discInput, _discPct, _cachedTaxRate, _cachedServiceRate);
 
-            double taxPct = double.TryParse(taxStr, out var t) ? t : 14;
-            double srvPct = double.TryParse(srvStr, out var sr) ? sr : 0;
+            Subtotal = (double)totals.Subtotal;
+            Discount = (double)totals.Discount;
+            Tax = (double)totals.Tax;
+            ServiceCharge = (double)totals.ServiceCharge;
+            Total = (double)totals.Total;
+            TaxRate = (double)totals.TaxRate;
+            ServiceRate = (double)totals.ServiceRate;
+        }
 
-            if (taxPct < 1) taxPct *= 100;
-            if (srvPct is > 0 and < 1) srvPct *= 100;
+        // نسخة مُطبَّعة (normalized) من الـ Settings — مرة واحدة، مش مع كل recalc.
+        decimal _cachedTaxRate, _cachedServiceRate;
+        bool _ratesLoaded;
 
-            Subtotal = sub;
-            Discount = disc;
-            Tax = after * (taxPct / 100);
-            ServiceCharge = after * (srvPct / 100);
-            Total = after + Tax + ServiceCharge;
-            TaxRate = taxPct;
-            ServiceRate = srvPct;
+        void EnsureRatesLoaded()
+        {
+            if (_ratesLoaded) return;
+            _cachedTaxRate = OrderCalculator.NormalizeRate(
+                OrderCalculator.ParseRate(_db.GetSetting("TaxRate", "0.14"), OrderCalculator.DefaultTaxRate));
+            _cachedServiceRate = OrderCalculator.NormalizeRate(
+                OrderCalculator.ParseRate(_db.GetSetting("ServiceRate", "0"), OrderCalculator.DefaultServiceRate));
+            _ratesLoaded = true;
+        }
+
+        /// <summary>ينادى من SettingsWindow بعد حفظ النسب.</summary>
+        public void InvalidateRates()
+        {
+            _ratesLoaded = false;
+            Recalc();
         }
 
         // ── Pay Cash ─────────────────────────────────
@@ -392,19 +410,74 @@ namespace PizzaPOS.ViewModels
                 DeliveryStatus = delivery != null ? DeliveryStatuses.InTransit : ""
             };
 
-            _db.SaveOrder(order);
-            _inv.DeductForOrder(snapshot, SessionService.CurrentUser?.Id ?? 0);
-
-            // Loyalty: 1 point per 10 EGP spent
-            if (order.CustomerId > 0)
+            StockDeductionResult stockResult;
+            try
             {
-                int earnedPoints = (int)(order.Total / 10);
-                _db.AddLoyaltyPoints(order.CustomerId, earnedPoints);
+                stockResult = CommitCheckout(order, snapshot);
+            }
+            catch (Exception ex)
+            {
+                // الـ transaction اتعمله rollback، فمفيش أي حاجة اتسجلت:
+                // مفيش أوردر، مفيش خصم مخزون، مفيش نقاط. السلة لسه
+                // زي ما هي فالكاشير يقدر يجرب تاني. هنبلّغه بالسبب
+                // بدل ما نسيبه يشوف استثناء SQL على الشاشة.
+                AppLogger.Error(
+                    $"Checkout failed for order {order.OrderNumber}: {ex.Message}", ex);
+                MessageBox.Show(
+                    "فشل إتمام البيع، ومكانش اتسجل أي حاجة.\n\n"
+                    + "السبب: " + ex.Message
+                    + "\n\nالسلة لسه زي ما هي، جرّب تاني.",
+                    "خطأ في الدفع", MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
             }
 
             _printer.PrintReceipt(order, _db);
             RefreshStats();
             ClearOrder();
+
+            // العجز بيترصد في السجل وبيخلي الرصيد سالب (مرئي في المخزون)،
+            // بس لازم المستخدم يعرف فوراً برضه.
+            if (stockResult.HasShortage)
+                MessageBox.Show(
+                    "تم حفظ الأوردر، بس المخزون مش كافي:\n\n" + stockResult.Summary
+                    + "\n\nراجع المخزون واعمل جرد للمواد الناقصة.",
+                    "تنبيه مخزون", MessageBoxButton.OK, MessageBoxImage.Warning);
+        }
+
+        /// <summary>
+        /// الأوردر + خصم المخزون + نقاط الولاء، كلهم في transaction واحد.
+        ///
+        /// قبل التعديل كانوا تلات عمليات مستقلة على نفس الملف: لو
+        /// اتحفظ الأوردر وفشل خصم المخزون، كان عندنا بيع مسجّل
+        /// بمخزون منقوص (وكمان الفيزيا بتاعة العميل اتحصّلت)، ومفيش
+        /// طريقة نعرف بيها إن العملية اتقطعت في النص.
+        ///
+        /// الـ connection واحد لازم يكون من نفس قاعدة بيانات الـ _db
+        /// والـ _inv — الإنتاج كلهم على DatabaseHelper.CS، والاختبارات
+        /// بتبنيهم كلهم على CSFor(path) واحد.
+        /// </summary>
+        StockDeductionResult CommitCheckout(Order order, List<OrderItem> snapshot)
+        {
+            using var conn = _db.OpenConnection();
+            using var tx = conn.BeginTransaction();
+            try
+            {
+                _db.SaveOrder(order, conn, tx);
+
+                var res = _inv.DeductForOrder(
+                    snapshot, order.UserId, order.OrderNumber, conn, tx);
+
+                // Loyalty: 1 point per 10 EGP spent
+                if (order.CustomerId > 0)
+                {
+                    int earnedPoints = (int)(order.Total / 10);
+                    _db.AddLoyaltyPoints(order.CustomerId, earnedPoints, conn, tx);
+                }
+
+                tx.Commit();
+                return res;
+            }
+            catch { tx.Rollback(); throw; }
         }
 
         // ── Hold / Resume ────────────────────────────
@@ -443,8 +516,10 @@ namespace PizzaPOS.ViewModels
             Notify(nameof(OrderType));
             Notify(nameof(DiscountInput));
             Notify(nameof(Notes));
-            var defDisc = _db.GetSetting("DefaultDiscount", "0");
-            _discInput = double.TryParse(defDisc, out var d) && d > 0 ? defDisc : "";
+            // الـ default بيشتغل بس لو اتقرا صح — ParsRate بيرفض النص
+            // الغلط ويرجع 0 بدل ما يطلع exception في نص السطر.
+            var defDisc = OrderCalculator.ParseAmount(_db.GetSetting("DefaultDiscount", "0"));
+            _discInput = defDisc > 0 ? defDisc.ToString("0.##", CultureInfo.InvariantCulture) : "";
             _discPct = true;
             Notify(nameof(DiscountInput));
             OrderNumber = _db.GetNextOrderNumber();

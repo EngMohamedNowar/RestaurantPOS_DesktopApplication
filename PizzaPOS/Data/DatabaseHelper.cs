@@ -13,12 +13,67 @@ namespace PizzaPOS.Data
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "PizzaPOS", "pos.db");
 
-        public static string CS => $"Data Source={DbPath}";
+        /// <summary>
+        /// ملاحظة مهمة: الـ PRAGMA في SQLite بيتنفّذ على الـ connection الواحد بس،
+        /// و<AppDbContext>/<UserService>/<InventoryService> بيفتحوا connection جديد
+        /// في كل عملية. فـ "PRAGMA foreign_keys=ON" جوه Initialize() كان بيتنفّذ
+        /// على connection مؤقتة بتتقفل في نفس السطر — يعني القيود كانت متوقفة فعلياً.
+        /// القاعدة. الحل: نضيف المفتاح في connection string عشان كل connection جديد
+        /// يطلع بالقيود مفعّلة من أول فتح.
+        /// </summary>
+        public static string CS => CSFor(DbPath);
+
+        /// <summary>نفس الـ connection string للإنتاج، بس بمسار قابل للتحديد —
+        /// عشان الاختبارات تقدر تبني القاعدة بنفس الإعدادات بالظبط
+        /// (خصوصاً Foreign Keys=True) بدل ما تعمل string من دماغها.</summary>
+        public static string CSFor(string dbPath) => $"Data Source={dbPath};Foreign Keys=True";
+
+        /// <summary>
+        /// مدة الانتظار (ms) لو الـ DB مقفول مؤقتاً.
+        ///
+        /// من غيرها SQLite بيرمي SQLITE_BUSY **فورًا** بدل ما
+        /// يستنى. و Default Timeout في connection string ما بيظبطهاش
+        /// (دي command timeout، مش الـ busy handler) — اتأكدنا من
+        /// كده على الجهاز: PRAGMA busy_timeout بيرجع 0.
+        ///
+        /// ليه مهم هنا: البرنامج بيفتح connection جديد في كل عملية
+        /// (AppDbContext، InventoryService، UserService)، وكلهم
+        /// بيكتبوا على نفس الملف. فلو حاجة ماسكت الملف لثانية — نسخ
+        /// احتياطي، DB Browser، مزامنة OneDrive، antivirus — العملية
+        /// كانت هتفشل بدل ما تستنى.
+        ///
+        /// ملاحظة: ده per-connection، مش زلمة بتتظبط مرة واحدة
+        /// (زي foreign_keys اللي بتتحط في connection string). عشان
+        /// كده لازم يتنفّذ مع كل فتح.
+        /// </summary>
+        public const int BusyTimeoutMs = 5000;
+
+        /// <summary>
+        /// بتتطبّق على أي connection جديد. اتصل بيها بعد Open() في
+        /// كل مكان بيعمل connection.
+        /// </summary>
+        public static void Configure(SqliteConnection c)
+        {
+            try
+            {
+                using var cmd = c.CreateCommand();
+                cmd.CommandText = $"PRAGMA busy_timeout={BusyTimeoutMs};";
+                cmd.ExecuteNonQuery();
+            }
+            catch (Exception)
+            {
+                // مفيش connection مفتوح، أو SQLite واقع.
+                // الـ timeout تحسين مش شرط للتشغيل، فممنوع نرمي هنا.
+            }
+        }
+
+
 
         public static SqliteConnection Open()
         {
             var c = new SqliteConnection(CS);
             c.Open();
+            Configure(c);
             return c;
         }
 
@@ -26,6 +81,7 @@ namespace PizzaPOS.Data
         {
             var c = new SqliteConnection(CS);
             await c.OpenAsync();
+            Configure(c);
             return c;
         }
 
@@ -39,19 +95,27 @@ namespace PizzaPOS.Data
         static void TryMigrate(SqliteConnection conn, string sql, string description)
         {
             try { Exec(conn, sql); }
-            catch (Microsoft.Data.Sqlite.SqliteException ex) when (ex.ErrorCode == 447)
+            catch (Microsoft.Data.Sqlite.SqliteException ex) when (IsAlreadyApplied(ex))
             {
-                // duplicate column - مفيش مشكلة
-            }
-            catch (Microsoft.Data.Sqlite.SqliteException ex)
-            {
-                AppLogger.Warn($"Migration '{description}' failed: {ex.Message}");
+                // العمود موجود بالفعل — ده الوضع الطبيعي من تاني تشغيل فصاعداً.
+                // ملاحظة: الكود القديم كان بيشيك على ex.ErrorCode == 447 وده
+                // مش هيتحقق أبداً (447 مش كود SQLite أصلاً)، فكل migration
+                // بتتكرر كانت بتسجّل WARN في اللوج كل مرة تشغيل.
             }
             catch (Exception ex)
             {
-                AppLogger.Warn($"Migration '{description}' unexpected error: {ex.Message}");
+                AppLogger.Warn($"Migration '{description}' failed: {ex.Message}");
             }
         }
+
+        /// <summary>
+        /// SQLite بيرمّي duplicate column على شكل SQLITE_ERROR (1) مع رسالة نصية —
+        /// مافيش result code مخصوص بيه. فلازم نفحص الـ message، ونقفل عند
+        /// 1 تحديداً عشان مانبتلعش أخطاء تانية بنفس الكود.
+        /// </summary>
+        public static bool IsAlreadyApplied(Microsoft.Data.Sqlite.SqliteException ex)
+            => ex.SqliteErrorCode == 1
+               && ex.Message.Contains("duplicate column", StringComparison.OrdinalIgnoreCase);
 
         public static void Initialize()
         {
@@ -100,6 +164,9 @@ namespace PizzaPOS.Data
                 Name TEXT    NOT NULL);");
 
             // ── Ingredients ──
+            // IsActive = soft delete. السبب: StockMovements سجل تدقيق (audit log)
+            // بيشاور على IngredientId. لو حذفنا المادة نهائياً، السجلات دي بتتخلى
+            // عنها وبتختفي من تقرير الحركة (JOIN داخلي) = فقدان تاريخ.
             Exec(conn, @"CREATE TABLE IF NOT EXISTS Ingredients (
                 Id          INTEGER PRIMARY KEY AUTOINCREMENT,
                 CategoryId  INTEGER REFERENCES IngredientCategories(Id),
@@ -107,7 +174,11 @@ namespace PizzaPOS.Data
                 Unit        TEXT    NOT NULL,
                 Stock       REAL    DEFAULT 0,
                 MinStock    REAL    DEFAULT 0,
-                CostPerUnit REAL    DEFAULT 0);");
+                CostPerUnit REAL    DEFAULT 0,
+                IsActive    INTEGER DEFAULT 1);");
+
+            // migration للـ DB القديمة (مفيش soft-delete قبل كده)
+            TryMigrate(conn, "ALTER TABLE Ingredients ADD COLUMN IsActive INTEGER DEFAULT 1", "Ingredients.IsActive");
 
             // ── ProductIngredients ──
             Exec(conn, @"CREATE TABLE IF NOT EXISTS ProductIngredients (
@@ -128,12 +199,23 @@ namespace PizzaPOS.Data
 
             // ── Users ──
             Exec(conn, @"CREATE TABLE IF NOT EXISTS Users (
-                Id       INTEGER PRIMARY KEY AUTOINCREMENT,
-                Username TEXT    NOT NULL UNIQUE,
-                FullName TEXT    NOT NULL,
-                PinHash  TEXT    NOT NULL,
-                Role     TEXT    DEFAULT 'cashier',
-                IsActive INTEGER DEFAULT 1);");
+                Id            INTEGER PRIMARY KEY AUTOINCREMENT,
+                Username      TEXT    NOT NULL UNIQUE,
+                FullName      TEXT    NOT NULL,
+                PinHash       TEXT    NOT NULL,
+                Role          TEXT    DEFAULT 'cashier',
+                IsActive      INTEGER DEFAULT 1,
+                MustChangePin INTEGER DEFAULT 0);");
+
+            TryMigrate(conn, "ALTER TABLE Users ADD COLUMN MustChangePin INTEGER DEFAULT 0", "Users.MustChangePin");
+
+            // ── Bootstrap security: أي حساب ما زال على SHA256 القديم (64 محرف hex)
+            //    معناها إن الـ PIN لسه هو الافتراضي المعلن في الكود، فجبره على التغيير.
+            //
+            //    لازم نطابق hex كمان مش الطول بس: PBKDF2 بيخزّن 48 بايت (16 salt +
+            //    32 hash) و Base64 منهم بطلع 64 محرف بالظبط — نفس طول SHA256. فالتطابق
+            //    على الطول لوحده هيمسح كل المستخدمين الجداد للأبد.
+            TryMigrate(conn, "UPDATE Users SET MustChangePin=1 WHERE PinHash IS NOT NULL AND length(PinHash)=64 AND PinHash NOT GLOB '*[^0-9a-f]*'", "Users.MustChangePin for legacy SHA256 hashes");
 
             // ── Shifts ──
             Exec(conn, @"CREATE TABLE IF NOT EXISTS Shifts (
@@ -263,9 +345,22 @@ namespace PizzaPOS.Data
             chk.CommandText = "SELECT COUNT(*) FROM Users";
             if ((long)chk.ExecuteScalar()! > 0) return;
 
-            Exec(conn, @"INSERT INTO Users(Username,FullName,PinHash,Role) VALUES
-        ('admin',    'Admin',    '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', 'admin'),
-        ('cashier1', 'Cashier 1','9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0', 'cashier');");
+            // الحسابات المزروعة: PBKDF2 بـ salt عشوائي لكل تثبيت (مش hash ثابت في الكود)،
+            // ومُعلَّمة MustChangePin عشان المستخدم يجبر على تغييرها قبل دخول الـ POS.
+            InsertBootstrapUser(conn, "admin", "Admin", "1234", "admin");
+            InsertBootstrapUser(conn, "cashier1", "Cashier 1", "1234", "cashier");
+        }
+
+        static void InsertBootstrapUser(SqliteConnection conn, string username, string fullName, string pin, string role)
+        {
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = @"INSERT INTO Users(Username,FullName,PinHash,Role,MustChangePin)
+                                VALUES(@u,@f,@p,@r,1)";
+            cmd.Parameters.AddWithValue("@u", username);
+            cmd.Parameters.AddWithValue("@f", fullName);
+            cmd.Parameters.AddWithValue("@p", UserService.HashPin(pin));
+            cmd.Parameters.AddWithValue("@r", role);
+            cmd.ExecuteNonQuery();
         }
 
         static void Seed(SqliteConnection conn)
@@ -519,10 +614,10 @@ namespace PizzaPOS.Data
 
             // ══════════════════════════════════════════
             // ── Users ──
+            //    ما بنزرعش المستخدمين هنا — شوف EnsureDefaultUsers.
+            //    السبب: الزرع هنا كان مربوط بجدول Categories، فأي DB فيها
+            //    فئات بس بدون مستخدمين كانت هتفضل بدون حساب admin.
             // ══════════════════════════════════════════
-            Exec(conn, @"INSERT INTO Users(Username,FullName,PinHash,Role) VALUES
-        ('admin',    'Admin',    '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4', 'admin'),
-        ('cashier1', 'Cashier 1','9af15b336e6a9619928537df30b2e6a2376569fcf9d7e773eccede65606529a0', 'cashier');");
 
             // ══════════════════════════════════════════
             // ── Settings ──

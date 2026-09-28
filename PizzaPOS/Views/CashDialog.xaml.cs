@@ -2,20 +2,21 @@
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
+using PizzaPOS.Services;
 
 namespace PizzaPOS.Views
 {
     public partial class CashDialog : Window
     {
-        readonly double _total;
-        string _input = "";
+        // كل الـ logic في CashPad — هنا UI بس
+        readonly CashPad _pad;
 
-        public double PaidAmount { get; private set; }
+        public double PaidAmount => _pad.SettledAmount;
 
         public CashDialog(double total)
         {
             InitializeComponent();
-            _total = total;
+            _pad = new CashPad(total);
             TotalTxt.Text = $"{total:F2} ج";
             UpdateDisplay();
         }
@@ -65,36 +66,8 @@ namespace PizzaPOS.Views
                 case "ESC":
                     DialogResult = false; Close(); return;
 
-                case "B":
-                    if (_input.Length > 0)
-                        _input = _input[..^1];
-                    break;
-
-                case "C":
-                    _input = "";
-                    break;
-
-                case "Q50": _input = "50"; break;
-                case "Q100": _input = "100"; break;
-                case "Q200": _input = "200"; break;
-                case "Q500": _input = "500"; break;
-                case "EXACT": _input = _total.ToString("F2"); break;
-
-                case ".":
-                    if (!_input.Contains('.'))
-                        _input += _input == "" ? "0." : ".";
-                    break;
-
                 default:
-                    // منع أكثر من خانتين عشريتين
-                    if (_input.Contains('.'))
-                    {
-                        int dot = _input.IndexOf('.');
-                        if (_input.Length - dot >= 3) break;
-                    }
-                    // منع صفر في البداية
-                    if (_input == "0") _input = tag;
-                    else _input += tag;
+                    _pad.Press(tag);
                     break;
             }
 
@@ -104,40 +77,33 @@ namespace PizzaPOS.Views
         // ── Update Display ───────────────────────────
         void UpdateDisplay()
         {
-            bool hasPaid = _input != "" && _input != "0.";
-            double paid = double.TryParse(_input, out var v) ? v : 0;
-            double change = Math.Round(paid - _total, 2);
+            PaidTxt.Text = _pad.HasValue ? $"{_pad.Paid:F2} ج" : "—";
 
-            PaidTxt.Text = hasPaid ? $"{paid:F2} ج" : "—";
-
-            if (!hasPaid)
+            if (!_pad.HasValue)
             {
                 ChangeTxt.Text = "—";
-                ChangeTxt.Foreground = new SolidColorBrush(
-                    (System.Windows.Media.Color)
-                    System.Windows.Media.ColorConverter.ConvertFromString("#06d6a0"));
+                ChangeTxt.Foreground = Brush("#06d6a0");
             }
-            else if (change >= 0)
+            else if (_pad.Change >= 0)
             {
-                ChangeTxt.Text = $"{change:F2} ج";
-                ChangeTxt.Foreground = new SolidColorBrush(
-                    (System.Windows.Media.Color)
-                    System.Windows.Media.ColorConverter.ConvertFromString("#06d6a0"));
+                ChangeTxt.Text = $"{_pad.Change:F2} ج";
+                ChangeTxt.Foreground = Brush("#06d6a0");
             }
             else
             {
-                ChangeTxt.Text = $"ناقص {Math.Abs(change):F2} ج";
-                ChangeTxt.Foreground = new SolidColorBrush(
-                    (System.Windows.Media.Color)
-                    System.Windows.Media.ColorConverter.ConvertFromString("#E63946"));
+                ChangeTxt.Text = $"ناقص {Math.Abs(_pad.Change):F2} ج";
+                ChangeTxt.Foreground = Brush("#E63946");
             }
 
-            ConfirmBtn.IsEnabled = hasPaid && Math.Round(paid - _total, 2) >= 0;
+            ConfirmBtn.IsEnabled = _pad.IsEnough;
         }
+
+        static SolidColorBrush Brush(string hex) =>
+            new SolidColorBrush((System.Windows.Media.Color)
+                System.Windows.Media.ColorConverter.ConvertFromString(hex));
 
         void Confirm_Click(object s, RoutedEventArgs e)
         {
-            PaidAmount = double.TryParse(_input, out var v) ? v : _total;
             DialogResult = true;
             Close();
         }

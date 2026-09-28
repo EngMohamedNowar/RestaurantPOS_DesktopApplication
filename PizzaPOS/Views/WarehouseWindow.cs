@@ -19,6 +19,7 @@ namespace PizzaPOS.Views
     public class WarehouseWindow : Window
     {
         readonly InventoryService _svc = new();
+        readonly AppDbContext _db = new();
         readonly ObservableCollection<Ingredient> _items = new();
         DataGrid _dg = null!;
         TextBox _searchBox = null!;
@@ -584,8 +585,14 @@ namespace PizzaPOS.Views
             if (_dg.SelectedItem is not Ingredient sel)
             { Notify("اختر مادة أولاً"); return; }
 
-            int usageCount = 0;
-            try { usageCount = _svc.GetIngredientUsageCount(sel.Id); } catch { }
+            int usageCount;
+            try { usageCount = _db.GetIngredientUsageCount(sel.Id); }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"خطأ: {ex.Message}", "خطأ",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
             string msg = usageCount > 0
                 ? $"المادة \"{sel.Name}\" مستخدمة في وصفة {usageCount} منتج.\nهل تحذف المادة وتشيلها من كل الوصفات المرتبطة بيها؟"
@@ -596,11 +603,12 @@ namespace PizzaPOS.Views
 
             try
             {
-                _svc.Delete(sel.Id);
+                _db.DeleteIngredient(sel.Id);
                 LoadItems();
             }
             catch (Exception ex)
             {
+                AppLogger.Error("DeleteIngredient failed", ex);
                 MessageBox.Show($"خطأ: {ex.Message}", "خطأ",
                     MessageBoxButton.OK, MessageBoxImage.Error);
             }
@@ -901,6 +909,7 @@ namespace PizzaPOS.Views
     // ══════════════════════════════════════════════════
     public class ManageIngredientCategoriesDialog : Window
     {
+        readonly AppDbContext _db = new();
         ListBox _list = null!;
         TextBlock _countTxt = null!;
         TextBox _searchTb = null!;
@@ -1268,19 +1277,24 @@ namespace PizzaPOS.Views
 
         void DeleteCategory(int id, string name)
         {
-            int count = 0;
+            int count;
             try
             {
                 using var conn = DatabaseHelper.Open();
                 var cmd = conn.CreateCommand();
-                cmd.CommandText = "SELECT COUNT(*) FROM Ingredients WHERE CategoryId=@id";
+                cmd.CommandText = "SELECT COUNT(*) FROM Ingredients WHERE CategoryId=@id AND IsActive=1";
                 cmd.Parameters.AddWithValue("@id", id);
                 count = Convert.ToInt32(cmd.ExecuteScalar());
             }
-            catch { }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"خطأ: {ex.Message}", "خطأ",
+                    MessageBoxButton.OK, MessageBoxImage.Error);
+                return;
+            }
 
             string msg = count > 0
-                ? $"الفئة \"{name}\" فيها {count} مادة خام.\nهل تحذف الفئة والمواد المرتبطة بيها؟"
+                ? $"الفئة \"{name}\" فيها {count} مادة خام.\nهل تحذف الفئة والمواد المرتبطة بيها؟\n(المواد هتتشال من كل الوصفات، وسجل حركتها هيتفظ)"
                 : $"هل أنت متأكد من حذف الفئة \"{name}\"؟";
 
             if (MessageBox.Show(msg, "تأكيد الحذف",
@@ -1288,27 +1302,12 @@ namespace PizzaPOS.Views
             {
                 try
                 {
-                    using var conn = DatabaseHelper.Open();
-                    using var tx = conn.BeginTransaction();
-                    try
-                    {
-                        var del1 = conn.CreateCommand(); del1.Transaction = tx;
-                        del1.CommandText = "DELETE FROM Ingredients WHERE CategoryId=@id";
-                        del1.Parameters.AddWithValue("@id", id);
-                        del1.ExecuteNonQuery();
-
-                        var del2 = conn.CreateCommand(); del2.Transaction = tx;
-                        del2.CommandText = "DELETE FROM IngredientCategories WHERE Id=@id";
-                        del2.Parameters.AddWithValue("@id", id);
-                        del2.ExecuteNonQuery();
-
-                        tx.Commit();
-                        LoadCategories();
-                    }
-                    catch { tx.Rollback(); throw; }
+                    _db.DeleteIngredientCategory(id);
+                    LoadCategories();
                 }
                 catch (Exception ex)
                 {
+                    AppLogger.Error("DeleteIngredientCategory failed", ex);
                     MessageBox.Show($"خطأ: {ex.Message}", "خطأ",
                         MessageBoxButton.OK, MessageBoxImage.Error);
                 }

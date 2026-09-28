@@ -1,15 +1,42 @@
-﻿// Data/AppDbContext.cs
+// Data/AppDbContext.cs
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Data.Sqlite;
 using PizzaPOS.Models;
+using PizzaPOS.Services;
 
 namespace PizzaPOS.Data
 {
     public class AppDbContext
     {
-        SqliteConnection Open() => DatabaseHelper.Open();
+        readonly string _cs;
+
+        public AppDbContext() : this(DatabaseHelper.CS) { }
+
+        /// <summary>
+        /// نسخة مثبّتة على قاعدة بيانات محددة — للاختبارات. الاستخدام العادي
+        /// دايماً الـ parameterless constructor.
+        /// </summary>
+        public AppDbContext(string connectionString) => _cs = connectionString;
+
+        SqliteConnection Open()
+        {
+            var c = new SqliteConnection(_cs);
+            c.Open();
+            DatabaseHelper.Configure(c);
+            return c;
+        }
+
+        /// <summary>
+        /// connection مفتوح ومهيّأ (busy_timeout متظبّط) عشان حد تاني
+        /// يستخدمه مع operations كتير في transaction واحد.
+        ///
+        /// مهم: أي connection تمرّره لدوال الـ checkout لازم يكون من
+        /// نفس الـ CS بتاعنا، عشان كل الـ commands تشتغل على نفس الملف.
+        /// الـ connection ده ملكك انت — اللي بيفتحه هو اللي بيقفله.
+        /// </summary>
+        public SqliteConnection OpenConnection() => Open();
 
         // ── Settings ────────────────────────────────
         public string GetSetting(string key, string def = "")
@@ -516,7 +543,7 @@ namespace PizzaPOS.Data
             cmd.CommandText = @"SELECT pi.ProductId,pi.IngredientId,i.Name,i.Unit,pi.QtyUsed,i.CostPerUnit
                 FROM ProductIngredients pi
                 JOIN Ingredients i ON i.Id=pi.IngredientId
-                WHERE pi.ProductId=@pid ORDER BY i.Name";
+                WHERE pi.ProductId=@pid AND i.IsActive=1 ORDER BY i.Name";
             cmd.Parameters.AddWithValue("@pid", productId);
             var list = new List<ProductIngredient>();
             using var r = cmd.ExecuteReader();
@@ -562,7 +589,7 @@ namespace PizzaPOS.Data
             cmd.CommandText = @"SELECT COALESCE(SUM(pi.QtyUsed * i.CostPerUnit), 0)
                 FROM ProductIngredients pi
                 JOIN Ingredients i ON i.Id=pi.IngredientId
-                WHERE pi.ProductId=@pid";
+                WHERE pi.ProductId=@pid AND i.IsActive=1";
             cmd.Parameters.AddWithValue("@pid", productId);
             return Convert.ToDouble(cmd.ExecuteScalar() ?? 0.0);
         }
@@ -671,7 +698,17 @@ namespace PizzaPOS.Data
         public void AddLoyaltyPoints(int customerId, int points)
         {
             using var c = Open();
+            AddLoyaltyPoints(customerId, points, c, null);
+        }
+
+        /// <summary>نفس <see cref="AddLoyaltyPoints(int,int)"/> بس جوه
+        /// transaction بتاع حد تاني — مفيش commit هنا. لو الـ tx=null
+        /// الـ UPDATE بيشتغل autocommit زي ما كان.</summary>
+        public void AddLoyaltyPoints(int customerId, int points,
+                                     SqliteConnection c, SqliteTransaction? tx)
+        {
             var cmd = c.CreateCommand();
+            cmd.Transaction = tx;
             cmd.CommandText = "UPDATE Customers SET LoyaltyPoints=COALESCE(LoyaltyPoints,0)+@p WHERE Id=@id";
             cmd.Parameters.AddWithValue("@p", points);
             cmd.Parameters.AddWithValue("@id", customerId);
@@ -795,8 +832,24 @@ namespace PizzaPOS.Data
             using var tx = conn.BeginTransaction();
             try
             {
-                var cmd = conn.CreateCommand(); cmd.Transaction = tx;
-                cmd.CommandText = @"INSERT INTO Orders
+                int id = SaveOrderCore(conn, tx, o);
+                tx.Commit();
+                return id;
+            }
+            catch { tx.Rollback(); throw; }
+        }
+
+        /// <summary>نفس <see cref="SaveOrder(Order)"/> بس جوه transaction
+        /// بتاع حد تاني — مفيش commit ولا rollback هنا، اللي فتح الـ tx
+        /// هو اللي بيقفله. ده اللي بيخلّي الأوردر والمخزون ونقاط الولاء
+        /// يطلعوا كلهم أو محدش.</summary>
+        public int SaveOrder(Order o, SqliteConnection conn, SqliteTransaction tx)
+            => SaveOrderCore(conn, tx, o);
+
+        int SaveOrderCore(SqliteConnection conn, SqliteTransaction tx, Order o)
+        {
+            var cmd = conn.CreateCommand(); cmd.Transaction = tx;
+            cmd.CommandText = @"INSERT INTO Orders
                     (OrderNumber,ShiftId,UserId,OrderType,PayMethod,
                      Subtotal,Discount,Tax,ServiceCharge,Total,PaidAmount,Change,Notes,
                      CustomerId,CustomerName,CustomerPhone,DeliveryAddress,
@@ -807,57 +860,54 @@ namespace PizzaPOS.Data
                      @cid,@cname,@cphone,@caddr,
                      @did,@dname,@dfee,@dstatus,@status)";
 
-                cmd.Parameters.AddWithValue("@num", o.OrderNumber);
-                cmd.Parameters.AddWithValue("@sid", o.ShiftId);
-                cmd.Parameters.AddWithValue("@uid", o.UserId);
-                cmd.Parameters.AddWithValue("@ot", o.OrderType);
-                cmd.Parameters.AddWithValue("@pm", o.PayMethod);
-                cmd.Parameters.AddWithValue("@sub", o.Subtotal);
-                cmd.Parameters.AddWithValue("@disc", o.Discount);
-                cmd.Parameters.AddWithValue("@tax", o.Tax);
-                cmd.Parameters.AddWithValue("@srv", o.ServiceCharge);
-                cmd.Parameters.AddWithValue("@tot", o.Total);
-                cmd.Parameters.AddWithValue("@paid", o.PaidAmount);
-                cmd.Parameters.AddWithValue("@chg", o.Change);
-                cmd.Parameters.AddWithValue("@notes", (object?)o.Notes ?? DBNull.Value);
-                cmd.Parameters.AddWithValue("@cid", o.CustomerId);
-                cmd.Parameters.AddWithValue("@cname", o.CustomerName);
-                cmd.Parameters.AddWithValue("@cphone", o.CustomerPhone);
-                cmd.Parameters.AddWithValue("@caddr", o.DeliveryAddress);
-                cmd.Parameters.AddWithValue("@did", o.DriverId);
-                cmd.Parameters.AddWithValue("@dname", o.DriverName);
-                cmd.Parameters.AddWithValue("@dfee", o.DeliveryFee);
-                cmd.Parameters.AddWithValue("@dstatus", o.DeliveryStatus);
-                cmd.Parameters.AddWithValue("@status", o.Status ?? "new");
-                cmd.ExecuteNonQuery();
+            cmd.Parameters.AddWithValue("@num", o.OrderNumber);
+            cmd.Parameters.AddWithValue("@sid", o.ShiftId);
+            cmd.Parameters.AddWithValue("@uid", o.UserId);
+            cmd.Parameters.AddWithValue("@ot", o.OrderType);
+            cmd.Parameters.AddWithValue("@pm", o.PayMethod);
+            cmd.Parameters.AddWithValue("@sub", o.Subtotal);
+            cmd.Parameters.AddWithValue("@disc", o.Discount);
+            cmd.Parameters.AddWithValue("@tax", o.Tax);
+            cmd.Parameters.AddWithValue("@srv", o.ServiceCharge);
+            cmd.Parameters.AddWithValue("@tot", o.Total);
+            cmd.Parameters.AddWithValue("@paid", o.PaidAmount);
+            cmd.Parameters.AddWithValue("@chg", o.Change);
+            cmd.Parameters.AddWithValue("@notes", (object?)o.Notes ?? DBNull.Value);
+            cmd.Parameters.AddWithValue("@cid", o.CustomerId);
+            cmd.Parameters.AddWithValue("@cname", o.CustomerName);
+            cmd.Parameters.AddWithValue("@cphone", o.CustomerPhone);
+            cmd.Parameters.AddWithValue("@caddr", o.DeliveryAddress);
+            cmd.Parameters.AddWithValue("@did", o.DriverId);
+            cmd.Parameters.AddWithValue("@dname", o.DriverName);
+            cmd.Parameters.AddWithValue("@dfee", o.DeliveryFee);
+            cmd.Parameters.AddWithValue("@dstatus", o.DeliveryStatus);
+            cmd.Parameters.AddWithValue("@status", o.Status ?? "new");
+            cmd.ExecuteNonQuery();
 
-                var rowCmd = conn.CreateCommand(); rowCmd.Transaction = tx;
-                rowCmd.CommandText = "SELECT last_insert_rowid()";
-                long oid = (long)(rowCmd.ExecuteScalar() ?? 0L);
+            var rowCmd = conn.CreateCommand(); rowCmd.Transaction = tx;
+            rowCmd.CommandText = "SELECT last_insert_rowid()";
+            long oid = (long)(rowCmd.ExecuteScalar() ?? 0L);
 
-                foreach (var item in o.Items)
-                {
-                    var ic = conn.CreateCommand(); ic.Transaction = tx;
-                    ic.CommandText = @"INSERT INTO OrderItems
+            foreach (var item in o.Items)
+            {
+                var ic = conn.CreateCommand(); ic.Transaction = tx;
+                ic.CommandText = @"INSERT INTO OrderItems
                         (OrderId,ProductId,Name,Price,Cost,Qty,Subtotal,SizeName,ExtrasNote,SizeExtraPrice,ExtrasPrice)
                         VALUES(@oid,@pid,@n,@p,@co,@q,@s,@sz,@ex,@sep,@exp)";
-                    ic.Parameters.AddWithValue("@oid", oid);
-                    ic.Parameters.AddWithValue("@pid", item.ProductId);
-                    ic.Parameters.AddWithValue("@n", item.Name);
-                    ic.Parameters.AddWithValue("@p", item.BasePrice);
-                    ic.Parameters.AddWithValue("@co", item.Cost);
-                    ic.Parameters.AddWithValue("@q", item.Qty);
-                    ic.Parameters.AddWithValue("@s", item.Subtotal);
-                    ic.Parameters.AddWithValue("@sz", (object?)item.SizeName ?? DBNull.Value);
-                    ic.Parameters.AddWithValue("@ex", (object?)item.ExtrasNote ?? DBNull.Value);
-                    ic.Parameters.AddWithValue("@sep", item.SizeExtraPrice);
-                    ic.Parameters.AddWithValue("@exp", item.ExtrasPrice);
-                    ic.ExecuteNonQuery();
-                }
-                tx.Commit();
-                return (int)oid;
+                ic.Parameters.AddWithValue("@oid", oid);
+                ic.Parameters.AddWithValue("@pid", item.ProductId);
+                ic.Parameters.AddWithValue("@n", item.Name);
+                ic.Parameters.AddWithValue("@p", item.BasePrice);
+                ic.Parameters.AddWithValue("@co", item.Cost);
+                ic.Parameters.AddWithValue("@q", item.Qty);
+                ic.Parameters.AddWithValue("@s", item.Subtotal);
+                ic.Parameters.AddWithValue("@sz", (object?)item.SizeName ?? DBNull.Value);
+                ic.Parameters.AddWithValue("@ex", (object?)item.ExtrasNote ?? DBNull.Value);
+                ic.Parameters.AddWithValue("@sep", item.SizeExtraPrice);
+                ic.Parameters.AddWithValue("@exp", item.ExtrasPrice);
+                ic.ExecuteNonQuery();
             }
-            catch { tx.Rollback(); throw; }
+            return (int)oid;
         }
 
         // ── Reports ─────────────────────────────────
@@ -1148,7 +1198,7 @@ namespace PizzaPOS.Data
         {
             using var c = Open();
             var cmd = c.CreateCommand();
-            cmd.CommandText = @"SELECT Id,Username,FullName,Role,IsActive
+            cmd.CommandText = @"SELECT Id,Username,FullName,Role,IsActive,MustChangePin
                 FROM Users ORDER BY Role DESC, FullName";
             var list = new List<User>();
             using var r = cmd.ExecuteReader();
@@ -1158,33 +1208,39 @@ namespace PizzaPOS.Data
                 Username = r.GetString(1),
                 FullName = r.GetString(2),
                 Role = r.GetString(3),
-                IsActive = r.GetInt32(4) == 1
+                IsActive = r.GetInt32(4) == 1,
+                MustChangePin = !r.IsDBNull(5) && r.GetInt32(5) == 1
             });
             return list;
         }
 
+        /// <summary>
+        /// حفظ مستخدم. الـ PIN بيتخزّن دايماً بـ PBKDF2 عبر UserService.HashPin —
+        /// الكود القديم كان بيخزّن SHA256 بدون salt هنا، والـ hash ده كان قابل للكسر.
+        /// </summary>
         public void SaveUser(User u, string? plainPin = null)
         {
             using var c = Open();
             var cmd = c.CreateCommand();
             if (u.Id == 0)
             {
-                string hash = HashPin(plainPin ?? "0000");
-                cmd.CommandText = @"INSERT INTO Users(Username,FullName,PinHash,Role,IsActive)
-                    VALUES(@u,@f,@p,@r,1)";
+                if (string.IsNullOrEmpty(plainPin))
+                    throw new ArgumentException("لازم تحدد PIN للمستخدم الجديد");
+
+                cmd.CommandText = @"INSERT INTO Users(Username,FullName,PinHash,Role,IsActive,MustChangePin)
+                    VALUES(@u,@f,@p,@r,1,0)";
                 cmd.Parameters.AddWithValue("@u", u.Username);
                 cmd.Parameters.AddWithValue("@f", u.FullName);
-                cmd.Parameters.AddWithValue("@p", hash);
+                cmd.Parameters.AddWithValue("@p", UserService.HashPin(plainPin));
                 cmd.Parameters.AddWithValue("@r", u.Role);
             }
             else
             {
                 if (!string.IsNullOrEmpty(plainPin))
                 {
-                    string hash = HashPin(plainPin);
                     cmd.CommandText = @"UPDATE Users SET
-                        Username=@u,FullName=@f,PinHash=@p,Role=@r,IsActive=@a WHERE Id=@id";
-                    cmd.Parameters.AddWithValue("@p", hash);
+                        Username=@u,FullName=@f,PinHash=@p,Role=@r,IsActive=@a,MustChangePin=0 WHERE Id=@id";
+                    cmd.Parameters.AddWithValue("@p", UserService.HashPin(plainPin));
                 }
                 else
                 {
@@ -1207,14 +1263,6 @@ namespace PizzaPOS.Data
             cmd.CommandText = "UPDATE Users SET IsActive=0 WHERE Id=@id";
             cmd.Parameters.AddWithValue("@id", id);
             cmd.ExecuteNonQuery();
-        }
-
-        static string HashPin(string pin)
-        {
-            using var sha = System.Security.Cryptography.SHA256.Create();
-            var bytes = System.Text.Encoding.UTF8.GetBytes(pin);
-            return BitConverter.ToString(sha.ComputeHash(bytes))
-                .Replace("-", "").ToLower();
         }
 
         // ── Shift Summary ────────────────────────────
@@ -1283,9 +1331,15 @@ namespace PizzaPOS.Data
         }
 
         /// <summary>
-        /// بيحذف المادة نهائيًا، وقبلها بيشيل أي ربط ليها في وصفات المنتجات
-        /// (ProductIngredients) جوه transaction واحدة، وبعد الحذف بيعيد حساب
-        /// تكلفة أي منتج كانت المادة دي جزء من وصفته
+        /// حذف مادة خام = soft delete (IsActive=0) + فك ربطها من كل الوصفات،
+        /// جوه transaction واحدة، وبعدين إعادة حساب تكلفة المنتجات المتأثرة.
+        ///
+        /// ليه soft delete مش DELETE نهائي؟
+        /// StockMovements سجل تدقيق بيشاور على IngredientId. الحذف النهائي كان
+        /// بيسيب الصفوف دي يتيمة، و GetMovements بـ JOIN داخلي فكانت بتختفي
+        /// من التقرير من غير أي أثر. كمان مع تفعيل قيود الـ FK، الحذف النهائي
+        /// كان هيفشل أصلاً طالما في حركة مسجلة على المادة.
+        /// الصف بيفضل موجود → التاريخ مقروء، بس المادة بتختفي من كل الاختيارات.
         /// </summary>
         public void DeleteIngredient(int id)
         {
@@ -1308,7 +1362,7 @@ namespace PizzaPOS.Data
                     delLinks.ExecuteNonQuery();
 
                     var delIng = conn.CreateCommand(); delIng.Transaction = tx;
-                    delIng.CommandText = "DELETE FROM Ingredients WHERE Id=@id";
+                    delIng.CommandText = "UPDATE Ingredients SET IsActive=0 WHERE Id=@id";
                     delIng.Parameters.AddWithValue("@id", id);
                     delIng.ExecuteNonQuery();
 
@@ -1329,7 +1383,65 @@ namespace PizzaPOS.Data
             }
         }
 
+        /// <summary>حذف فئة مواد خام: بيفك ربط كل مواد الفئة من الوصفات، يعمل
+        /// soft delete للمواد نفسها، وبعدين يحذف الفئة. لازم كل ده في transaction
+        /// واحدة — لو فشل نص الخطوة، ما ينفعش يبقى عندنا فئة من غير مواد.</summary>
+        public int DeleteIngredientCategory(int id)
+        {
+            var affectedProducts = new List<int>();
+            int affectedIngredients;
 
+            using (var conn = Open())
+            using (var tx = conn.BeginTransaction())
+            {
+                try
+                {
+                    var get = conn.CreateCommand(); get.Transaction = tx;
+                    get.CommandText = @"SELECT pi.ProductId FROM ProductIngredients pi
+                        JOIN Ingredients i ON i.Id=pi.IngredientId
+                        WHERE i.CategoryId=@cid";
+                    get.Parameters.AddWithValue("@cid", id);
+                    using (var r = get.ExecuteReader())
+                        while (r.Read()) affectedProducts.Add(r.GetInt32(0));
+
+                    var delLinks = conn.CreateCommand(); delLinks.Transaction = tx;
+                    delLinks.CommandText = @"DELETE FROM ProductIngredients
+                        WHERE IngredientId IN (SELECT Id FROM Ingredients WHERE CategoryId=@cid)";
+                    delLinks.Parameters.AddWithValue("@cid", id);
+                    delLinks.ExecuteNonQuery();
+
+                    var delIng = conn.CreateCommand(); delIng.Transaction = tx;
+                    // CategoryId = NULL ضروري: لو سبنا الرقم، الـ FK بيرفض حذف
+                    // الفئة لأن المواد المحذوفة لسه مشار إليها. العمود nullable
+                    // و GetAll/GetLowStock بـ JOIN داخلي، فالمحذوف مش هيبان —
+                    // بس الصف بيفضل موجود وسجل حركته مقروء.
+                    delIng.CommandText = "UPDATE Ingredients SET IsActive=0, CategoryId=NULL WHERE CategoryId=@cid";
+                    delIng.Parameters.AddWithValue("@cid", id);
+                    affectedIngredients = delIng.ExecuteNonQuery();
+
+                    var delCat = conn.CreateCommand(); delCat.Transaction = tx;
+                    delCat.CommandText = "DELETE FROM IngredientCategories WHERE Id=@id";
+                    delCat.Parameters.AddWithValue("@id", id);
+                    delCat.ExecuteNonQuery();
+
+                    tx.Commit();
+                }
+                catch { tx.Rollback(); throw; }
+            }
+
+            foreach (var pid in affectedProducts.Distinct())
+            {
+                double newCost = CalculateProductCost(pid);
+                using var c2 = Open();
+                var upd = c2.CreateCommand();
+                upd.CommandText = "UPDATE Products SET Cost=@co WHERE Id=@id";
+                upd.Parameters.AddWithValue("@co", newCost);
+                upd.Parameters.AddWithValue("@id", pid);
+                upd.ExecuteNonQuery();
+            }
+
+            return affectedIngredients;
+        }
 
         public void SaveOffer(Offer o)
         {

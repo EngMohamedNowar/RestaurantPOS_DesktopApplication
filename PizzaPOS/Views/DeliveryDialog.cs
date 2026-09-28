@@ -11,6 +11,7 @@ using System.Windows.Media.Effects;
 using System.Windows.Shapes;
 using PizzaPOS.Data;
 using PizzaPOS.Models;
+using PizzaPOS.Services;
 
 namespace PizzaPOS.Views
 {
@@ -518,7 +519,7 @@ namespace PizzaPOS.Views
                 _tbName.Focus(); return;
             }
 
-            double.TryParse(_tbFee.Text, out double fee);
+            if (!ReadDeliveryFee(out double fee)) return;
 
             var cust = _foundCustomer ?? new Customer();
             cust.Name = _tbName.Text.Trim();
@@ -552,7 +553,7 @@ namespace PizzaPOS.Views
                 _tbPhone.Focus(); return;
             }
 
-            double.TryParse(_tbFee.Text, out double fee);
+            if (!ReadDeliveryFee(out double fee)) return;
 
             CustomerName = _tbName.Text.Trim();
             CustomerPhone = _tbPhone.Text.Trim();
@@ -571,6 +572,63 @@ namespace PizzaPOS.Views
         }
 
         // ══ Helpers ═══════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// بيقرا رسوم التوصيل من الخانة وبيتحقق منها.
+        ///
+        /// قبل كده كان `double.TryParse` سطر واحد وخلاص. فاضي كان
+        /// بيدي صفر (مقصود)، بس "abc" كان بيدي صفر برضه — يعني عميل
+        /// بياخد توصيل مجاني وحد مش واخد باله. والسالب كان بينحفظ
+        /// عادي (خصم من العميل).
+        /// </summary>
+        bool ReadDeliveryFee(out double fee)
+        {
+            fee = 0;
+            string raw = _tbFee.Text?.Trim() ?? "";
+
+            // فاضي = من غير رسوم توصيل. ده اختيار مقصود من الكاشير.
+            if (raw.Length == 0) return true;
+
+            if (!OrderCalculator.TryParseAmount(raw, out decimal parsed))
+            {
+                FeeError("رسوم التوصيل لازم تكون رقم صحيح", "اكتب الرقم بالعربية أو بالإنجليزي، مثل 25");
+                return false;
+            }
+
+            if (parsed < 0)
+            {
+                FeeError("رسوم التوصيل مش ممكن تكون سالبة",
+                    "لو عملت خصم، اعمله في خانة الخصم مش في رسوم التوصيل");
+                return false;
+            }
+
+            // الحد الكبير غالباً غلطة طباعة (25 بقت 2500؟). بنسأل
+            // بدل ما نرفض، عشان رسوم توصيل عالية ممكن تكون مقصودة.
+            if (parsed > 1000m)
+            {
+                var answer = MessageBox.Show(
+                    $"رسوم التوصيل {parsed:0.##} ج — رقم كبير.\nهل ده صح؟",
+                    "تأكيد", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                if (answer != MessageBoxResult.Yes)
+                {
+                    _tbFee.Focus();
+                    _tbFee.SelectAll();
+                    return false;
+                }
+            }
+
+            fee = (double)parsed;
+            return true;
+        }
+
+        void FeeError(string title, string detail)
+        {
+            MessageBox.Show($"{title}\n\n{detail}", "تنبيه",
+                MessageBoxButton.OK, MessageBoxImage.Warning);
+            _tbFee.Focus();
+            _tbFee.SelectAll();
+        }
+
         TextBlock FieldLabel(string t, int top = 0) => new()
         {
             Text = t,

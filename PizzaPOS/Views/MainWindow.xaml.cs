@@ -164,6 +164,10 @@ namespace PizzaPOS.Views
             if (SessionService.CurrentUser?.IsAdmin != true) return;
             new SettingsWindow { Owner = this }.ShowDialog();
             RefreshShopName();
+            // MainViewModel بيخزّن نسب الضريبة/الخدمة في cache. من غير
+            // السطر ده، تغيير النسبة في الإعدادات مش هيأثر على الأوردر
+            // الحالي لحد ما البرنامج يقفل.
+            _vm.InvalidateRates();
             _vm.ClearOrder();
             _vm.RefreshStats();
         }

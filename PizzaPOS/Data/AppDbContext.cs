@@ -983,6 +983,11 @@ namespace PizzaPOS.Data
         {
             using var c = Open();
 
+            // الربح = صافي إيراد الأصناف (بعد خصم موزّع) − التكلفة
+            // + الخدمة. الضريبة مش بتطرح هنا: Orders.Tax مضافّة فوق
+            // الإجمالي في OrderCalculator (Total = Sub − Disc + Tax +
+            // Service)، يعني ما دخلتش في إيراد الأصناف أصلاً — طرحها
+            // كان طرحها تاني وبيبخّض الربح بمقدار الضريبة كلها.
             var cmd = c.CreateCommand();
             cmd.CommandText = @"
                 SELECT
@@ -993,9 +998,6 @@ namespace PizzaPOS.Data
                                ELSE 0 END
                         - (oi.Cost * oi.Qty)
                     ), 0)
-                    - COALESCE((SELECT SUM(Tax) FROM Orders
-                                WHERE date(CreatedAt)=date('now','localtime')
-                                  AND Status NOT IN ('cancelled','held')), 0)
                     + COALESCE((SELECT SUM(COALESCE(ServiceCharge,0)) FROM Orders
                                 WHERE date(CreatedAt)=date('now','localtime')
                                   AND Status NOT IN ('cancelled','held')), 0)
@@ -1010,12 +1012,22 @@ namespace PizzaPOS.Data
                 WHERE date(Date)=date('now','localtime')";
             double manualLoss = Convert.ToDouble(cmd2.ExecuteScalar() ?? 0);
 
+            // البيع بأقل من التكلفة: يتقارن التكلفة مع صافي إيراد السطر
+            // بعد الخصم (وكل إيراد السطر = Subtotal اللي فيه حجم وإضافات)،
+            // مش مع BasePrice. المقارنة بـ BasePrice كانت بتفوّت أوردرات
+            // اتخصمت وبتخسّر، وبتطلّع خسارة وهمية لحدة سعرها الأساسي أقل
+            // من التكلفة بس الحجم/الإضافات غطّوها.
             var cmd4 = c.CreateCommand();
-            cmd4.CommandText = @"SELECT COALESCE(SUM((oi.Cost - oi.Price)*oi.Qty),0)
+            cmd4.CommandText = @"SELECT COALESCE(SUM(oi.Cost * oi.Qty
+                    - (oi.Subtotal - CASE WHEN o.Subtotal > 0
+                                         THEN o.Discount * (oi.Subtotal * 1.0 / o.Subtotal)
+                                         ELSE 0 END)), 0)
                 FROM OrderItems oi JOIN Orders o ON o.Id=oi.OrderId
                 WHERE date(o.CreatedAt)=date('now','localtime')
                   AND o.Status NOT IN ('cancelled','held')
-                  AND oi.Price < oi.Cost";
+                  AND oi.Cost * oi.Qty > (oi.Subtotal - CASE WHEN o.Subtotal > 0
+                                              THEN o.Discount * (oi.Subtotal * 1.0 / o.Subtotal)
+                                              ELSE 0 END)";
             double belowCostLoss = Convert.ToDouble(cmd4.ExecuteScalar() ?? 0);
 
             return (profit, manualLoss + belowCostLoss);
@@ -1080,12 +1092,23 @@ namespace PizzaPOS.Data
                 });
 
             var cmd2 = c.CreateCommand();
+            // البيع بأقل من التكلفة = التكلفة − صافي إيراد السطر بعد
+            // الخصم (Subtotal شامل الحجم والإضافات ناقص حصة خصم
+            // الأوردر). المقارنة بـ BasePrice القديمة كانت غلط في الاتجاهين:
+            // بتفوّت أوردرات اتخصمت وبتطلّع خسائر وهمية لمنتجات الحجم/
+            // الإضافات رفع إيرادها فوق التكلفة.
             cmd2.CommandText = @"SELECT oi.Name,
-                SUM((oi.Cost - oi.Price) * oi.Qty) AS Loss,
+                SUM(oi.Cost * oi.Qty
+                    - (oi.Subtotal - CASE WHEN o.Subtotal > 0
+                                         THEN o.Discount * (oi.Subtotal * 1.0 / o.Subtotal)
+                                         ELSE 0 END)) AS Loss,
                 date(o.CreatedAt)
                 FROM OrderItems oi JOIN Orders o ON o.Id=oi.OrderId
-                WHERE o.Status NOT IN ('cancelled','held') AND oi.Cost > oi.Price
+                WHERE o.Status NOT IN ('cancelled','held')
                   AND date(o.CreatedAt) BETWEEN @f AND @t
+                  AND oi.Cost * oi.Qty > (oi.Subtotal - CASE WHEN o.Subtotal > 0
+                                              THEN o.Discount * (oi.Subtotal * 1.0 / o.Subtotal)
+                                              ELSE 0 END)
                 GROUP BY oi.Name, date(o.CreatedAt)
                 ORDER BY date(o.CreatedAt) DESC";
             cmd2.Parameters.AddWithValue("@f", from.ToString("yyyy-MM-dd"));
@@ -1181,24 +1204,28 @@ namespace PizzaPOS.Data
                         WHERE o2.Status NOT IN ('cancelled','held')
                           AND date(o2.CreatedAt) = date(o.CreatedAt)
                           AND date(o2.CreatedAt) BETWEEN @f AND @t
-                    ), 0)
-                    - SUM(o.Tax)
-                    + SUM(COALESCE(o.ServiceCharge, 0)),
+                            ), 0)
+                            + SUM(COALESCE(o.ServiceCharge, 0)),
 
-                    COALESCE((
-                        SELECT SUM(l.Amount) FROM Losses l
-                        WHERE date(l.Date) = date(o.CreatedAt)
-                          AND date(l.Date) BETWEEN @f AND @t
-                    ), 0)
-                    + COALESCE((
-                        SELECT SUM((oi2.Cost - oi2.Price) * oi2.Qty)
-                        FROM OrderItems oi2
-                        JOIN Orders o3 ON o3.Id = oi2.OrderId
-                        WHERE o3.Status NOT IN ('cancelled','held')
-                          AND date(o3.CreatedAt) = date(o.CreatedAt)
-                          AND date(o3.CreatedAt) BETWEEN @f AND @t
-                          AND oi2.Price < oi2.Cost
-                    ), 0)
+                            COALESCE((
+                                SELECT SUM(l.Amount) FROM Losses l
+                                WHERE date(l.Date) = date(o.CreatedAt)
+                                  AND date(l.Date) BETWEEN @f AND @t
+                            ), 0)
+                            + COALESCE((
+                                SELECT SUM(oi2.Cost * oi2.Qty
+                                    - (oi2.Subtotal - CASE WHEN o3.Subtotal > 0
+                                                          THEN o3.Discount * (oi2.Subtotal * 1.0 / o3.Subtotal)
+                                                          ELSE 0 END))
+                                FROM OrderItems oi2
+                                JOIN Orders o3 ON o3.Id = oi2.OrderId
+                                WHERE o3.Status NOT IN ('cancelled','held')
+                                  AND date(o3.CreatedAt) = date(o.CreatedAt)
+                                  AND date(o3.CreatedAt) BETWEEN @f AND @t
+                                  AND oi2.Cost * oi2.Qty > (oi2.Subtotal - CASE WHEN o3.Subtotal > 0
+                                                                  THEN o3.Discount * (oi2.Subtotal * 1.0 / o3.Subtotal)
+                                                                  ELSE 0 END)
+                            ), 0)
 
                 FROM Orders o
                 WHERE o.Status NOT IN ('cancelled','held')

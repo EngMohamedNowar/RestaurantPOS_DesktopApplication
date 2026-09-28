@@ -576,7 +576,14 @@ namespace PizzaPOS.ViewModels
         {
             if (SessionService.CurrentShift == null)
             { MessageBox.Show("لا يوجد شفت مفتوح"); return; }
-            new CloseShiftDialog(SessionService.CurrentShift).ShowDialog();
+
+            var dlg = new CloseShiftDialog(SessionService.CurrentShift);
+
+            // إغلاق الشفت = نهاية الدوام: نقفّل البرنامج بالكامل
+            // (ShutdownMode=OnExplicitShutdown — من غير السطر ده
+            // البرنامج بيفضل شغال من غير شفت، وحتى في Task Manager).
+            if (dlg.ShowDialog() == true)
+                Application.Current?.Shutdown();
         }
     }
 }

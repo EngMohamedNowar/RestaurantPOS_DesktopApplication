@@ -19,6 +19,11 @@ namespace PizzaPOS.Views
                 _vm = new MainViewModel();
                 DataContext = _vm;
                 StartClock();
+
+                // X على النافذة الرئيسية = خروج كامل.
+                // ShutdownMode=OnExplicitShutdown → من غير السطر ده
+                // النافذة بتتقفل والـprocess بيفضل شغال مخفي في Task Manager.
+                Closed += (_, _) => Application.Current?.Shutdown();
             }
             catch (Exception ex)
             {

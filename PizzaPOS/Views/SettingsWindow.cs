@@ -3,7 +3,6 @@ using PizzaPOS.Helpers;
 using PizzaPOS.Services;
 using System;
 using System.Globalization;
-using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media;
@@ -92,7 +91,7 @@ namespace PizzaPOS.Views
             });
             hInfo.Children.Add(new TextBlock
             {
-                Text = "تخصيص المحل والضرائب والطابعة",
+                Text = "تخصيص المطعم والضرائب والطابعة",
                 FontSize = 12,
                 Foreground = UiHelper.B("#5a6a80"),
                 Margin = new Thickness(0, 4, 0, 0)
@@ -107,10 +106,10 @@ namespace PizzaPOS.Views
             var scroll = new ScrollViewer { VerticalScrollBarVisibility = ScrollBarVisibility.Auto };
             var sp = new StackPanel { Margin = new Thickness(24, 16, 24, 0) };
 
-            // ── Section: بيانات المحل ──
-            sp.Children.Add(SectionHeader("بيانات المحل", "🏪"));
+            // ── Section: بيانات المطعم ──
+            sp.Children.Add(SectionHeader("بيانات المطعم", "🏪"));
 
-            sp.Children.Add(Lbl("اسم المحل"));
+            sp.Children.Add(Lbl("اسم المطعم"));
             _tbShopName = UiHelper.MakeTB(_db.GetSetting("ShopName", "Pizza POS"), "#FF6B35");
             _tbShopName.Margin = new Thickness(0, 4, 0, 14);
             sp.Children.Add(_tbShopName);
@@ -294,9 +293,6 @@ namespace PizzaPOS.Views
                 TextWrapping = TextWrapping.Wrap
             });
 
-            sp.Children.Add(SectionHeader("النسخ الاحتياطي", "💾"));
-            sp.Children.Add(BuildBackupPanel());
-
             scroll.Content = sp;
             Grid.SetRow(scroll, 1);
             outer.Children.Add(scroll);
@@ -353,7 +349,8 @@ namespace PizzaPOS.Views
             }
             if (string.IsNullOrWhiteSpace(_tbShopName.Text))
             {
-                MessageBox.Show("أدخل اسم المحل",
+                MessageBox.Show("أدخل اسم المطعم" +
+                    "",
                     "تنبيه", MessageBoxButton.OK, MessageBoxImage.Warning); return;
             }
             if (!int.TryParse(_tbWidth.Text, out int pw) || pw < 24 || pw > 80)
@@ -397,126 +394,6 @@ namespace PizzaPOS.Views
                 MessageBoxButton.OK, MessageBoxImage.Information);
             DialogResult = true;
             Close();
-        }
-
-        // ── Backup panel ──────────────────────────────
-        StackPanel BuildBackupPanel()
-        {
-            var panel = new StackPanel();
-            var status = new TextBlock
-            {
-                FontSize = 11,
-                Foreground = UiHelper.B("#5a6a80"),
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 0, 0, 10)
-            };
-
-            var list = new StackPanel { Margin = new Thickness(0, 8, 0, 0) };
-
-            void Refresh()
-            {
-                status.Text = BackupService.GetBackupCount() == 0
-                    ? "مفيش نسخ محفوظة لسه."
-                    : $"{BackupService.GetBackupCount()} نسخة محفوظة (بيتمسح الأقدم من 10).";
-
-                list.Children.Clear();
-                foreach (var b in BackupService.ListBackups())
-                {
-                    var info = b;
-                    var row = new Border
-                    {
-                        Background = UiHelper.B("#0f1a2e"),
-                        BorderBrush = UiHelper.B("#1e2d4a"),
-                        BorderThickness = new Thickness(1),
-                        CornerRadius = new CornerRadius(8),
-                        Padding = new Thickness(12, 8, 12, 8),
-                        Margin = new Thickness(0, 0, 0, 6)
-                    };
-
-                    var rowGrid = new Grid();
-                    rowGrid.ColumnDefinitions.Add(new ColumnDefinition());
-                    rowGrid.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
-
-                    var labels = new StackPanel();
-                    labels.Children.Add(new TextBlock
-                    {
-                        Text = $"{info.CreatedAt:yyyy-MM-dd  HH:mm:ss}   •   {info.SizeDisplay}",
-                        FontSize = 12,
-                        FontWeight = FontWeights.Bold,
-                        Foreground = UiHelper.B("#eef0f2")
-                    });
-                    labels.Children.Add(new TextBlock
-                    {
-                        Text = info.FileName,
-                        FontSize = 10,
-                        Foreground = UiHelper.B("#5a6a80")
-                    });
-                    Grid.SetColumn(labels, 0);
-                    rowGrid.Children.Add(labels);
-
-                    var restoreBtn = UiHelper.MakeBtn("استعادة", "#2a1a1a", UiHelper.B("#ffd166"),
-                        () => ConfirmRestore(info), 6, 11, 0, "8");
-                    restoreBtn.MinWidth = 80;
-                    Grid.SetColumn(restoreBtn, 1);
-                    rowGrid.Children.Add(restoreBtn);
-
-                    row.Child = rowGrid;
-                    list.Children.Add(row);
-                }
-            }
-
-            void ConfirmRestore(BackupInfo info)
-            {
-                if (MessageBox.Show(
-                        $"استعادة النسخة دي؟\n\n{info.CreatedAt:yyyy-MM-dd HH:mm}  •  {info.SizeDisplay}\n\n"
-                        + "⚠️ كل البيانات اللي اتسجّلت بعد النسخة دي هتضيع.\n"
-                        + "هنحفظ نسخة أمان من الحالة الحالية قبل الاستبدال.",
-                        "تأكيد الاستعادة", MessageBoxButton.OKCancel,
-                        MessageBoxImage.Warning) != MessageBoxResult.OK)
-                    return;
-
-                var result = BackupService.RestoreBackup(info.Path);
-                MessageBox.Show(result.Message,
-                    result.Success ? "تم" : "فشل",
-                    MessageBoxButton.OK,
-                    result.Success ? MessageBoxImage.Information : MessageBoxImage.Error);
-
-                if (result.Success) Refresh();
-            }
-
-            var nowBtn = UiHelper.MakeBtn("إنشاء نسخة الآن", "#1a3a5f", UiHelper.B("#7ab8f5"),
-                () =>
-                {
-                    var path = BackupService.CreateBackup();
-                    Refresh();
-                    MessageBox.Show(
-                        path == null
-                            ? "مقدرناش نعمل نسخة — شوف ملف الـ log في %AppData%\\PizzaPOS\\logs"
-                            : $"تم إنشاء النسخة:\n{Path.GetFileName(path)}",
-                        path == null ? "فشل" : "تم",
-                        MessageBoxButton.OK,
-                        path == null ? MessageBoxImage.Error : MessageBoxImage.Information);
-                }, 10, 13);
-            nowBtn.MinWidth = 180;
-            nowBtn.HorizontalAlignment = HorizontalAlignment.Left;
-            nowBtn.Margin = new Thickness(0, 0, 0, 8);
-            panel.Children.Add(nowBtn);
-
-            panel.Children.Add(status);
-            Refresh();
-            panel.Children.Add(list);
-
-            panel.Children.Add(new TextBlock
-            {
-                Text = "💡 النسخة بتتم تلقائياً مرة واحدة عند كل تشغيل، وبتاخد لقطة متسقة " +
-                       "من كل المعاملات المحفوظة (مش مجرد نسخ للملف).",
-                FontSize = 10,
-                Foreground = UiHelper.B("#3a4a60"),
-                TextWrapping = TextWrapping.Wrap,
-                Margin = new Thickness(0, 12, 0, 0)
-            });
-
-            return panel;
         }
 
         // ── Helpers ──────────────────────────────────

@@ -171,6 +171,51 @@ namespace PizzaPOS.Services
         public static int GetBackupCount() => ListBackups().Count;
 
         // ══════════════════════════════════════════════════════════════════
+        //  Delete
+        // ══════════════════════════════════════════════════════════════════
+
+        /// <summary>
+        /// حذف نسخة احتياطية نهائياً من مجلد backups.
+        ///
+        /// المسار *لازم* يكون جوه مجلد النسخ — أي مسار برّيه (بما فيها
+        /// pos.db نفسها أو ملفات نظام) بيترفض قبل ما نلمس أي حاجة.
+        /// </summary>
+        public static BackupResult DeleteBackup(string backupPath)
+            => DeleteBackupFrom(backupPath, BackupDir);
+
+        /// <summary>نفس <see cref="DeleteBackup"/> بمسار مجلد صريح — للاختبارات.</summary>
+        public static BackupResult DeleteBackupFrom(string backupPath, string backupDir)
+        {
+            if (string.IsNullOrWhiteSpace(backupPath))
+                return BackupResult.Fail("مفيش مسار نسخة.");
+
+            string full = Path.GetFullPath(backupPath);
+            string root = Path.GetFullPath(backupDir)
+                .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar)
+                + Path.DirectorySeparatorChar;
+
+            // StartsWith بيحمي من traversal (backups\..\pos.db) —
+            // Path.GetFullPath بيحل ".." قبل المقارنة، فلو الملف طلع
+            // برّه المجلد، المقارنة بتفشل والرفض بيحصل.
+            if (!full.StartsWith(root, StringComparison.OrdinalIgnoreCase))
+                return BackupResult.Fail("الملف ده مش جوه مجلد النسخ الاحتياطي — الرفض.");
+
+            if (!File.Exists(full))
+                return BackupResult.Fail("النسخة مش موجودة — يمكن اتمسحت قبل كده.");
+
+            try
+            {
+                File.Delete(full);
+                return BackupResult.Ok($"تم حذف {Path.GetFileName(full)}");
+            }
+            catch (Exception ex)
+            {
+                AppLogger.Warn($"DeleteBackup failed for '{Path.GetFileName(full)}': {ex.Message}");
+                return BackupResult.Fail($"مقدرناش نحذف النسخة: {ex.Message}");
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════════
         //  Restore
         // ══════════════════════════════════════════════════════════════════
 

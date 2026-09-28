@@ -342,6 +342,79 @@ public class BackupServiceTests : IDisposable
         Assert.Equal(1, CountOrders(_dbPath));
     }
 
+    // ── Delete ────────────────────────────────────
+
+    [Fact]
+    public void DeleteBackupFrom_FileInsideBackupDir_IsDeleted()
+    {
+        CreateLiveDb();
+        string? backup = BackupService.CreateBackupTo(_dbPath, _backupDir);
+        Assert.NotNull(backup);
+
+        var result = BackupService.DeleteBackupFrom(backup!, _backupDir);
+
+        Assert.True(result.Success, result.Message);
+        Assert.False(File.Exists(backup));
+    }
+
+    [Fact]
+    public void DeleteBackupFrom_LiveDbPath_RefusesAndKeepsFile()
+    {
+        // الخطوة دي هي الحماية الأهم: مفيش طريقة يدوي أو binding غلط
+        // تخلّي الحذف يمسح pos.db نفسها بدل نسخة جوه backups/.
+        CreateLiveDb();
+
+        var result = BackupService.DeleteBackupFrom(_dbPath, _backupDir);
+
+        Assert.False(result.Success);
+        Assert.True(File.Exists(_dbPath));
+    }
+
+    [Fact]
+    public void DeleteBackupFrom_TraversalPath_RefusesAndKeepsFile()
+    {
+        // backups\..\pos.db — الملف "يبدو" جوه المجلد في الـstring،
+        // بس GetFullPath بيححل ".." ف بيطلع برّه، والرفض لازم يحصل.
+        CreateLiveDb();
+        string sneaky = Path.Combine(_backupDir, "..", "pos.db");
+
+        var result = BackupService.DeleteBackupFrom(sneaky, _backupDir);
+
+        Assert.False(result.Success);
+        Assert.True(File.Exists(_dbPath));
+    }
+
+    [Fact]
+    public void DeleteBackupFrom_MissingFile_FailsGracefully()
+    {
+        Directory.CreateDirectory(_backupDir);
+
+        var result = BackupService.DeleteBackupFrom(
+            Path.Combine(_backupDir, "pos_not-there.db"), _backupDir);
+
+        Assert.False(result.Success);
+    }
+
+    [Fact]
+    public void DeleteBackupFrom_OneOfTwo_LeavesTheOther()
+    {
+        CreateLiveDb();
+        string? a = BackupService.CreateBackupTo(_dbPath, _backupDir);
+        string? b = BackupService.CreateBackupTo(_dbPath, _backupDir);
+        Assert.NotNull(a);
+        Assert.NotNull(b);
+        Assert.NotEqual(a, b);
+
+        var result = BackupService.DeleteBackupFrom(a!, _backupDir);
+
+        Assert.True(result.Success, result.Message);
+        Assert.False(File.Exists(a));
+        Assert.True(File.Exists(b));
+        // ListBackups دايمًا بيقرأ المجلد الحقيقي في %AppData%، فبنتأكد
+        // من الملفات على مستوى الـfilesystem في مجلد الاختبار نفسه.
+        Assert.Single(Directory.GetFiles(_backupDir, "pos_*.db"));
+    }
+
     static void TryDelete(string path)
     {
         try { if (File.Exists(path)) File.Delete(path); } catch { }

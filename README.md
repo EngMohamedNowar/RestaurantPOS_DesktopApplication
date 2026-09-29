@@ -10,6 +10,7 @@
 [![.NET](https://img.shields.io/badge/.NET-10-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![WPF](https://img.shields.io/badge/WPF-512BD4?style=for-the-badge&logo=dotnet&logoColor=white)](https://learn.microsoft.com/en-us/dotnet/desktop/wpf/)
 [![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)](https://www.sqlite.org/)
+[![xUnit](https://img.shields.io/badge/tests-385%2B-E65019?style=for-the-badge&logo=xunit&logoColor=white)](#%EF%B8%8F-testing)
 [![License](https://img.shields.io/badge/License-MIT-00A86B?style=for-the-badge&logo=open-source-initiative&logoColor=white)](LICENSE.txt)
 
 <br/>
@@ -20,6 +21,19 @@
 
 ---
 
+## 📖 Overview
+
+A production-ready POS built for restaurants that need more than a cash register: orders
+(dine-in / takeaway / delivery), recipe-driven inventory, shift reconciliation, and
+profit-aware reporting — all in one offline-first desktop app with thermal-printer
+support and a hardware-locked licensing system.
+
+نظام متكامل للمطاعم: أوردرات (صالة/تيك أواي/دليفري)، مخزون مرتبط بالوصفات، محاسبة
+ورديات، وتقارير أرباح وخسائر دقيقة — يعمل بالكامل بدون إنترنت مع دعم طابعات
+الحرارية ونظام ترخيص مربوط بعتاد الجهاز.
+
+---
+
 ## ✨ Features
 
 <table>
@@ -27,21 +41,23 @@
     <td width="50%" valign="top">
       <h3>🛒 Point of Sale</h3>
       <ul>
-        <li>Categories, Products, Sizes, Add-ons</li>
-        <li>Discount (Percentage / Fixed Amount)</li>
+        <li>Categories, Products, Sizes & Add-ons</li>
+        <li>Discounts (Percentage / Fixed Amount)</li>
         <li>Tax & Service Fee Configuration</li>
-        <li>Dine-in, Takeaway, Delivery</li>
-        <li>Real-time Order Summary with Item Editing</li>
+        <li>Dine-in, Takeaway & Delivery modes</li>
+        <li>Held orders & live order editing</li>
+        <li>Real-time order summary</li>
       </ul>
     </td>
     <td width="50%" valign="top">
       <h3>📦 Inventory & Recipes</h3>
       <ul>
-        <li>Link Ingredients to Products with Quantities</li>
-        <li>Auto-calculate Product Cost from Ingredients</li>
-        <li>Bulk Price Update by Percentage</li>
-        <li>Stock Tracking with Low-Stock Alerts</li>
-        <li>Stock Movement Tracking (In/Out/Adjustment)</li>
+        <li>Ingredient-linked recipes per product</li>
+        <li>Auto product costing from recipes</li>
+        <li>Stock tracking with low-stock alerts</li>
+        <li>Stock movements (In / Out / Adjustment)</li>
+        <li>Purchase entry & ingredient categories</li>
+        <li>Automatic stock deduction on checkout</li>
       </ul>
     </td>
   </tr>
@@ -49,19 +65,20 @@
     <td width="50%" valign="top">
       <h3>📅 Shift Management</h3>
       <ul>
-        <li>Open / Close Shift</li>
-        <li>Cash Drawer Reconciliation</li>
-        <li>Cash Matching & Discrepancy Tracking</li>
-        <li>Shift-based Sales Reporting</li>
+        <li>Open / Close shift workflow</li>
+        <li>Cash drawer reconciliation</li>
+        <li>Cash matching & discrepancy tracking</li>
+        <li>Shift-based sales reporting</li>
       </ul>
     </td>
     <td width="50%" valign="top">
       <h3>📊 Reports & Analytics</h3>
       <ul>
-        <li>Daily Sales Reports</li>
-        <li>Profit & Loss Tracking</li>
-        <li>Waste / Loss Reporting</li>
-        <li>Excel Export (ClosedXML)</li>
+        <li>Daily sales & profit/loss reports</li>
+        <li>Below-cost sale detection (after discounts)</li>
+        <li>Waste & manual loss log</li>
+        <li>Best-selling products ranking</li>
+        <li>Excel export (ClosedXML)</li>
       </ul>
     </td>
   </tr>
@@ -69,19 +86,19 @@
     <td width="50%" valign="top">
       <h3>🎁 Offers & Promotions</h3>
       <ul>
-        <li>Promotional Offers with Discount %</li>
-        <li>Promo Code Support</li>
-        <li>WhatsApp Integration for Bulk Sending</li>
-        <li>Customer List with Bulk Selection</li>
+        <li>Promotional offers with discount %</li>
+        <li>Promo code support</li>
+        <li>WhatsApp integration for bulk sending</li>
+        <li>Customer list with bulk selection</li>
       </ul>
     </td>
     <td width="50%" valign="top">
       <h3>💎 Customer Loyalty Program</h3>
       <ul>
-        <li>Customer Database with Phone Numbers</li>
-        <li>Points System with Tiers:</li>
+        <li>Customer database with phone numbers</li>
+        <li>Points system with tiers:</li>
         <li>Bronze — Silver — Gold — Diamond</li>
-        <li>Points Earned Per Order</li>
+        <li>Points earned per order</li>
       </ul>
     </td>
   </tr>
@@ -89,21 +106,21 @@
     <td width="50%" valign="top">
       <h3>🔐 License Key System</h3>
       <ul>
-        <li>Hardware Fingerprinting (CPU, Motherboard, Disk)</li>
-        <li>License Key Validation tied to Hardware</li>
-        <li>Temporary Keys (30-day Trial)</li>
-        <li>Permanent Keys (Lifetime Access)</li>
-        <li>Auto-check on Startup with Activation Window</li>
+        <li>Hardware fingerprinting (CPU, motherboard, disk)</li>
+        <li>License keys bound to hardware (HMAC-SHA256)</li>
+        <li>Temporary keys (30-day trial)</li>
+        <li>Permanent keys (lifetime access)</li>
+        <li>Startup validation with activation window</li>
       </ul>
     </td>
     <td width="50%" valign="top">
       <h3>⚙️ Settings & Users</h3>
       <ul>
-        <li>Shop Name, Address, Phone Numbers</li>
-        <li>Tax Rate & Service Charge Config</li>
-        <li>Profit Margin Configuration</li>
-        <li>Role-based Access: Admin & Cashier</li>
-        <li>PIN-based Login (SHA256)</li>
+        <li>Shop name, address & phone</li>
+        <li>Tax rate & service charge config</li>
+        <li>Profit margin configuration</li>
+        <li>Role-based access: Admin & Cashier</li>
+        <li>PIN login with salted PBKDF2 hashing</li>
       </ul>
     </td>
   </tr>
@@ -172,7 +189,7 @@
 
 ---
 
-## Tech Stack
+## 🖨️ Receipt Printing
 
 <div align="center">
 
@@ -201,106 +218,81 @@
 
 | Technology | Purpose |
 |------------|---------|
-| C# / .NET 10 | Core Language & Runtime |
-| WPF | Desktop UI Framework |
-| SQLite | Local Database (via Microsoft.Data.Sqlite) |
-| ClosedXML | Excel Report Export |
-| System.IO.Ports | Serial Printer Communication |
-| ESC/POS | Thermal Printer Protocol |
-| HMACSHA256 | License Key Generation |
-| WMI | Hardware Fingerprinting |
+| C# / .NET 10 | Core language & runtime |
+| WPF | Desktop UI framework |
+| SQLite | Local database (Microsoft.Data.Sqlite) |
+| ClosedXML | Excel report export |
+| System.IO.Ports | Serial printer communication |
+| ESC/POS | Thermal printer protocol |
+| HMAC-SHA256 | License key generation |
+| PBKDF2 | Credential hashing |
+| WMI | Hardware fingerprinting |
 
 </div>
 
 ---
 
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Windows 10/11
-- [.NET 10 SDK](https://dotnet.microsoft.com/download)
-
-### Run
-
-```powershell
-git clone https://github.com/EngMohamedNowar/RestaurantPOS_DesktopApplication.git
-cd RestaurantPOS_DesktopApplication/PizzaPOS
-dotnet run
-```
-
-### Build Release
-
-```powershell
-dotnet publish -c Release -r win-x64 --self-contained true `
-  -p:PublishSingleFile=true `
-  -p:IncludeNativeLibrariesForSelfExtract=true `
-  -o ./publish
-```
-
-Output: `PizzaPOS/publish/PizzaPOS.exe`
-
----
-
-## 🔑 Generating License Keys
-
-```powershell
-cd PizzaPOS.LicenseGenerator
-dotnet run
-```
-
-The tool will:
-1. Ask for the Hardware ID (from the activation screen)
-2. Ask for license type (Permanent or Trial)
-3. Generate a license key
-
----
-
-## 🔐 Default Login
-
-<div align="center">
-
-| User | PIN | Role |
-|------|-----|------|
-| `admin` | `1234` | Administrator |
-| `cashier1` | `1234` | Cashier |
-
-> ⚠️ **Change the admin PIN immediately after first run in production!**
-
-</div>
-
----
-
-## 📁 Project Structure
+## 🏗️ Architecture
 
 ```
 RestaurantPOS_DesktopApplication/
-├── POS.slnx
-├── PizzaPOS/
-│   ├── Data/              # SQLite context & DatabaseHelper
-│   ├── Helpers/           # UiHelper (shared UI components)
-│   ├── Models/            # Entity classes & enums
-│   ├── Services/          # Business logic
-│   │   ├── Inventory      # Stock Management
-│   │   ├── Shift          # Shift Management
-│   │   ├── User           # Authentication
-│   │   ├── License        # License Key System
-│   │   └── Printer        # ESC/POS Integration
-│   ├── ViewModels/        # MVVM ViewModels
-│   └── Views/             # WPF Windows & Dialogs
-├── PizzaPOS.LicenseGenerator/  # Console tool for generating license keys
-└── PizzaPOS.Tests/        # Unit tests
+├── POS.slnx                      # Solution
+├── PizzaPOS/                     # WPF application
+│   ├── Data/                     # SQLite schema, migrations & seed data
+│   ├── Helpers/                  # UiHelper (shared UI components)
+│   ├── Models/                   # Entities, DTOs & enums
+│   ├── Services/                 # Business logic
+│   │   ├── Inventory             # Stock & recipe management
+│   │   ├── Shift                 # Shift lifecycle & reconciliation
+│   │   ├── User                  # Authentication & roles
+│   │   ├── License               # Hardware-bound licensing
+│   │   ├── Printer               # ESC/POS integration
+│   │   └── Backup                # Automatic DB backups
+│   ├── ViewModels/               # MVVM ViewModels
+│   └── Views/                    # Windows & dialogs
+├── PizzaPOS.LicenseGenerator/    # CLI tool for issuing license keys
+└── PizzaPOS.Tests/               # Unit & integration tests
 ```
 
+**Design notes**
+
+- **MVVM** — views are dumb; behavior lives in ViewModels and services.
+- **Repository-free data layer** — a small raw-ADO.NET context keeps SQL explicit
+  and migrations verifiable.
+- **Seed data** — full menu, recipes and pricing ship with the schema, so a fresh
+  database is restaurant-ready on first launch.
+- **Offline-first** — no network dependency; local SQLite storage with automatic
+  backups and Excel/PDF-ready exports.
+
 ---
 
-## 💾 Database
+## 🗄️ Data
 
-- SQLite local database at: `%AppData%\PizzaPOS\pos.db`
-- Tables and seed data are created automatically on first run
-- License file stored at: `%AppData%\PizzaPOS\license.dat`
+- Local SQLite database — created, migrated and seeded automatically.
+- Schema migrations are versioned and safe to re-run.
+- Automatic backups of the database are taken on startup.
+- Sensitive values (credentials, license payloads) are never stored in plaintext.
 
 ---
+
+## ✅ Testing
+
+<div align="center">
+
+| | |
+|:---:|:---:|
+| **385+** unit & integration tests | xUnit + Coverlet |
+
+</div>
+
+The suite guards the behaviors that matter most in production:
+
+- **Checkout atomicity** — orders, stock deduction and payments commit or roll back together.
+- **Migrations & seeding** — schema, menu (38 products) and recipe coverage (290 ingredient lines).
+- **Reporting math** — profit/loss, below-cost sale detection and discount allocation.
+- **Security** — credential hashing, license validation and no-silent-catch enforcement.
+- **Shifts & counters** — daily order numbering, rollback safety, reconciliation.
+- **Services** — backups, single-instance guard, inventory operations.
 
 ---
 

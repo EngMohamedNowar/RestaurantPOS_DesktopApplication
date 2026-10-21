@@ -448,15 +448,6 @@ namespace PizzaPOS.Services
             return result;
         }
 
-        static string SafeAscii(string s)
-        {
-            if (string.IsNullOrEmpty(s)) return s;
-            var sb = new StringBuilder(s.Length);
-            foreach (char c in s)
-                if (c < 128) sb.Append(c);
-            return sb.ToString().TrimEnd();
-        }
-
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // ── Decode embedded ESC/POS logo for WPF ─────
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -561,9 +552,14 @@ namespace PizzaPOS.Services
                 // ── فاتورة العميل — Windows (عربي كامل) ──
                 PrintReceiptWindows(order, db);
 
-                // ── تيكت المطبخ — ESC/POS RAW ──
-                byte[] kitchen = BuildKitchen(order, db);
-                Send(port, pName, db, kitchen);
+                // ── تيكت المطبخ — نفس مسار الـ Windows بالظبط ──
+                // كان ESC/POS RAW بـ Encoding.ASCII، فالعربي كان بيتشال
+                // أو بيتحوّل لإنجليزي. دلوقتي بيتطبع بنفس FlowDocument
+                // والـ driver بتاع الطابعة هو اللي بيعمل الـ shaping.
+                PrintKitchenWindows(order, db);
+
+                // ── قص ورقة المطبخ (بعد ما تخلص من الـ spooler) ──
+                Send(port, pName, db, Combine(CMD_FEED, CMD_CUT));
 
                 // ── فتح الدرج لو مطلوب ──
                 if (openDrawer)
@@ -743,6 +739,82 @@ namespace PizzaPOS.Services
             // ── إرسال للطابعة — Auto-detect بـ      ─
             // ── LocalPrintServer (زي HeldOrdersDialog)
             // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            PrintFlow(doc, $"أوردر {order.OrderNumber}");
+        }
+
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        // ── Windows Print: تيكت المطبخ بالعربي ──
+        // ── نفس مسار الريسيت بالظبط: نفس الطابعة، ─
+        // ── نفس الـ FlowDocument ونفس الـ driver —  ─
+        // ── الفرق بس إن مفيش أسعار/مجاميع.        ─
+        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        public void PrintKitchenWindows(Order order, AppDbContext db)
+        {
+            var doc = new FlowDocument
+            {
+                FontFamily = new FontFamily("Tahoma"),
+                FlowDirection = FlowDirection.RightToLeft,
+                PagePadding = new Thickness(30, 20, 30, 20),
+                ColumnWidth = double.PositiveInfinity,
+                FontSize = 13
+            };
+
+            doc.Blocks.Add(Para("** KITCHEN **", bold: true, size: 18, center: true));
+            doc.Blocks.Add(HRule());
+
+            doc.Blocks.Add(Para($"رقم الأوردر: {order.OrderNumber}", bold: true, size: 15));
+            doc.Blocks.Add(Para($"التاريخ: {DateTime.Now:dd/MM/yyyy HH:mm}"));
+            doc.Blocks.Add(Para($"النوع: {order.OrderType}"));
+
+            if (SessionService.CurrentUser != null)
+                doc.Blocks.Add(Para($"الكاشير: {SessionService.CurrentUser.FullName}"));
+            if (!string.IsNullOrEmpty(order.CustomerName))
+                doc.Blocks.Add(Para($"العميل: {order.CustomerName}"));
+            if (!string.IsNullOrEmpty(order.CustomerPhone))
+                doc.Blocks.Add(Para($"التليفون: {order.CustomerPhone}"));
+            if (!string.IsNullOrEmpty(order.DeliveryAddress))
+                doc.Blocks.Add(Para($"العنوان: {order.DeliveryAddress}"));
+            if (!string.IsNullOrEmpty(order.DriverName))
+                doc.Blocks.Add(Para($"السائق: {order.DriverName}"));
+
+            doc.Blocks.Add(HRule());
+            doc.Blocks.Add(Para("الأصناف", bold: true, size: 14, center: true));
+            doc.Blocks.Add(HRule());
+
+            foreach (var item in order.Items)
+            {
+                doc.Blocks.Add(Para($"{item.Name}  ×{item.Qty}", bold: true, size: 16));
+                if (!string.IsNullOrEmpty(item.SizeName))
+                    doc.Blocks.Add(Para($"   الحجم: {item.SizeName}", size: 12));
+                if (!string.IsNullOrEmpty(item.ExtrasNote))
+                    doc.Blocks.Add(Para($"   إضافات: {item.ExtrasNote}", size: 12));
+                doc.Blocks.Add(new BlockUIContainer(new Border
+                {
+                    Height = 1,
+                    Background = Brushes.LightGray,
+                    Margin = new Thickness(0, 2, 0, 4),
+                    Opacity = 0.5
+                }));
+            }
+
+            if (!string.IsNullOrEmpty(order.Notes))
+            {
+                doc.Blocks.Add(HRule());
+                doc.Blocks.Add(Para($"ملاحظات: {order.Notes}", bold: true));
+            }
+
+            doc.Blocks.Add(HRule());
+            doc.Blocks.Add(Para(db.GetSetting("ReceiptFooter", "شكراً لزيارتكم!"),
+                bold: true, center: true));
+
+            PrintFlow(doc, $"مطبخ {order.OrderNumber}");
+        }
+
+        // ── إرسال أي FlowDocument للطابعة المكتشفة تلقائياً ──
+        // الريسيت والمطبخ كله بيعدّي من هنا عشان يكونوا زي بالظبط:
+        // نفس الـ queue، نفس الـ paginator، نفس الـ fallback.
+        static void PrintFlow(FlowDocument doc, string jobName)
+        {
             var dlg = new PrintDialog();
 
             try
@@ -771,7 +843,7 @@ namespace PizzaPOS.Services
 
             var paginator = ((IDocumentPaginatorSource)doc).DocumentPaginator;
             paginator.PageSize = new Size(dlg.PrintableAreaWidth, dlg.PrintableAreaHeight);
-            dlg.PrintDocument(paginator, $"أوردر {order.OrderNumber}");
+            dlg.PrintDocument(paginator, jobName);
         }
 
         // ── FlowDocument Helpers ─────────────────────
@@ -893,90 +965,6 @@ namespace PizzaPOS.Services
         }
 
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        // ── Build: Kitchen Ticket (ESC/POS RAW) ─────
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-        byte[] BuildKitchen(Order order, AppDbContext db)
-        {
-            using var ms = new MemoryStream(512);
-            var enc = Encoding.ASCII;
-
-            int W = int.TryParse(db.GetSetting("PrinterWidth", "42"), out int w)
-                    ? Math.Clamp(w, 24, 80) : 42;
-
-            void Raw(byte[] b) => ms.Write(b);
-            void Txt(string s) => ms.Write(enc.GetBytes(SafeAscii(s)));
-            void NL() => ms.WriteByte(0x0A);
-            void Line(string s) { Txt(s); NL(); }
-            string Sep(char c = '-') => new(c, W);
-
-            Raw(CMD_INIT);
-
-            Raw(CMD_CENTER);
-            Raw(CMD_DOUBLE_ON);
-            Raw(CMD_BOLD_ON);
-            Line("** KITCHEN **");
-            Raw(CMD_BOLD_OFF);
-            Raw(CMD_DOUBLE_OFF);
-
-            Raw(CMD_LEFT);
-            Raw(CMD_BOLD_ON);
-            Line($"Order# {order.OrderNumber}");
-            Raw(CMD_BOLD_OFF);
-            Line(DateTime.Now.ToString("dd/MM/yyyy  HH:mm"));
-
-            Raw(CMD_BOLD_ON);
-            Raw(CMD_DOUBLE_ON);
-            Line(Tr(order.OrderType).ToUpper());
-            Raw(CMD_DOUBLE_OFF);
-            Raw(CMD_BOLD_OFF);
-
-            if (!string.IsNullOrEmpty(order.CustomerName))
-                Line($"For   : {SafeAscii(Tr(order.CustomerName))}");
-            if (!string.IsNullOrEmpty(order.DriverName))
-                Line($"Driver: {SafeAscii(Tr(order.DriverName))}");
-
-            Line(Sep('='));
-
-            foreach (var item in order.Items)
-            {
-                Raw(CMD_BOLD_ON);
-                Raw(CMD_DOUBLE_ON);
-                string label = $"{item.Qty}x {TruncateLine(Tr(item.Name), W - 3 - item.Qty.ToString().Length)}";
-                Line(label);
-                Raw(CMD_DOUBLE_OFF);
-                Raw(CMD_BOLD_OFF);
-
-                if (!string.IsNullOrEmpty(item.SizeAndExtrasDisplay))
-                {
-                    bool firstChunk = true;
-                    foreach (var chunk in WrapText(Tr(item.SizeAndExtrasDisplay), W - 5))
-                    {
-                        Line(firstChunk ? $"  > {chunk}" : $"    {chunk}");
-                        firstChunk = false;
-                    }
-                }
-                NL();
-            }
-
-            Line(Sep('='));
-
-            if (!string.IsNullOrEmpty(order.Notes))
-            {
-                Raw(CMD_BOLD_ON);
-                Line("NOTE:");
-                Raw(CMD_BOLD_OFF);
-                foreach (var chunk in WrapText(SafeAscii(Tr(order.Notes)), W))
-                    Line(chunk);
-                Line(Sep('-'));
-            }
-
-            Raw(CMD_FEED);
-            Raw(CMD_CUT);
-
-            return ms.ToArray();
-        }
-
-        // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         // ── Shared Send ──────────────────────────────
         // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
         static void Send(string port, string printerName, AppDbContext db, byte[] data)
@@ -1092,26 +1080,6 @@ namespace PizzaPOS.Services
 
         static int GetBaud(AppDbContext db) =>
             int.TryParse(db.GetSetting("SerialBaud", "115200"), out int b) && b > 0 ? b : 115200;
-
-        static string TruncateLine(string s, int max) => s.Length > max ? s[..max] : s;
-
-        static IEnumerable<string> WrapText(string text, int width)
-        {
-            if (string.IsNullOrEmpty(text)) yield break;
-            int start = 0;
-            while (start < text.Length)
-            {
-                int len = Math.Min(width, text.Length - start);
-                if (start + len < text.Length)
-                {
-                    int ls = text.LastIndexOf(' ', start + len - 1, len);
-                    if (ls > start) len = ls - start;
-                }
-                yield return text.Substring(start, len).TrimEnd();
-                start += len;
-                if (start < text.Length && text[start] == ' ') start++;
-            }
-        }
 
         static byte[] Combine(params byte[][] arrays)
         {

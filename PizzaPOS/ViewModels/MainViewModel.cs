@@ -180,6 +180,7 @@ namespace PizzaPOS.ViewModels
             LoadProducts();
             RefreshStats();
             OrderNumber = _db.GetNextOrderNumber();
+            LoadDefaultDiscount();
             Recalc();
         }
 
@@ -546,17 +547,30 @@ namespace PizzaPOS.ViewModels
             OrderItems.Clear();
             _discInput = ""; _notes = "";
             // _orderType مش بيتغير هنا — الأوردر الجديد يفضل على آخر
-            // نوع متحтّم (صالة/تيك أواي/ديلفري) بدل ما يرجع دليفري.
+            // نوع متحتّم (صالة/تيك أواي/ديلفري) بدل ما يرجع دليفري.
             Notify(nameof(DiscountInput));
             Notify(nameof(Notes));
-            // الـ default بيشتغل بس لو اتقرا صح — ParsRate بيرفض النص
-            // الغلط ويرجع 0 بدل ما يطلع exception في نص السطر.
+            LoadDefaultDiscount();
+            OrderNumber = _db.GetNextOrderNumber();
+            Recalc();
+        }
+
+        /// <summary>
+        /// الخصم الافتراضي من الإعدادات (SettingsWindow → مفتاح DefaultDiscount).
+        ///
+        /// لازم يتقرأ في أول الجلسة كمان (Init): قبل كده القراءة كانت في
+        /// ClearOrder بس، فالكاشير كان بيدخل على أول أوردر والخانة فاضية،
+        /// والأدمن بس كان بيشوف الخصم شغال لأن حفظ الإعدادات بينادي ClearOrder.
+        ///
+        /// الـ default بيشتغل بس لو اتقرا صح — ParseAmount بيرفض النص
+        /// الغلط ويرجع 0 بدل ما يطلع exception في نص السطر.
+        /// </summary>
+        void LoadDefaultDiscount()
+        {
             var defDisc = OrderCalculator.ParseAmount(_db.GetSetting("DefaultDiscount", "0"));
             _discInput = defDisc > 0 ? defDisc.ToString("0.##", CultureInfo.InvariantCulture) : "";
             _discPct = true;
             Notify(nameof(DiscountInput));
-            OrderNumber = _db.GetNextOrderNumber();
-            Recalc();
         }
 
         // ── Refresh Stats ────────────────────────────

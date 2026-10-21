@@ -297,6 +297,36 @@ namespace PizzaPOS.Tests
         }
 
         [Fact]
+        public void Constructor_AppliesDefaultDiscount_FromSettings()
+        {
+            // Regression: DefaultDiscount was only read inside ClearOrder, so a
+            // fresh session (the cashier logging in) started with an empty
+            // discount box until the first clear or checkout. The admin saw it
+            // working only because saving the settings calls ClearOrder.
+            // "10.00" is exactly the invariant format SettingsWindow.Save writes.
+            new AppDbContext(_cs).SetSetting("DefaultDiscount", "10.00");
+            AddProduct("ZZMargherita", 100);
+
+            var vm = NewVm();
+
+            Assert.Equal("10", vm.DiscountInput);
+            Assert.True(vm.DiscountIsPercent);
+
+            vm.AddProduct(vm.Products.First(p => p.Name == "ZZMargherita"));
+
+            Assert.Equal(10, vm.Discount, 2);
+        }
+
+        [Fact]
+        public void Constructor_WithoutDefaultDiscount_LeavesDiscountBoxEmpty()
+        {
+            var vm = NewVm();
+
+            Assert.Equal("", vm.DiscountInput);
+            Assert.Equal(0, vm.Discount, 2);
+        }
+
+        [Fact]
         public void RefreshStats_OnEmptyDay_ReportsZeros()
         {
             var vm = NewVm();

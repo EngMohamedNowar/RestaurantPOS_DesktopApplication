@@ -715,9 +715,12 @@ namespace PizzaPOS.Services
                 doc.Blocks.Add(HRule());
             }
 
-            if (!string.IsNullOrEmpty(order.Notes))
+            var noteLines = SplitNotes(order.Notes);
+            if (noteLines.Length > 0)
             {
-                doc.Blocks.Add(Para($"ملاحظات: {order.Notes}"));
+                doc.Blocks.Add(Para($"ملاحظات: {noteLines[0]}"));
+                foreach (var line in noteLines.Skip(1))
+                    doc.Blocks.Add(Para(line, size: 11));
                 doc.Blocks.Add(HRule());
             }
 
@@ -797,10 +800,13 @@ namespace PizzaPOS.Services
                 }));
             }
 
-            if (!string.IsNullOrEmpty(order.Notes))
+            var noteLines = SplitNotes(order.Notes);
+            if (noteLines.Length > 0)
             {
                 doc.Blocks.Add(HRule());
-                doc.Blocks.Add(Para($"ملاحظات: {order.Notes}", bold: true));
+                doc.Blocks.Add(Para($"ملاحظات: {noteLines[0]}", bold: true));
+                foreach (var line in noteLines.Skip(1))
+                    doc.Blocks.Add(Para(line, bold: true));
             }
 
             doc.Blocks.Add(HRule());
@@ -809,6 +815,17 @@ namespace PizzaPOS.Services
 
             PrintFlow(doc, $"مطبخ {order.OrderNumber}");
         }
+
+        // ── سطور الملاحظات ──
+        // Order.Notes ممكن يبقى أكتر من سطر (ملاحظات المطعم + ملاحظات
+        // التوصيل). كل سطر بيطلع Paragraph مستقل بدل ما نسيب الـ \n جوه
+        // الـ Run — ده أضمن للطباعة على الطابعات الحرارية.
+        internal static string[] SplitNotes(string? notes) =>
+            (notes ?? "")
+                .Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(l => l.Trim())
+                .Where(l => l.Length > 0)
+                .ToArray();
 
         // ── إرسال أي FlowDocument للطابعة المكتشفة تلقائياً ──
         // الريسيت والمطبخ كله بيعدّي من هنا عشان يكونوا زي بالظبط:

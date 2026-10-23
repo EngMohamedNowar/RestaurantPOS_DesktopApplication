@@ -380,6 +380,25 @@ namespace PizzaPOS.ViewModels
         }
 
         // ── Hold Order With Delivery Info ────────────
+
+        /// <summary>
+        /// بيدمج ملاحظات المطعم (خانة «ملاحظات للمطعم») مع ملاحظات التوصيل
+        /// (خانة «ملاحظات إضافية» في نافذة بيانات التوصيل) في حقل واحد
+        /// Order.Notes — عشان الريسيت والمطبخ وإعادة الطباعة كلها تطبعهم
+        /// من غير ما نضيف عمود جديد في قاعدة البيانات.
+        /// ملاحظات التوصيل بتتعلّم بـ «توصيل:» عشان تبان منفصلة في الطباعة.
+        /// </summary>
+        internal static string CombineNotes(string? restaurantNotes, string? deliveryNotes)
+        {
+            string rest = (restaurantNotes ?? "").Trim();
+            string deliv = (deliveryNotes ?? "").Trim();
+
+            if (deliv.Length == 0) return rest;
+
+            string labeled = "توصيل: " + deliv;
+            return rest.Length == 0 ? labeled : rest + "\n" + labeled;
+        }
+
         void HoldOrderWithDelivery(DeliveryDialog delivery)
         {
             HeldOrders.Add(new Order
@@ -387,7 +406,7 @@ namespace PizzaPOS.ViewModels
                 OrderNumber = _orderNum,
                 OrderType = OrderTypeConst.Delivery,
                 Total = Total,
-                Notes = _notes,
+                Notes = CombineNotes(_notes, delivery.DeliveryNotes),
                 CreatedAt = DateTime.Now.ToString("HH:mm"),
                 Items = OrderItems.ToList(),
                 CustomerName = delivery.CustomerName,
@@ -421,7 +440,7 @@ namespace PizzaPOS.ViewModels
                 Total = finalTotal,
                 PaidAmount = paid,
                 Change = change,
-                Notes = _notes,
+                Notes = CombineNotes(_notes, delivery?.DeliveryNotes),
                 Items = snapshot,
                 Status = OrderStatus.New,
                 CustomerId = delivery?.CustomerId ?? 0,

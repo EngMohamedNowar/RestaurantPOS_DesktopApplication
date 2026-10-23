@@ -26,6 +26,11 @@ namespace PizzaPOS.Views
         public double DeliveryFee { get; private set; }
         public bool IsHeld { get; private set; }
 
+        // ملاحظات «ملاحظات إضافية» — لازم تطلع بره مع الأوردر نفسه،
+        // مش تفضل متخزنة في Customer.Notes بس، عشان الريسيت والمطبخ
+        // يطبعوها. Confirm كان بينسيها و Hold مكانش بيحفظها خالص.
+        public string DeliveryNotes { get; private set; } = "";
+
         readonly AppDbContext _db;
         readonly List<Driver> _drivers;
         readonly double _orderTotal;
@@ -533,6 +538,7 @@ namespace PizzaPOS.Views
             DeliveryAddress = cust.Address;
             CustomerId = cust.Id;
             DeliveryFee = fee;
+            DeliveryNotes = _tbNotes.Text.Trim();
 
             if (_cbDriver.SelectedItem is ComboBoxItem ci && ci.Tag is int driverId && driverId > 0)
             {
@@ -559,6 +565,7 @@ namespace PizzaPOS.Views
             CustomerPhone = _tbPhone.Text.Trim();
             DeliveryAddress = _tbAddress.Text.Trim();
             DeliveryFee = fee;
+            DeliveryNotes = _tbNotes.Text.Trim();
 
             if (_cbDriver.SelectedItem is ComboBoxItem ci && ci.Tag is int driverId && driverId > 0)
             {

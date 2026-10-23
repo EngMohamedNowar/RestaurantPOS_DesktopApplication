@@ -326,6 +326,39 @@ namespace PizzaPOS.Tests
             Assert.Equal(0, vm.Discount, 2);
         }
 
+        [Theory]
+        [InlineData("", "", "")]
+        [InlineData("بدون بصل", "", "بدون بصل")]
+        [InlineData("", "اتصل قبل الصعود", "توصيل: اتصل قبل الصعود")]
+        public void CombineNotes_KeepsBothNotesOnTheOrder(string restaurant, string delivery, string expected)
+        {
+            // ملاحظات التوصيل مكانها Order.Notes نفسه عشان الريسيت
+            // والمطبخ يطبعوها من غير عمود جديد في القاعدة.
+            Assert.Equal(expected, MainViewModel.CombineNotes(restaurant, delivery));
+        }
+
+        [Fact]
+        public void CombineNotes_BothSources_AreJoinedOnSeparateLines()
+        {
+            const string rest = "بدون بصل";
+            const string deliv = "اتصل قبل الصعود";
+
+            string combined = MainViewModel.CombineNotes(rest, deliv);
+
+            Assert.StartsWith(rest + "\n", combined);
+            Assert.EndsWith(deliv, combined);
+            Assert.Contains("توصيل: ", combined);
+        }
+
+        [Fact]
+        public void CombineNotes_NullsAndWhitespace_AreTreatedAsEmpty()
+        {
+            Assert.Equal("", MainViewModel.CombineNotes(null, null));
+            Assert.Equal("توصيل: اتصل", MainViewModel.CombineNotes(null, "  اتصل  "));
+            Assert.Equal("", MainViewModel.CombineNotes("  ", "  "));
+            Assert.Equal("", MainViewModel.CombineNotes(null, "   \n  "));
+        }
+
         [Fact]
         public void RefreshStats_OnEmptyDay_ReportsZeros()
         {
